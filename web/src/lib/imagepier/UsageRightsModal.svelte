@@ -7,16 +7,30 @@
     type PermittedUsage,
     type UsageRights,
   } from '#lib/imagepier/usage-rights.ts';
-  import { Button, Checkbox, DatePicker, Field, FormModal, Input, Label, Select, Stack, Textarea } from '@immich/ui';
+  import {
+    Button,
+    Checkbox,
+    DatePicker,
+    Field,
+    FormModal,
+    Input,
+    Label,
+    Select,
+    Stack,
+    Text,
+    Textarea,
+  } from '@immich/ui';
   import { mdiCopyright } from '@mdi/js';
   import { DateTime } from 'luxon';
 
   type Props = {
     rights?: UsageRights;
+    title?: string;
+    hint?: string;
     onClose: (rights?: UsageRights) => void;
   };
 
-  let { rights, onClose }: Props = $props();
+  let { rights, title, hint, onClose }: Props = $props();
 
   let photographer = $state(rights?.photographer ?? '');
   let copyrightHolder = $state(rights?.copyrightHolder ?? '');
@@ -54,8 +68,18 @@
   };
 </script>
 
-<FormModal title={$ipt('usage_rights_edit')} icon={mdiCopyright} onClose={() => onClose()} {onSubmit} size="medium">
+<FormModal
+  title={title ?? $ipt('usage_rights_edit')}
+  icon={mdiCopyright}
+  onClose={() => onClose()}
+  {onSubmit}
+  size="medium"
+>
   <Stack gap={4}>
+    {#if hint}
+      <Text size="small" color="muted">{hint}</Text>
+    {/if}
+
     <Field label={$ipt('photographer')}>
       <Input bind:value={photographer} />
     </Field>

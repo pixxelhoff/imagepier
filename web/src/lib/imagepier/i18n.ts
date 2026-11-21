@@ -12,6 +12,9 @@ const en = {
   usage_rights_none: 'No usage rights recorded',
   usage_rights_add: 'Add usage rights',
   usage_rights_edit: 'Edit usage rights',
+  usage_rights_bulk_title: 'Set usage rights for {count} items',
+  usage_rights_bulk_hint: 'Only filled-in fields are applied. Empty fields keep their current values.',
+  usage_rights_bulk_saved: 'Usage rights updated for {count} items',
   usage_rights_saved: 'Usage rights saved',
   usage_rights_save_failed: 'Unable to save usage rights',
   usage_rights_load_failed: 'Unable to load usage rights',
@@ -50,6 +53,9 @@ const de: Record<ImagePierMessageKey, string> = {
   usage_rights_none: 'Keine Nutzungsrechte hinterlegt',
   usage_rights_add: 'Nutzungsrechte hinzufügen',
   usage_rights_edit: 'Nutzungsrechte bearbeiten',
+  usage_rights_bulk_title: 'Nutzungsrechte für {count} Elemente festlegen',
+  usage_rights_bulk_hint: 'Nur ausgefüllte Felder werden übernommen. Leere Felder behalten ihren bisherigen Wert.',
+  usage_rights_bulk_saved: 'Nutzungsrechte für {count} Elemente aktualisiert',
   usage_rights_saved: 'Nutzungsrechte gespeichert',
   usage_rights_save_failed: 'Nutzungsrechte konnten nicht gespeichert werden',
   usage_rights_load_failed: 'Nutzungsrechte konnten nicht geladen werden',
@@ -83,9 +89,15 @@ const de: Record<ImagePierMessageKey, string> = {
 
 const messages: Record<string, Record<ImagePierMessageKey, string>> = { en, de };
 
-/** Usage in components: `$ipt('usage_rights')` */
+/** Usage in components: `$ipt('usage_rights')` or `$ipt('usage_rights_bulk_title', { count: 3 })` */
 export const ipt = derived(locale, ($locale) => {
   const language = ($locale ?? 'en').toLowerCase().split('-', 1)[0];
   const dictionary = messages[language] ?? en;
-  return (key: ImagePierMessageKey) => dictionary[key] ?? en[key];
+  return (key: ImagePierMessageKey, values: Record<string, string | number> = {}) => {
+    let message = dictionary[key] ?? en[key];
+    for (const [name, value] of Object.entries(values)) {
+      message = message.replaceAll(`{${name}}`, String(value));
+    }
+    return message;
+  };
 });

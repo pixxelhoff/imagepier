@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ChangeUsageRightsAction from '#lib/imagepier/ChangeUsageRightsAction.svelte';
   import { assetMultiSelectManager } from '#lib/managers/asset-multi-select-manager.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import AssetUpdateDescriptionConfirmModal from '#lib/modals/AssetUpdateDescriptionConfirmModal.svelte';
@@ -34,3 +35,5 @@
 {#if menuItem}
   <MenuOption text={$t('change_description')} icon={mdiText} onClick={() => handleUpdateDescription()} />
 {/if}
+
+<ChangeUsageRightsAction {menuItem} />

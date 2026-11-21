@@ -1,4 +1,4 @@
-import { getAssetMetadata, updateAssetMetadata } from '@immich/sdk';
+import { getAssetMetadata, updateAssetMetadata, updateBulkAssetMetadata } from '@immich/sdk';
 
 /**
 ImagePier usage rights, stored in Immich's asset metadata under USAGE_RIGHTS_KEY.
@@ -78,4 +78,42 @@ export const saveUsageRights = async (assetId: string, rights: UsageRights): Pro
   });
   const saved = items.find(({ key }) => key === USAGE_RIGHTS_KEY);
   return normalizeUsageRights(saved?.value ?? value);
+};
+
+const TEXT_FIELDS = ['photographer', 'copyrightHolder', 'licenseSource', 'creditLine', 'notes', 'validUntil'] as const;
+
+/** Keeps only the fields that were filled in, so empty fields leave existing values unchanged. */
+export const toUsageRightsPatch = (rights: UsageRights): Partial<UsageRights> => {
+  const patch: Partial<UsageRights> = {};
+  for (const key of TEXT_FIELDS) {
+    const value = rights[key]?.trim();
+    if (value) {
+      patch[key] = value;
+    }
+  }
+  if (rights.licenseType) {
+    patch.licenseType = rights.licenseType;
+  }
+  if (rights.permittedUsage?.length) {
+    patch.permittedUsage = rights.permittedUsage;
+  }
+  return patch;
+};
+
+const BULK_CHUNK_SIZE = 20;
+
+/** Merges a patch into the usage rights of many assets and marks them as confirmed. */
+export const applyUsageRightsToAssets = async (assetIds: string[], patch: Partial<UsageRights>) => {
+  for (let index = 0; index < assetIds.length; index += BULK_CHUNK_SIZE) {
+    const chunk = assetIds.slice(index, index + BULK_CHUNK_SIZE);
+    const existing = await Promise.all(chunk.map((assetId) => loadUsageRights(assetId)));
+    const items = chunk.map((assetId, position) => ({
+      assetId,
+      key: USAGE_RIGHTS_KEY,
+      value: compact(
+        normalizeUsageRights({ ...existing[position], ...patch, status: 'confirmed', suggestedFrom: undefined }),
+      ),
+    }));
+    await updateBulkAssetMetadata({ assetMetadataBulkUpsertDto: { items } });
+  }
 };

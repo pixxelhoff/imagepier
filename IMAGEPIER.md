@@ -39,6 +39,8 @@ license source, permitted usage (internal, web, print, social media, press), exp
   Copyright Notice, Rights, Copyright, Credit) and from file names such as `Harbour Festival (c) ACME, Jane Doe.jpg`.
   Suggestions are marked for review and never overwrite existing entries.
 - Shown in the info panel of the asset viewer; the asset owner can edit them. Expired licenses are highlighted.
+- Bulk editing: select several assets and choose "Edit usage rights" in the selection menu (next to "Change description").
+  Only filled-in fields are applied; empty fields keep their current values.
 
 Code: `server/src/imagepier/`, `web/src/lib/imagepier/`.
 
