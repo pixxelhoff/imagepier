@@ -21,6 +21,9 @@ for every image, and soon shared libraries with roles and an embeddable website 
   Suggestions are marked for review and never overwrite existing entries.
 - **Bulk editing** for many assets at once – only filled-in fields are applied, everything else stays as it is.
 - **Copy credit line** with one click, ready to paste below a photo on a website or in print.
+- **Credits in downloaded files** – when an asset is downloaded (single file, ZIP archive, shared link or mobile app),
+  photographer, copyright, credit line and usage terms are written into the file's IPTC/XMP/EXIF metadata.
+  The original in the library stays untouched; supported formats: JPEG, PNG, TIFF, WebP, HEIC.
 
 ### Search and license monitoring
 
@@ -45,7 +48,6 @@ for every image, and soon shared libraries with roles and an embeddable website 
   external users; single sign-on via OpenID Connect (e.g. Keycloak in front of LDAP).
 - **Website gallery** – embeddable albums for websites and content management systems with a download dialog that
   shows license terms and the credit line before the download starts.
-- **Credits in downloaded files** – usage rights written into IPTC/XMP of downloaded originals.
 
 ## Installation
 

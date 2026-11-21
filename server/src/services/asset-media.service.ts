@@ -27,6 +27,7 @@ import {
   Permission,
   StorageFolder,
 } from 'src/enum.js';
+import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import { AuthRequest } from 'src/middleware/auth.guard.js';
 import { BaseService } from 'src/services/base.service.js';
 import type { UploadFile, UploadRequest } from 'src/types.js';
@@ -250,9 +251,12 @@ export class AssetMediaService extends BaseService {
     );
 
     const path = editedPath ?? originalPath!;
+    // ImagePier: send a copy with usage rights credits
+    const { assetRepository, metadataRepository, storageRepository, logger } = this;
+    const repositories = { assetRepository, metadataRepository, storageRepository, logger };
 
     return new ImmichFileResponse({
-      path,
+      path: await applyUsageRightsCredits(repositories, id, path),
       fileName: getFileNameWithoutExtension(originalFileName) + getFilenameExtension(path),
       contentType: mimeTypes.lookup(path),
       cacheControl: CacheControl.PrivateWithCache,

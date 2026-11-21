@@ -9,6 +9,7 @@ import {
   DownloadResponseDto,
 } from 'src/dtos/download.dto.js';
 import { Permission } from 'src/enum.js';
+import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import { ImmichReadStream } from 'src/repositories/storage.repository.js';
 import { BaseService } from 'src/services/base.service.js';
 import { HumanReadableSize } from 'src/utils/bytes.js';
@@ -95,6 +96,9 @@ export class DownloadService extends BaseService {
     const assets = await this.assetRepository.getForOriginals(dto.assetIds, edited);
     const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
     const paths: Record<string, number> = {};
+    // ImagePier: add copies with usage rights credits
+    const { assetRepository, metadataRepository, storageRepository, logger } = this;
+    const repositories = { assetRepository, metadataRepository, storageRepository, logger };
 
     for (const assetId of dto.assetIds) {
       const asset = assetMap.get(assetId);
@@ -122,7 +126,7 @@ export class DownloadService extends BaseService {
         this.logger.warn('Unable to resolve realpath', { realpath });
       }
 
-      zip.addFile(realpath, filename);
+      zip.addFile(await applyUsageRightsCredits(repositories, assetId, realpath), filename);
     }
 
     void zip.finalize();

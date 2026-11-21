@@ -41,6 +41,8 @@ conflicts can occur during updates.
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
+| `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits |
+| `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits |
 | `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
 | `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
@@ -56,6 +58,9 @@ conflicts can occur during updates.
   - `GET config` – tag paths used by the web search tab
   - `POST sync` – re-syncs tags after the web app saved usage rights
 - Web UI texts are in `web/src/lib/imagepier/i18n.ts`, not in Immich's `i18n/` files.
+- Downloads (`download-credits.ts`): for JPEG, PNG, TIFF, WebP and HEIC files with usage rights, a temporary copy
+  in `<tmp>/imagepier-downloads/` gets photographer, copyright, credit line and usage terms written by exiftool and is
+  sent instead of the original. Copies older than one hour are removed. Internal notes are never written.
 
 ## Branding – technical overview
 

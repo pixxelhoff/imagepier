@@ -1,4 +1,4 @@
-import { LICENSE_TYPES, LicenseType, UsageRights } from 'src/imagepier/usage-rights.js';
+import { LICENSE_TYPES, LicenseType, PermittedUsage, UsageRights } from 'src/imagepier/usage-rights.js';
 
 /**
 Usage rights are mirrored into Immich tags so they can be used in Immich's search,
@@ -13,7 +13,8 @@ export type UsageRightsStatus = (typeof USAGE_RIGHTS_STATUSES)[number];
 /** Licenses expiring within this number of days are marked as "expiring". */
 export const EXPIRING_SOON_DAYS = 30;
 
-type TagLabels = {
+export type TagLabels = {
+  locale: string;
   root: string;
   photographer: string;
   copyrightHolder: string;
@@ -21,6 +22,8 @@ type TagLabels = {
   status: string;
   licenses: Record<LicenseType, string>;
   statuses: Record<UsageRightsStatus, string>;
+  usages: Record<PermittedUsage, string>;
+  usageTerms: { license: string; usage: string; validUntil: string };
   notificationTitle: string;
   notificationExpiring: string;
   notificationExpired: string;
@@ -28,6 +31,7 @@ type TagLabels = {
 
 const labels: Record<string, TagLabels> = {
   en: {
+    locale: 'en-CA',
     root: 'Usage rights',
     photographer: 'Photographer',
     copyrightHolder: 'Copyright holder',
@@ -41,11 +45,14 @@ const labels: Record<string, TagLabels> = {
       other: 'Other',
     },
     statuses: { valid: 'Valid', expiring: 'Expiring soon', expired: 'Expired', unreviewed: 'Unreviewed' },
+    usages: { internal: 'Internal', web: 'Website', print: 'Print', social: 'Social media', press: 'Press' },
+    usageTerms: { license: 'License: {value}.', usage: 'Permitted use: {value}.', validUntil: 'Valid until {value}.' },
     notificationTitle: 'Usage rights',
     notificationExpiring: '{count} licenses expire within the next {days} days.',
     notificationExpired: '{count} licenses have expired.',
   },
   de: {
+    locale: 'de-DE',
     root: 'Nutzungsrechte',
     photographer: 'Fotograf',
     copyrightHolder: 'Rechteinhaber',
@@ -59,6 +66,8 @@ const labels: Record<string, TagLabels> = {
       other: 'Sonstige',
     },
     statuses: { valid: 'Gültig', expiring: 'Läuft bald ab', expired: 'Abgelaufen', unreviewed: 'Ungeprüft' },
+    usages: { internal: 'Intern', web: 'Website', print: 'Print', social: 'Social Media', press: 'Presse' },
+    usageTerms: { license: 'Lizenz: {value}.', usage: 'Erlaubte Nutzung: {value}.', validUntil: 'Gültig bis {value}.' },
     notificationTitle: 'Nutzungsrechte',
     notificationExpiring: '{count} Lizenzen laufen in den nächsten {days} Tagen ab.',
     notificationExpired: '{count} Lizenzen sind abgelaufen.',
