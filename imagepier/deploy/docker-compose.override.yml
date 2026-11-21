@@ -1,0 +1,16 @@
+# ImagePier – addition to the official Immich docker-compose.yml.
+# Place next to the existing docker-compose.yml; Docker Compose reads both files automatically.
+# Only the server is replaced by ImagePier; machine learning, Postgres and Redis stay official.
+#
+# In .env:
+#   IMAGEPIER_VERSION=v3.4.2-ip.1   # ImagePier release
+#   IMMICH_VERSION=v3.4.2           # matching Immich version for machine learning
+
+services:
+  immich-server:
+    image: ghcr.io/pixxelhoff/imagepier-server:${IMAGEPIER_VERSION:-release}
+    environment:
+      # Point the source code link (AGPL) to the ImagePier repository instead of Immich
+      IMMICH_REPOSITORY: pixxelhoff/imagepier
+      IMMICH_REPOSITORY_URL: https://github.com/pixxelhoff/imagepier
+      IMMICH_BUILD_IMAGE_URL: https://github.com/pixxelhoff/imagepier/pkgs/container/imagepier-server

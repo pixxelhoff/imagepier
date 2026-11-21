@@ -1,0 +1,67 @@
+name: ImagePier – test
+
+on:
+  push:
+    branches: [imagepier]
+  pull_request:
+    branches: [imagepier]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: imagepier-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    name: Server – format, lint, typecheck, unit tests
+    if: github.repository == 'pixxelhoff/imagepier'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Mise
+        uses: immich-app/devtools/actions/use-mise@caac7f7e4298458a14238959504f411fc6cc7f06 # use-mise-action-v3.2.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run server checks
+        run: mise run //server:ci-unit
+
+      - name: Show formatting changes for ImagePier files
+        if: failure()
+        working-directory: ./server
+        run: |
+          pnpm exec prettier --write src/imagepier src/services/index.ts || true
+          git diff -- src/imagepier src/services/index.ts
+
+  web:
+    name: Web – format, lint, typecheck, unit tests
+    if: github.repository == 'pixxelhoff/imagepier'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Mise
+        uses: immich-app/devtools/actions/use-mise@caac7f7e4298458a14238959504f411fc6cc7f06 # use-mise-action-v3.2.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run web checks
+        run: mise run //web:ci-unit
+
+      - name: Run web lint
+        run: mise run //web:lint
+
+      - name: Show formatting changes for ImagePier files
+        if: failure()
+        working-directory: ./web
+        run: |
+          pnpm exec prettier --write src/lib/imagepier src/lib/components/asset-viewer/DetailPanel.svelte || true
+          git diff -- src/lib/imagepier src/lib/components/asset-viewer/DetailPanel.svelte

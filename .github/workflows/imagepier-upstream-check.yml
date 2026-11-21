@@ -1,0 +1,46 @@
+name: ImagePier – check against upcoming Immich changes
+
+# Checks weekly whether the ImagePier commits can be rebased cleanly onto
+# the current Immich development branch (main).
+# If this run fails, the log lists the conflicting files.
+
+on:
+  schedule:
+    - cron: '17 4 * * 1' # Mondays 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.repository == 'pixxelhoff/imagepier'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: imagepier
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch Immich
+        run: |
+          git remote add immich https://github.com/immich-app/immich.git
+          git fetch --tags immich main
+
+      - name: Trial rebase of ImagePier commits onto Immich main
+        run: |
+          git config user.name "ImagePier CI"
+          git config user.email "ci@imagepier.invalid"
+          base=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' --exclude '*-ip.*' HEAD)
+          echo "Current Immich base: $base"
+          echo "ImagePier commits:"
+          git log --oneline "$base..HEAD"
+          if git rebase --onto immich/main "$base" HEAD; then
+            echo "OK: ImagePier applies cleanly on top of current Immich main."
+          else
+            echo "::error::Conflicts with current Immich main:"
+            git diff --name-only --diff-filter=U
+            git rebase --abort
+            exit 1
+          fi

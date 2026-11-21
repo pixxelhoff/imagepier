@@ -6,6 +6,7 @@
   import DetailPanelRating from '#lib/components/asset-viewer/DetailPanelStarRating.svelte';
   import DetailPanelTags from '#lib/components/asset-viewer/DetailPanelTags.svelte';
   import { timeToLoadTheMap } from '#lib/constants.ts';
+  import UsageRightsPanel from '#lib/imagepier/UsageRightsPanel.svelte';
   import { assetViewerManager } from '#lib/managers/asset-viewer-manager.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { getAlbumsByAssetQuery } from '#lib/queries/album.query.ts';
@@ -266,6 +267,10 @@
       <DetailPanelLocation {isOwner} {asset} />
     </div>
   </section>
+
+  {#if authManager.authenticated && !authManager.isSharedLink}
+    <UsageRightsPanel {asset} {isOwner} />
+  {/if}
 
   {#if latlng && publicConfig.map.enabled}
     <div class="h-90">
