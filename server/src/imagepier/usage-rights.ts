@@ -40,6 +40,29 @@ export const CREDIT_LINE_PREFIX = 'Foto:';
 const COPYRIGHT_MARKER = /\(c\)|©|\bcopyright\b/i;
 const YEAR = /\b(19|20)\d{2}\b/g;
 
+const asText = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined);
+
+/** Validates a stored usage rights value; unknown fields and invalid entries are dropped. */
+export const parseUsageRights = (value: Record<string, unknown>): UsageRights => {
+  const permittedUsage = Array.isArray(value.permittedUsage)
+    ? PERMITTED_USAGES.filter((usage) => (value.permittedUsage as unknown[]).includes(usage))
+    : [];
+  const validUntil = asText(value.validUntil);
+
+  return {
+    version: USAGE_RIGHTS_VERSION,
+    status: value.status === 'confirmed' ? 'confirmed' : 'suggested',
+    photographer: asText(value.photographer),
+    copyrightHolder: asText(value.copyrightHolder),
+    licenseType: LICENSE_TYPES.find((type) => type === value.licenseType),
+    licenseSource: asText(value.licenseSource),
+    permittedUsage: permittedUsage.length > 0 ? permittedUsage : undefined,
+    validUntil: validUntil && /^\d{4}-\d{2}-\d{2}$/.test(validUntil) ? validUntil : undefined,
+    creditLine: asText(value.creditLine),
+    notes: asText(value.notes),
+  };
+};
+
 /** Converts an exiftool value (string, number, list or language map) into trimmed text. */
 export const toText = (value: unknown): string | undefined => {
   if (value === null || value === undefined) {

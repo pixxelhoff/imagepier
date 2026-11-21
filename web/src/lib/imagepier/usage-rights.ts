@@ -1,4 +1,4 @@
-import { getAssetMetadata, updateAssetMetadata, updateBulkAssetMetadata } from '@immich/sdk';
+import { defaults, getAssetMetadata, updateAssetMetadata, updateBulkAssetMetadata } from '@immich/sdk';
 
 /**
 ImagePier usage rights, stored in Immich's asset metadata under USAGE_RIGHTS_KEY.
@@ -57,6 +57,40 @@ export const normalizeUsageRights = (value: Record<string, unknown>): UsageRight
   };
 };
 
+export type UsageRightsConfig = {
+  tags: { root: string; photographer: string; copyrightHolder: string; license: string; status: string };
+  statuses: Record<'valid' | 'expiring' | 'expired' | 'unreviewed', string>;
+  expiringSoonDays: number;
+};
+
+const imagePierRequest = async (path: string, init?: RequestInit) => {
+  const response = await fetch(`${defaults.baseUrl}/imagepier${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...defaults.headers },
+  });
+  if (!response.ok) {
+    throw new Error(`ImagePier request failed: ${response.status} ${response.statusText}`);
+  }
+  return response;
+};
+
+/** Updates the usage rights tags (used for search) of the given assets. */
+export const syncUsageRightsTags = async (assetIds: string[]) => {
+  await imagePierRequest('/usage-rights/sync', { method: 'POST', body: JSON.stringify({ assetIds }) });
+};
+
+let configPromise: Promise<UsageRightsConfig> | undefined;
+
+export const getUsageRightsConfig = () => {
+  configPromise ??= imagePierRequest('/usage-rights/config')
+    .then((response) => response.json() as Promise<UsageRightsConfig>)
+    .catch((error: unknown) => {
+      configPromise = undefined;
+      throw error;
+    });
+  return configPromise;
+};
+
 /** Removes undefined fields so the stored JSON stays compact. */
 const compact = (rights: UsageRights) =>
   Object.fromEntries(Object.entries(rights).filter(([, value]) => value !== undefined)) as Record<string, unknown>;
@@ -76,6 +110,7 @@ export const saveUsageRights = async (assetId: string, rights: UsageRights): Pro
     id: assetId,
     assetMetadataUpsertDto: { items: [{ key: USAGE_RIGHTS_KEY, value }] },
   });
+  await syncUsageRightsTags([assetId]);
   const saved = items.find(({ key }) => key === USAGE_RIGHTS_KEY);
   return normalizeUsageRights(saved?.value ?? value);
 };
@@ -115,5 +150,6 @@ export const applyUsageRightsToAssets = async (assetIds: string[], patch: Partia
       ),
     }));
     await updateBulkAssetMetadata({ assetMetadataBulkUpsertDto: { items } });
+    await syncUsageRightsTags(chunk);
   }
 };

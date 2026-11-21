@@ -5,6 +5,7 @@
 # In .env:
 #   IMAGEPIER_VERSION=v3.4.2-ip.1   # ImagePier release
 #   IMMICH_VERSION=v3.4.2           # matching Immich version for machine learning
+#   IMAGEPIER_LANGUAGE=en           # language of usage rights tags and notifications (en, de)
 
 services:
   immich-server:

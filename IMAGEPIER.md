@@ -42,6 +42,14 @@ license source, permitted usage (internal, web, print, social media, press), exp
 - Bulk editing: select several assets and choose "Edit usage rights" in the selection menu (next to "Change description").
   Only filled-in fields are applied; empty fields keep their current values.
 
+- Search: the search dialog has an additional "Usage rights" tab to filter by photographer, copyright holder,
+  license type and license status. To make this work with Immich's search, usage rights are mirrored into tags,
+  e.g. `Usage rights/Photographer/Jane Doe` or `Usage rights/Status/Expiring soon`. These tags are maintained
+  automatically – after editing, after metadata extraction and by a daily status check.
+- Expiry: the daily status check (03:17 server time) marks licenses expiring within 30 days and expired licenses,
+  and sends an in-app notification to the asset owner.
+- Language of tag names and notifications: set `IMAGEPIER_LANGUAGE` (`en` default, `de`) in the server environment.
+
 Code: `server/src/imagepier/`, `web/src/lib/imagepier/`.
 
 ## Updating to a new Immich release

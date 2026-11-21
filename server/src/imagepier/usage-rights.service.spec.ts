@@ -67,6 +67,45 @@ describe(ImagePierUsageRightsService.name, () => {
     });
   });
 
+  describe('syncTags', () => {
+    it('should add missing and remove outdated usage rights tags', async () => {
+      const asset = AssetFactory.create();
+      const outdated = { id: 'tag-outdated', value: 'Usage rights/Status/Unreviewed' };
+      const unrelated = { id: 'tag-unrelated', value: 'Holidays' };
+      mocks.asset.getById.mockResolvedValue({ ...asset, tags: [outdated, unrelated] } as any);
+      mocks.asset.getMetadataByKey.mockResolvedValue({
+        key: USAGE_RIGHTS_KEY,
+        value: { status: 'confirmed', photographer: 'Jane Doe' },
+        updatedAt: new Date(),
+      });
+      mocks.tag.upsertValue.mockImplementation(({ value }) => Promise.resolve({ id: `tag-${value}`, value } as any));
+
+      const result = await sut.syncTags(asset.id, new Date('2026-06-01T12:00:00Z'));
+
+      expect(mocks.tag.removeAssetIds).toHaveBeenCalledTimes(1);
+      expect(mocks.tag.removeAssetIds).toHaveBeenCalledWith('tag-outdated', [asset.id]);
+      expect(mocks.tag.upsertAssetIds).toHaveBeenCalledWith([
+        { assetId: asset.id, tagId: 'tag-Usage rights/Photographer/Jane Doe' },
+        { assetId: asset.id, tagId: 'tag-Usage rights/Status/Valid' },
+      ]);
+      expect(result).toEqual({ ownerId: asset.ownerId, previous: 'unreviewed', current: 'valid' });
+    });
+
+    it('should remove all usage rights tags when no usage rights are stored', async () => {
+      const asset = AssetFactory.create();
+      mocks.asset.getById.mockResolvedValue({
+        ...asset,
+        tags: [{ id: 'tag-status', value: 'Usage rights/Status/Valid' }],
+      } as any);
+      mocks.asset.getMetadataByKey.mockResolvedValue(undefined);
+
+      await sut.syncTags(asset.id);
+
+      expect(mocks.tag.removeAssetIds).toHaveBeenCalledWith('tag-status', [asset.id]);
+      expect(mocks.tag.upsertAssetIds).not.toHaveBeenCalled();
+    });
+  });
+
   describe('onAssetMetadataExtracted', () => {
     it('should not throw when suggesting fails', async () => {
       mocks.asset.getMetadataByKey.mockRejectedValue(new Error('database unavailable'));

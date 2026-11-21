@@ -1,4 +1,6 @@
 <script lang="ts">
+  import UsageRightsSearchSection from '#lib/imagepier/UsageRightsSearchSection.svelte';
+  import { usageRightsSearchFilter } from '#lib/imagepier/usage-rights-search.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { searchManager } from '#lib/managers/search-manager.svelte.ts';
   import { getAllTags, type PersonResponseDto, type TagResponseDto } from '@immich/sdk';
@@ -128,6 +130,7 @@
       title: $t('media'),
       activeTitle: () => mediaTitle,
     },
+    usageRightsSearchFilter,
   ];
 
   const advancedFiltersSet = $derived(
@@ -232,6 +235,8 @@
             <SearchTagsSection bind:title={tagsTitle} parentPromise={tagsPromise} />
           {:else if activeFilter === 'media'}
             <SearchMediaSection />
+          {:else if activeFilter === usageRightsSearchFilter.name}
+            <UsageRightsSearchSection />
           {/if}
         </div>
       {/if}
