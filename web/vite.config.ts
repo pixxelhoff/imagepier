@@ -13,6 +13,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
+// ImagePier
+import { imagePierBranding, imagePierIndexHtml } from './src/lib/imagepier/branding/vite-plugin.ts';
 
 const buildDir = 'build';
 const inlineTags = ['script', 'style'];
@@ -141,6 +143,8 @@ export default defineConfig({
     proxy,
   },
   plugins: [
+    // ImagePier
+    imagePierBranding(),
     enhancedImages(),
     tailwindcss(),
     sveltekit({
@@ -166,6 +170,8 @@ export default defineConfig({
         'chromecast-caf-sender': './node_modules/@types/chromecast-caf-sender/index.d.ts',
       },
     }),
+    // ImagePier
+    imagePierIndexHtml({ readFileSync, writeFileSync }),
     cspManifest(),
     testing(),
 

@@ -31,6 +31,14 @@ for every image, and soon shared libraries with roles and an embeddable website 
 - Works in the **official Immich mobile apps** as well: usage rights are mirrored into Immich tags
   (e.g. `Usage rights/Status/Expired`), so they can be found with the regular tag filter.
 
+### Own look
+
+- **ImagePier name and logo** in the web app, browser tab and installed web app (PWA). Immich is still credited in
+  the "About" dialog.
+- **Your own logo** without rebuilding: mount a folder with your logo files (see [Custom logo](#custom-logo)).
+- No purchase reminder in the sidebar. Immich licenses can still be bought and managed under
+  *Account settings → Purchase* to support the Immich project.
+
 ### Planned
 
 - **Roles and shared library** – administrators, media managers per department, staff with read and download access,
@@ -45,7 +53,7 @@ ImagePier replaces only the Immich **server** container. Machine learning, Postg
 official Immich images, and existing Immich data is used as it is.
 
 > [!IMPORTANT]
-> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.2` for Immich `v3.4.2`).
+> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.4` for Immich `v3.4.2`).
 > Downgrading Immich is not supported. Always create a database backup before switching.
 
 1. Start from a working [Immich Docker Compose installation](https://docs.immich.app/install/docker-compose).
@@ -53,7 +61,7 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.2
+   IMAGEPIER_VERSION=v3.4.2-ip.4
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
    ```
 
@@ -70,6 +78,20 @@ The "About" dialog in the web app now shows `pixxelhoff/imagepier` as repository
 To get usage rights suggestions for assets uploaded before switching, run the job
 *Administration → Jobs → Extract metadata → All* or use *Refresh metadata* on single assets.
 
+### Custom logo
+
+The logo files are served from `/imagepier/` of the web app. To use your own logo, create a folder with these
+files and mount it in `docker-compose.override.yml` (see the commented example there):
+
+| File | Used for |
+|---|---|
+| `logo-icon.svg` | picture mark (collapsed sidebar, shared links, onboarding) |
+| `logo-inline-light.svg` / `logo-inline-dark.svg` | word mark in the top bar (light / dark theme) |
+| `logo-stacked-light.svg` / `logo-stacked-dark.svg` | picture mark above word mark on the login page |
+
+Start from the [default files](../web/static/imagepier/) and keep the height-based proportions (the inline logos are
+displayed with a fixed height). Browser icon (favicon) and app icons stay ImagePier's.
+
 ### Automatic container updates
 
 If you use tools like Watchtower, exclude the server and machine learning containers – they must be updated
@@ -85,7 +107,7 @@ the official Immich server of the same version. Usage rights stay stored in Immi
 
 | Tag | Meaning |
 |---|---|
-| `v3.4.2-ip.2` | ImagePier release 2 based on Immich `v3.4.2` |
+| `v3.4.2-ip.4` | ImagePier release 4 based on Immich `v3.4.2` |
 | `release` | latest ImagePier release |
 | `edge` | latest build of the `imagepier` branch – for testing only |
 

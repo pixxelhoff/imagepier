@@ -41,6 +41,8 @@ conflicts can occur during updates.
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
+| `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
+| `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
 ## Usage rights – technical overview
 
@@ -54,6 +56,23 @@ conflicts can occur during updates.
   - `GET config` – tag paths used by the web search tab
   - `POST sync` – re-syncs tags after the web app saved usage rights
 - Web UI texts are in `web/src/lib/imagepier/i18n.ts`, not in Immich's `i18n/` files.
+
+## Branding – technical overview
+
+Branding is applied at **build time** by the Vite plugin in `web/src/lib/imagepier/branding/vite-plugin.ts`,
+so Immich source files stay untouched. The plugin is disabled in unit tests (`mode === 'test'`).
+
+- Every import of `@immich/ui` resolves to `branding/ui.ts`, which re-exports the library with ImagePier's `Logo`
+  and `immichLogo`. Logo images are static files in `web/static/imagepier/` (replaceable at runtime by a mount).
+- `HIDDEN_COMPONENTS` turns Immich components into empty ones (the sidebar purchase reminder).
+- `TEXT_REPLACEMENTS` changes literal strings such as page titles.
+- Translation files (`i18n/*.json`): "Immich" becomes "ImagePier", except in keys about the Immich project itself
+  (purchase, support, official resources, release announcements).
+
+After an Immich update, check the web build log for `ImagePier branding not applied` – it lists replacements that no
+longer match and need to be adjusted.
+
+Not branded yet: e-mails, passkey name and API documentation (server side).
 
 ## Updating to a new Immich release
 
@@ -87,3 +106,5 @@ ImagePier follows Immich's tooling (Prettier, ESLint with unicorn, TypeScript st
 - Don't reuse method names of `BaseService` (e.g. `getConfig`).
 - Multi-line doc comments without `*` prefixes.
 - Print width 120; Prettier joins lines that fit.
+- Prefer an early `continue` over an `if` block at the end of a loop body (`unicorn/prefer-continue`).
+- String replacements with a function as replacement (`replaceAll(search, () => value)`).

@@ -1,6 +1,6 @@
 {
   "background_color": "#ffffff",
-  "description": "Self-hosted photo and video backup solution directly from your mobile phone.",
+  "description": "Self-hosted media library with usage rights management, based on Immich.",
   "dir": "auto",
   "display": "standalone",
   "icons": [
@@ -18,8 +18,8 @@
     }
   ],
   "lang": "en",
-  "name": "Immich",
-  "short_name": "Immich",
+  "name": "ImagePier",
+  "short_name": "ImagePier",
   "shortcuts": [
     {
       "name": "Photos",
