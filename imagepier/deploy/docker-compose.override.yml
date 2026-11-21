@@ -3,7 +3,7 @@
 # Only the server is replaced by ImagePier; machine learning, Postgres and Redis stay official.
 #
 # In .env:
-#   IMAGEPIER_VERSION=v3.4.2-ip.1   # ImagePier release
+#   IMAGEPIER_VERSION=v3.4.2-ip.2   # ImagePier release
 #   IMMICH_VERSION=v3.4.2           # matching Immich version for machine learning
 #   IMAGEPIER_LANGUAGE=en           # language of usage rights tags and notifications (en, de)
 
@@ -15,3 +15,10 @@ services:
       IMMICH_REPOSITORY: pixxelhoff/imagepier
       IMMICH_REPOSITORY_URL: https://github.com/pixxelhoff/imagepier
       IMMICH_BUILD_IMAGE_URL: https://github.com/pixxelhoff/imagepier/pkgs/container/imagepier-server
+    labels:
+      # Update together with a matching ImagePier release, not automatically
+      com.centurylinklabs.watchtower.enable: 'false'
+
+  immich-machine-learning:
+    labels:
+      com.centurylinklabs.watchtower.enable: 'false'
