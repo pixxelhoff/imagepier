@@ -37,6 +37,7 @@ import {
   Permission,
   QueueName,
 } from 'src/enum.js';
+import { requirePermanentDeleteAccess } from 'src/imagepier/access-hook.js';
 import { BaseService } from 'src/services/base.service.js';
 import type { JobItem, JobOf } from 'src/types.js';
 import { requireElevatedPermission } from 'src/utils/access.js';
@@ -373,6 +374,11 @@ export class AssetService extends BaseService {
 
   async deleteAll(auth: AuthDto, dto: AssetBulkDeleteDto): Promise<void> {
     const { ids, force } = dto;
+
+    // ImagePier: only admins can delete permanently
+    if (force) {
+      requirePermanentDeleteAccess(auth);
+    }
 
     await this.requireAccess({ auth, permission: Permission.AssetDelete, ids });
     await this.assetRepository.updateAll(ids, {

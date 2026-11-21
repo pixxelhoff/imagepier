@@ -7,6 +7,7 @@
   import UserAvatar from '#lib/components/shared-components/UserAvatar.svelte';
   import DeviceCard from '#lib/components/user-settings-page/DeviceCard.svelte';
   import Skeleton from '#lib/elements/Skeleton.svelte';
+  import UserAccessCard from '#lib/imagepier/UserAccessCard.svelte';
   import { createPreloadedQuery } from '#lib/queries/client.ts';
   import {
     getUserAdminQuery,
@@ -167,6 +168,9 @@
             {/if}
           </Stack>
         </AdminCard>
+
+        <!-- ImagePier: role and permissions -->
+        <UserAccessCard userId={user.id} />
 
         <AdminCard icon={mdiChartPieOutline} title={$t('storage_quota')}>
           {#if user.quotaSizeInBytes !== null && user.quotaSizeInBytes >= 0}

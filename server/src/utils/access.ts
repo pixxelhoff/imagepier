@@ -3,6 +3,7 @@ import { AuthSharedLink } from 'src/database.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { PersonUserRole } from 'src/dtos/person.dto.js';
 import { AlbumUserRole, Permission } from 'src/enum.js';
+import { applyImagePierAccess } from 'src/imagepier/access-hook.js';
 import { AccessRepository } from 'src/repositories/access.repository.js';
 import { PersonId } from 'src/repositories/person.repository.js';
 
@@ -104,9 +105,13 @@ export const checkAccess = async (
     return new Set<string>();
   }
 
-  return auth.sharedLink
-    ? checkSharedLinkAccess(access, { sharedLink: auth.sharedLink, permission, ids: idSet })
-    : checkOtherAccess(access, { auth, permission, ids: idSet });
+  if (auth.sharedLink) {
+    return checkSharedLinkAccess(access, { sharedLink: auth.sharedLink, permission, ids: idSet });
+  }
+
+  // ImagePier: role based rules for the shared media library
+  const request = { auth, permission, ids: idSet };
+  return applyImagePierAccess(access, request, checkOtherAccess(access, request));
 };
 
 const checkSharedLinkAccess = async (

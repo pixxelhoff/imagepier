@@ -4,6 +4,7 @@ import { BulkIdsDto } from 'src/dtos/asset-ids.response.dto.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { TrashResponseDto } from 'src/dtos/trash.dto.js';
 import { JobName, JobStatus, Permission, QueueName } from 'src/enum.js';
+import { requirePermanentDeleteAccess } from 'src/imagepier/access-hook.js';
 import { BaseService } from 'src/services/base.service.js';
 import { batched } from 'src/utils/misc.js';
 
@@ -33,6 +34,8 @@ export class TrashService extends BaseService {
   }
 
   async empty(auth: AuthDto): Promise<TrashResponseDto> {
+    // ImagePier: only admins can delete permanently
+    requirePermanentDeleteAccess(auth);
     const count = await this.trashRepository.empty(auth.user.id);
     if (count > 0) {
       await this.jobRepository.queue({ name: JobName.AssetEmptyTrash, data: {} });

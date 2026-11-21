@@ -8,6 +8,20 @@ Kept separate from Immich's i18n files so that Immich translation updates
 never conflict with ImagePier strings. English is the fallback language.
 */
 const en = {
+  media_library: 'Media library',
+  access_title: 'Role and permissions',
+  role: 'Role',
+  'role.admin': 'Administrator',
+  'role.manager': 'Media manager',
+  'role.staff': 'Staff',
+  'role.external': 'External',
+  can_upload: 'Can upload',
+  can_download: 'Can download',
+  access_admin_hint: 'Administrators always have full access.',
+  access_library_account: 'This is the media library account. It owns all media library assets.',
+  access_saved: 'Permissions saved',
+  access_save_failed: 'Unable to save permissions',
+  access_load_failed: 'Unable to load permissions',
   usage_rights: 'Usage rights',
   usage_rights_none: 'No usage rights recorded',
   usage_rights_add: 'Add usage rights',
@@ -56,6 +70,20 @@ const en = {
 export type ImagePierMessageKey = keyof typeof en;
 
 const de: Record<ImagePierMessageKey, string> = {
+  media_library: 'Mediathek',
+  access_title: 'Rolle und Rechte',
+  role: 'Rolle',
+  'role.admin': 'Administrator/in',
+  'role.manager': 'Medienverantwortliche/r',
+  'role.staff': 'Mitarbeiter/in',
+  'role.external': 'Extern',
+  can_upload: 'Darf hochladen',
+  can_download: 'Darf herunterladen',
+  access_admin_hint: 'Administratoren haben immer vollen Zugriff.',
+  access_library_account: 'Dies ist das Mediathek-Konto. Ihm gehören alle Bilder der Mediathek.',
+  access_saved: 'Rechte gespeichert',
+  access_save_failed: 'Rechte konnten nicht gespeichert werden',
+  access_load_failed: 'Rechte konnten nicht geladen werden',
   usage_rights: 'Nutzungsrechte',
   usage_rights_none: 'Keine Nutzungsrechte hinterlegt',
   usage_rights_add: 'Nutzungsrechte hinzufügen',

@@ -36,8 +36,13 @@ conflicts can occur during updates.
 
 | File | Change |
 |---|---|
-| `server/src/services/index.ts` | registers `ImagePierUsageRightsService` |
-| `server/src/controllers/index.ts` | registers `ImagePierUsageRightsController` |
+| `server/src/services/index.ts` | registers `ImagePierAccessService`, `ImagePierUsageRightsService` |
+| `server/src/controllers/index.ts` | registers the ImagePier access and usage rights controllers |
+| `server/src/utils/access.ts` | `checkAccess` passes Immich's result through `applyImagePierAccess` (roles) |
+| `server/src/services/asset.service.ts` | `deleteAll` with `force`: only administrators |
+| `server/src/services/trash.service.ts` | `empty`: only administrators |
+| `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds the "Media library" entry |
+| `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
@@ -61,6 +66,21 @@ conflicts can occur during updates.
 - Downloads (`download-credits.ts`): for JPEG, PNG, TIFF, WebP and HEIC files with usage rights, a temporary copy
   in `<tmp>/imagepier-downloads/` gets photographer, copyright, credit line and usage terms written by exiftool and is
   sent instead of the original. Copies older than one hour are removed. Internal notes are never written.
+
+## Roles and media library – technical overview
+
+- `server/src/imagepier/access-rules.ts`: roles, defaults and the in-memory copy of the settings. The settings are
+  stored in `system_metadata` under `imagepier.access` (`libraryUserId`, role/upload/download per user).
+- **Without a media library account the rules are inactive** and Immich's behaviour applies. Immich's own unit
+  tests therefore run unchanged.
+- `access.service.ts`: creates the media library account on startup (`IMAGEPIER_LIBRARY_EMAIL`,
+  `IMAGEPIER_LIBRARY_NAME`), shares it with all non-external users as partner (`inTimeline`), repairs the sharing
+  every 15 minutes and after a user is created.
+- `access-hook.ts`: `AssetUpload` needs upload permission, `AssetDownload`/`AlbumDownload` need download permission,
+  `AssetUpdate`/`AssetDelete` are extended to media library assets for media managers. Permanent deletion and
+  emptying the trash are reserved for administrators.
+- Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`,
+  `GET|PUT /api/admin/imagepier/access/users/:id`.
 
 ## Branding – technical overview
 

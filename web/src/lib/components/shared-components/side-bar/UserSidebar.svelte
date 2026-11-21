@@ -2,6 +2,7 @@
   import BottomInfo from '#lib/components/shared-components/side-bar/BottomInfo.svelte';
   import RecentAlbums from '#lib/components/shared-components/side-bar/RecentAlbums.svelte';
   import Sidebar from '#lib/components/sidebar/Sidebar.svelte';
+  import MediaLibraryNavItem from '#lib/imagepier/MediaLibraryNavItem.svelte';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { createPreloadedQuery } from '#lib/queries/client.ts';
   import { getUserConfigQuery } from '#lib/queries/config-user.query.ts';
@@ -45,6 +46,8 @@
 
 <Sidebar ariaLabel={$t('primary')}>
   <NavbarItem title={$t('photos')} href={Route.photos()} icon={mdiImageMultipleOutline} activeIcon={mdiImageMultiple} />
+  <!-- ImagePier: shared media library -->
+  <MediaLibraryNavItem />
 
   <NavbarItem title={$t('explore')} href={Route.explore()} icon={mdiMagnify} />
 

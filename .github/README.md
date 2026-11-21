@@ -27,8 +27,11 @@ for every image, and soon shared libraries with roles and an embeddable website 
 
 ### Search and license monitoring
 
-- **"Usage rights" tab in the search dialog** – filter by photographer, copyright holder, license type and license
-  status (valid, expiring soon, expired, unreviewed), combined with all other Immich filters.
+- **"Usage rights" tab in the search dialog** – filter by photographer, copyright holder, license type, license
+  status (valid, expiring soon, expired, unreviewed), permitted usage, license source, credit line and expiry year,
+  combined with all other Immich filters.
+- **Find missing information** – every asset without copyright holder, photographer or license is tagged
+  (`Usage rights/Missing/…`), so incomplete assets can be found and completed.
 - **Daily license check** – licenses expiring within 30 days and expired licenses are flagged, and asset owners
   receive an in-app notification.
 - Works in the **official Immich mobile apps** as well: usage rights are mirrored into Immich tags
@@ -42,10 +45,24 @@ for every image, and soon shared libraries with roles and an embeddable website 
 - No purchase reminder in the sidebar. Immich licenses can still be bought and managed under
   *Account settings → Purchase* to support the Immich project.
 
+### Roles and shared media library (preview)
+
+- **Media library account** – a technical account owns the official media. It is shared automatically with all
+  users except externals (Immich partner sharing), so everybody sees it in the timeline, in search and in the mobile
+  apps. A "Media library" entry in the sidebar shows only the media library.
+- **Roles per account** (*Administration → Users → user → Role and permissions*):
+  - *Administrator* – full access (Immich administrators).
+  - *Media manager* – upload, edit and move media library assets to the trash.
+  - *Staff* – view and download; uploading can be enabled per account.
+  - *External* – no access to the media library, only to albums and links shared with them; downloading can be
+    enabled per account.
+- **Permanent deletion only by administrators** – everybody else can only move assets to the trash.
+
 ### Planned
 
-- **Roles and shared library** – administrators, media managers per department, staff with read and download access,
-  external users; single sign-on via OpenID Connect (e.g. Keycloak in front of LDAP).
+- **Departments** – media managers per department, upload into a department, "move to media library".
+- **Audit log** – uploads, changes, deletions and downloads.
+- **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
 - **Website gallery** – embeddable albums for websites and content management systems with a download dialog that
   shows license terms and the credit line before the download starts.
 
@@ -63,8 +80,11 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.4
+   IMAGEPIER_VERSION=v3.4.2-ip.6
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
+   # optional: e-mail and name of the media library account (created on first start)
+   # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
+   # IMAGEPIER_LIBRARY_NAME=Media library
    ```
 
 3. Copy [`imagepier/deploy/docker-compose.override.yml`](../imagepier/deploy/docker-compose.override.yml) next to
