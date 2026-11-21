@@ -96,7 +96,7 @@ export const ipt = derived(locale, ($locale) => {
   return (key: ImagePierMessageKey, values: Record<string, string | number> = {}) => {
     let message = dictionary[key] ?? en[key];
     for (const [name, value] of Object.entries(values)) {
-      message = message.replaceAll(`{${name}}`, String(value));
+      message = message.replaceAll(`{${name}}`, () => String(value));
     }
     return message;
   };
