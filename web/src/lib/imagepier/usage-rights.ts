@@ -58,8 +58,20 @@ export const normalizeUsageRights = (value: Record<string, unknown>): UsageRight
 };
 
 export type UsageRightsConfig = {
-  tags: { root: string; photographer: string; copyrightHolder: string; license: string; status: string };
+  tags: {
+    root: string;
+    photographer: string;
+    copyrightHolder: string;
+    license: string;
+    status: string;
+    usage: string;
+    licenseSource: string;
+    creditLine: string;
+    validUntil: string;
+    missing: string;
+  };
   statuses: Record<'valid' | 'expiring' | 'expired' | 'unreviewed', string>;
+  missing: Record<'copyrightHolder' | 'photographer' | 'license', string>;
   expiringSoonDays: number;
 };
 

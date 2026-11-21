@@ -54,14 +54,52 @@ describe('usage rights tags', () => {
         'Usage rights/Photographer/Jane Doe',
         'Usage rights/Copyright holder/ACME - Media',
         'Usage rights/License/Agency',
+        'Usage rights/Valid until/2026',
         'Usage rights/Status/Expired',
+      ]);
+    });
+
+    it('should add usage, license source and credit line tags', () => {
+      const rights: UsageRights = {
+        version: USAGE_RIGHTS_VERSION,
+        status: 'confirmed',
+        permittedUsage: ['web', 'press'],
+        licenseSource: 'Contract 2026/12',
+        creditLine: 'Foto: Jane Doe / ACME',
+        validUntil: '2027-12-31',
+        notes: 'Internal note',
+      };
+
+      expect(getUsageRightsTagValues(rights, today, getTagLabels('de'))).toEqual([
+        'Nutzungsrechte/Erlaubte Nutzung/Website',
+        'Nutzungsrechte/Erlaubte Nutzung/Presse',
+        'Nutzungsrechte/Lizenzquelle/Contract 2026-12',
+        'Nutzungsrechte/Bildnachweis/Foto: Jane Doe - ACME',
+        'Nutzungsrechte/Gültig bis/2027',
+        'Nutzungsrechte/Status/Gültig',
+        'Nutzungsrechte/Fehlende Angaben/Rechteinhaber',
+        'Nutzungsrechte/Fehlende Angaben/Fotograf',
+        'Nutzungsrechte/Fehlende Angaben/Lizenz',
       ]);
     });
 
     it('should always add a status tag', () => {
       const rights: UsageRights = { version: USAGE_RIGHTS_VERSION, status: 'suggested' };
 
-      expect(getUsageRightsTagValues(rights, today, getTagLabels('de'))).toEqual(['Nutzungsrechte/Status/Ungeprüft']);
+      expect(getUsageRightsTagValues(rights, today, getTagLabels('de'))).toEqual([
+        'Nutzungsrechte/Status/Ungeprüft',
+        'Nutzungsrechte/Fehlende Angaben/Rechteinhaber',
+        'Nutzungsrechte/Fehlende Angaben/Fotograf',
+        'Nutzungsrechte/Fehlende Angaben/Lizenz',
+      ]);
+    });
+
+    it('should only add missing field tags without usage rights', () => {
+      expect(getUsageRightsTagValues(undefined, today, getTagLabels('en'))).toEqual([
+        'Usage rights/Missing/Copyright holder',
+        'Usage rights/Missing/Photographer',
+        'Usage rights/Missing/License',
+      ]);
     });
   });
 

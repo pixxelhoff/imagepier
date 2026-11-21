@@ -12,8 +12,24 @@ Usage rights are mirrored into tags by the server ("Usage rights/Photographer/Ja
 The search tab translates the selected values into tag IDs of Immich's regular tag filter.
 */
 
-export type UsageRightsCategory = 'photographer' | 'copyrightHolder' | 'license' | 'status';
-export const USAGE_RIGHTS_CATEGORIES: UsageRightsCategory[] = ['photographer', 'copyrightHolder', 'license', 'status'];
+export type UsageRightsCategory = Exclude<keyof UsageRightsConfig['tags'], 'root'>;
+
+/** Categories with a single selection. */
+export const USAGE_RIGHTS_SELECT_CATEGORIES: UsageRightsCategory[] = [
+  'missing',
+  'status',
+  'photographer',
+  'copyrightHolder',
+  'license',
+  'licenseSource',
+  'creditLine',
+  'validUntil',
+];
+
+/** Category with multiple selections; all selected uses must be permitted. */
+export const USAGE_RIGHTS_MULTI_CATEGORY: UsageRightsCategory = 'usage';
+
+const ALL_CATEGORIES = [...USAGE_RIGHTS_SELECT_CATEGORIES, USAGE_RIGHTS_MULTI_CATEGORY];
 
 export type UsageRightsOption = { id: string; label: string };
 
@@ -53,20 +69,24 @@ class UsageRightsSearchData {
   }
 
   getSelected(category: UsageRightsCategory, tagIds: Set<string> | null | undefined) {
+    return this.getAllSelected(category, tagIds)[0];
+  }
+
+  getAllSelected(category: UsageRightsCategory, tagIds: Set<string> | null | undefined) {
     if (!tagIds) {
-      return;
+      return [];
     }
-    return this.getOptions(category).find((option) => tagIds.has(option.id));
+    return this.getOptions(category).filter((option) => tagIds.has(option.id));
+  }
+
+  hasAnyOptions() {
+    return ALL_CATEGORIES.some((category) => this.getOptions(category).length > 0);
   }
 
   getTitle(tagIds: Set<string> | null | undefined) {
-    const labels: string[] = [];
-    for (const category of USAGE_RIGHTS_CATEGORIES) {
-      const label = this.getSelected(category, tagIds)?.label;
-      if (label) {
-        labels.push(label);
-      }
-    }
+    const labels = ALL_CATEGORIES.flatMap((category) =>
+      this.getAllSelected(category, tagIds).map((option) => option.label),
+    );
     return labels.length > 0 ? labels.join(' · ') : undefined;
   }
 }
@@ -86,6 +106,20 @@ export const selectUsageRightsOption = (category: UsageRightsCategory, tagId: st
 
   if (tagId) {
     tagIds.add(tagId);
+  }
+};
+
+/** Adds or removes one value of a category with multiple selections. */
+export const toggleUsageRightsOption = (tagId: string, checked: boolean) => {
+  const tagIds = searchManager.filter.tagIds;
+  if (!tagIds) {
+    return;
+  }
+
+  if (checked) {
+    tagIds.add(tagId);
+  } else {
+    tagIds.delete(tagId);
   }
 };
 

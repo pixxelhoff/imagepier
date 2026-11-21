@@ -87,22 +87,30 @@ describe(ImagePierUsageRightsService.name, () => {
       expect(mocks.tag.upsertAssetIds).toHaveBeenCalledWith([
         { assetId: asset.id, tagId: 'tag-Usage rights/Photographer/Jane Doe' },
         { assetId: asset.id, tagId: 'tag-Usage rights/Status/Valid' },
+        { assetId: asset.id, tagId: 'tag-Usage rights/Missing/Copyright holder' },
+        { assetId: asset.id, tagId: 'tag-Usage rights/Missing/License' },
       ]);
       expect(result).toEqual({ ownerId: asset.ownerId, previous: 'unreviewed', current: 'valid' });
     });
 
-    it('should remove all usage rights tags when no usage rights are stored', async () => {
+    it('should only keep the missing field tags when no usage rights are stored', async () => {
       const asset = AssetFactory.create();
       mocks.asset.getById.mockResolvedValue({
         ...asset,
         tags: [{ id: 'tag-status', value: 'Usage rights/Status/Valid' }],
       } as any);
       mocks.asset.getMetadataByKey.mockResolvedValue(undefined);
+      mocks.tag.upsertValue.mockImplementation(({ value }) => Promise.resolve({ id: `tag-${value}`, value } as any));
 
-      await sut.syncTags(asset.id);
+      const result = await sut.syncTags(asset.id);
 
       expect(mocks.tag.removeAssetIds).toHaveBeenCalledWith('tag-status', [asset.id]);
-      expect(mocks.tag.upsertAssetIds).not.toHaveBeenCalled();
+      expect(mocks.tag.upsertAssetIds).toHaveBeenCalledWith([
+        { assetId: asset.id, tagId: 'tag-Usage rights/Missing/Copyright holder' },
+        { assetId: asset.id, tagId: 'tag-Usage rights/Missing/Photographer' },
+        { assetId: asset.id, tagId: 'tag-Usage rights/Missing/License' },
+      ]);
+      expect(result).toEqual({ ownerId: asset.ownerId, previous: 'valid', current: undefined });
     });
   });
 

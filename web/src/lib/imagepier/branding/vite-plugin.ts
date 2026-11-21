@@ -30,6 +30,19 @@ const TEXT_REPLACEMENTS: { file: string; search: string; replace: string }[] = [
     search: '} - Immich</title>',
     replace: `} - ${BRAND_NAME}</title>`,
   },
+  {
+    file: '/src/lib/modals/ServerAboutModal.svelte',
+    search: "  import ServerAboutItem from '#lib/components/ServerAboutItem.svelte';",
+    replace: [
+      "  import AboutImagePier from '#lib/imagepier/branding/AboutImagePier.svelte';",
+      "  import ServerAboutItem from '#lib/components/ServerAboutItem.svelte';",
+    ].join('\n'),
+  },
+  {
+    file: '/src/lib/modals/ServerAboutModal.svelte',
+    search: '<ServerAboutItem id="immich" title="Immich"',
+    replace: '<AboutImagePier {info} />\n      <ServerAboutItem id="immich" title="Immich"',
+  },
 ];
 
 // Translation keys that refer to the Immich project itself and keep its name.

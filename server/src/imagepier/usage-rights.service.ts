@@ -5,6 +5,7 @@ import { mapNotification } from 'src/dtos/notification.dto.js';
 import { ImmichWorker, NotificationLevel, NotificationType, Permission } from 'src/enum.js';
 import {
   EXPIRING_SOON_DAYS,
+  MISSING_FIELDS,
   USAGE_RIGHTS_STATUSES,
   UsageRightsStatus,
   formatMessage,
@@ -99,7 +100,7 @@ export class ImagePierUsageRightsService extends BaseService {
     const tagLabels = getTagLabels();
     const rootPrefix = `${getTagPaths(tagLabels).root}/`;
     const currentTags = (asset.tags ?? []).filter((tag) => tag.value.startsWith(rootPrefix));
-    const desiredValues = rights ? getUsageRightsTagValues(rights, today, tagLabels) : [];
+    const desiredValues = getUsageRightsTagValues(rights, today, tagLabels);
     const desiredTags = await upsertTags(this.tagRepository, { userId: asset.ownerId, tags: desiredValues });
 
     const desiredIds = new Set(desiredTags.map((tag) => tag.id));
@@ -142,6 +143,9 @@ export class ImagePierUsageRightsService extends BaseService {
       tags: paths,
       statuses: Object.fromEntries(
         USAGE_RIGHTS_STATUSES.map((status) => [status, `${paths.status}/${tagLabels.statuses[status]}`]),
+      ),
+      missing: Object.fromEntries(
+        MISSING_FIELDS.map((field) => [field, `${paths.missing}/${tagLabels.missingFields[field]}`]),
       ),
       expiringSoonDays: EXPIRING_SOON_DAYS,
     };

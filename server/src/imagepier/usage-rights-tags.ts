@@ -3,6 +3,7 @@ import { LICENSE_TYPES, LicenseType, PermittedUsage, UsageRights } from 'src/ima
 /**
 Usage rights are mirrored into Immich tags so they can be used in Immich's search,
 tag views and mobile apps, e.g. "Usage rights/Photographer/Jane Doe".
+Notes are internal and therefore not mirrored.
 
 The language of the tag names is configured with IMAGEPIER_LANGUAGE (en, de).
 */
@@ -13,6 +14,10 @@ export type UsageRightsStatus = (typeof USAGE_RIGHTS_STATUSES)[number];
 /** Licenses expiring within this number of days are marked as "expiring". */
 export const EXPIRING_SOON_DAYS = 30;
 
+/** Fields that are tagged as missing, so assets without them can be found and completed. */
+export const MISSING_FIELDS = ['copyrightHolder', 'photographer', 'license'] as const;
+export type MissingField = (typeof MISSING_FIELDS)[number];
+
 export type TagLabels = {
   locale: string;
   root: string;
@@ -20,6 +25,12 @@ export type TagLabels = {
   copyrightHolder: string;
   license: string;
   status: string;
+  usage: string;
+  licenseSource: string;
+  creditLine: string;
+  validUntil: string;
+  missing: string;
+  missingFields: Record<MissingField, string>;
   licenses: Record<LicenseType, string>;
   statuses: Record<UsageRightsStatus, string>;
   usages: Record<PermittedUsage, string>;
@@ -37,6 +48,12 @@ const labels: Record<string, TagLabels> = {
     copyrightHolder: 'Copyright holder',
     license: 'License',
     status: 'Status',
+    usage: 'Permitted usage',
+    licenseSource: 'License source',
+    creditLine: 'Credit line',
+    validUntil: 'Valid until',
+    missing: 'Missing',
+    missingFields: { copyrightHolder: 'Copyright holder', photographer: 'Photographer', license: 'License' },
     licenses: {
       owned: 'Owned by the organization',
       'time-limited': 'Time-limited',
@@ -58,6 +75,12 @@ const labels: Record<string, TagLabels> = {
     copyrightHolder: 'Rechteinhaber',
     license: 'Lizenz',
     status: 'Status',
+    usage: 'Erlaubte Nutzung',
+    licenseSource: 'Lizenzquelle',
+    creditLine: 'Bildnachweis',
+    validUntil: 'Gültig bis',
+    missing: 'Fehlende Angaben',
+    missingFields: { copyrightHolder: 'Rechteinhaber', photographer: 'Fotograf', license: 'Lizenz' },
     licenses: {
       owned: 'Eigentum',
       'time-limited': 'Zeitlich begrenzt',
@@ -96,6 +119,11 @@ export const getTagPaths = (tagLabels = getTagLabels()) => {
     copyrightHolder: `${root}/${tagLabels.copyrightHolder}`,
     license: `${root}/${tagLabels.license}`,
     status: `${root}/${tagLabels.status}`,
+    usage: `${root}/${tagLabels.usage}`,
+    licenseSource: `${root}/${tagLabels.licenseSource}`,
+    creditLine: `${root}/${tagLabels.creditLine}`,
+    validUntil: `${root}/${tagLabels.validUntil}`,
+    missing: `${root}/${tagLabels.missing}`,
   };
 };
 
@@ -117,8 +145,32 @@ export const getUsageRightsStatus = (rights: Pick<UsageRights, 'status' | 'valid
   return rights.status === 'confirmed' ? 'valid' : 'unreviewed';
 };
 
-/** Returns the full tag values an asset with the given usage rights should carry. */
-export const getUsageRightsTagValues = (rights: UsageRights, today = new Date(), tagLabels = getTagLabels()) => {
+/** Returns the tag values for fields that are not filled in yet. */
+export const getMissingTagValues = (rights: UsageRights | undefined, tagLabels = getTagLabels()) => {
+  const missingPath = getTagPaths(tagLabels).missing;
+  const filled: Record<MissingField, boolean> = {
+    copyrightHolder: !!rights?.copyrightHolder,
+    photographer: !!rights?.photographer,
+    license: !!rights?.licenseType,
+  };
+  return MISSING_FIELDS.filter((field) => !filled[field]).map(
+    (field) => `${missingPath}/${tagLabels.missingFields[field]}`,
+  );
+};
+
+/**
+Returns the full tag values an asset should carry.
+Assets without usage rights only get the tags for missing fields.
+*/
+export const getUsageRightsTagValues = (
+  rights: UsageRights | undefined,
+  today = new Date(),
+  tagLabels = getTagLabels(),
+) => {
+  if (!rights) {
+    return getMissingTagValues(rights, tagLabels);
+  }
+
   const paths = getTagPaths(tagLabels);
   const values: string[] = [];
 
@@ -137,7 +189,28 @@ export const getUsageRightsTagValues = (rights: UsageRights, today = new Date(),
     values.push(`${paths.license}/${tagLabels.licenses[licenseType]}`);
   }
 
-  values.push(`${paths.status}/${tagLabels.statuses[getUsageRightsStatus(rights, today)]}`);
+  for (const usage of rights.permittedUsage ?? []) {
+    values.push(`${paths.usage}/${tagLabels.usages[usage]}`);
+  }
+
+  const licenseSource = rights.licenseSource ? segment(rights.licenseSource) : '';
+  if (licenseSource) {
+    values.push(`${paths.licenseSource}/${licenseSource}`);
+  }
+
+  const creditLine = rights.creditLine ? segment(rights.creditLine) : '';
+  if (creditLine) {
+    values.push(`${paths.creditLine}/${creditLine}`);
+  }
+
+  if (rights.validUntil) {
+    values.push(`${paths.validUntil}/${rights.validUntil.slice(0, 4)}`);
+  }
+
+  values.push(
+    `${paths.status}/${tagLabels.statuses[getUsageRightsStatus(rights, today)]}`,
+    ...getMissingTagValues(rights, tagLabels),
+  );
 
   return values;
 };
