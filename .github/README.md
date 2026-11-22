@@ -1,10 +1,35 @@
-# ImagePier
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../web/static/imagepier/logo-stacked-dark.svg">
+    <img src="../web/static/imagepier/logo-stacked-light.svg" alt="ImagePier" width="260">
+  </picture>
+</p>
 
-**A self-hosted media library for organizations – built on [Immich](https://github.com/immich-app/immich).**
+<h3 align="center">The self-hosted media library for teams – built on Immich</h3>
 
-ImagePier keeps everything that makes Immich great – fast uploads, timeline, albums, face and object search,
-mobile apps – and adds what teams need to work with photos professionally: usage rights, licenses and photo credits
-for every image, and soon shared libraries with roles and an embeddable website gallery.
+<p align="center">
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL_v3-3F51B5?style=for-the-badge" alt="License: AGPL v3"></a>
+  <a href="https://github.com/immich-app/immich"><img src="https://img.shields.io/badge/based_on-Immich_v3.4.2-4250af?style=for-the-badge" alt="Based on Immich v3.4.2"></a>
+  <a href="https://github.com/pixxelhoff/imagepier/pkgs/container/imagepier-server"><img src="https://img.shields.io/badge/image-ghcr.io-a66cff?style=for-the-badge" alt="Container image on ghcr.io"></a>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="#releases-and-versions">Releases</a> ·
+  <a href="#development">Development</a> ·
+  <a href="#about">About</a>
+</p>
+
+---
+
+ImagePier keeps everything that makes [Immich](https://github.com/immich-app/immich) great – fast uploads, timeline,
+albums, face and object search, mobile apps – and adds what teams need to work with photos professionally:
+
+- 📝 **Usage rights, licenses and photo credits** for every image – also written into downloaded files
+- 🗂️ **A shared media library** with roles, areas (departments) and its own trash
+- 🌐 **Public website galleries** that only show images cleared for publication
+- 📋 **An audit log** of uploads, downloads and changes
 
 > [!NOTE]
 > ImagePier is an independent fork and **not affiliated with or supported by the Immich team**.
@@ -12,7 +37,7 @@ for every image, and soon shared libraries with roles and an embeddable website 
 
 ## Features
 
-### Usage rights for every asset
+### 📝 Usage rights for every asset
 
 - **Usage rights panel** in the info sidebar of the asset viewer: photographer, copyright holder, credit line,
   license type, license source, permitted usage (internal, web, print, social media, press), expiry date and notes.
@@ -21,15 +46,15 @@ for every image, and soon shared libraries with roles and an embeddable website 
   Suggestions are marked for review and never overwrite existing entries.
 - **Bulk editing** for many assets at once – only filled-in fields are applied, everything else stays as it is.
 - **Copy credit line** with one click, ready to paste below a photo on a website or in print.
-- **Credits in downloaded files** – when an asset is downloaded (single file, ZIP archive, shared link or mobile app),
-  photographer, copyright, credit line and usage terms are written into the file's IPTC/XMP/EXIF metadata.
-  The original in the library stays untouched; supported formats: JPEG, PNG, TIFF, WebP, HEIC.
+- **Credits in downloaded files** – when an asset is downloaded (single file, ZIP archive, shared link, gallery or
+  mobile app), photographer, copyright, credit line and usage terms are written into the file's IPTC/XMP/EXIF
+  metadata. The original in the library stays untouched; supported formats: JPEG, PNG, TIFF, WebP, HEIC.
 
-### Search and license monitoring
+### 🔎 Search and license monitoring
 
 - **"Usage rights" tab in the search dialog** – filter by photographer, copyright holder, license type, license
-  status (valid, expiring soon, expired, unreviewed), permitted usage, license source, credit line and expiry year,
-  combined with all other Immich filters.
+  status (valid, expiring soon, expired, unreviewed), permitted usage, license source, credit line, expiry year and
+  area, combined with all other Immich filters.
 - **Find missing information** – every asset without copyright holder, photographer or license is tagged
   (`Usage rights/Missing/…`), so incomplete assets can be found and completed.
 - **Daily license check** – licenses expiring within 30 days and expired licenses are flagged, and asset owners
@@ -37,62 +62,59 @@ for every image, and soon shared libraries with roles and an embeddable website 
 - Works in the **official Immich mobile apps** as well: usage rights are mirrored into Immich tags
   (e.g. `Usage rights/Status/Expired`), so they can be found with the regular tag filter.
 
-### Own look
-
-- **ImagePier name and logo** in the web app, browser tab and installed web app (PWA). Immich is still credited in
-  the "About" dialog.
-- **Your own logo** without rebuilding: mount a folder with your logo files (see [Custom logo](#custom-logo)).
-- No purchase reminder in the sidebar. Immich licenses can still be bought and managed under
-  *Account settings → Purchase* to support the Immich project.
-
-### Roles and shared media library (preview)
+### 🗂️ Roles and shared media library
 
 - **Media library account** – a technical account owns the official media. It is shared automatically with all
   users except externals (Immich partner sharing), so everybody sees it in the timeline, in search and in the mobile
-  apps. A "Media library" entry in the sidebar shows only the media library. The switch "Show in Photos" below it
-  hides the media library from the own timeline; while it is off, search covers only the own assets.
+  apps. A "Media library" entry in the sidebar shows only the media library; the switch "Show in Photos" hides it
+  from the own timeline.
 - **Roles per account** (*Administration → Users → user → Role and permissions*):
-  - *Administrator* – full access (Immich administrators).
-  - *Media manager* – upload, edit and move media library assets to the trash.
-  - *Staff* – view and download; uploading can be enabled per account.
-  - *External* – no access to the media library, only to albums and links shared with them; downloading can be
-    enabled per account.
-- **Permanent deletion only by administrators** – everybody else can only move assets to the trash.
+
+  | Role | Can do |
+  |---|---|
+  | **Administrator** | everything, including permanent deletion |
+  | **Media manager** | upload, edit and move media library assets of their areas to the trash |
+  | **Staff** | view and download; uploading can be enabled per account |
+  | **External** | only albums and links shared with them; downloading can be enabled per account |
+
 - **Areas (departments)** – administrators create areas under *Administration → Media library* and assign media
-  managers to them. A media manager edits only assets of their areas and of the shared area. Each media library asset
-  shows its area and can be found by area in the search dialog.
-- **Add to media library** – own assets can be moved into the media library with an area (selection menu). In the
-  media library view, media managers can edit usage rights, change the area or move assets to the trash.
-- **Media library trash** – administrators restore or permanently delete media library assets under
-  *Administration → Media library*. Accounts without upload permission do not see the upload button.
+  managers to them. Each media library asset shows its area and can be found by area in the search dialog.
+- **Add to media library** – own assets can be moved into the media library with an area (selection menu).
+- **Media library trash** – administrators restore or permanently delete media library assets. Everybody else can
+  only move assets to the trash. Accounts without upload permission do not see the upload button.
 
-### Audit log
+### 🌐 Website galleries
 
-Under *Administration → Audit log* administrators see uploads, downloads, usage rights changes,
-moves into the media library, trash, restore and permanent deletion, role and area changes, and created or deleted
+Administrators and media managers publish albums as public galleries under *Website galleries* in the sidebar
+(media managers only their own albums). Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
+website or embedded in an iframe – no login needed for visitors.
+
+- Only images with **confirmed usage rights for website or press use** that have **not expired** are shown. The
+  filter runs on the server, so the rest of the album stays private.
+- Every image shows its credit line. Visitors confirm the license terms before downloading – single images, a
+  selection or the whole gallery as ZIP file.
+- **Own look** – administrators set a default heading, accent color, logo, footer text and links to imprint and
+  privacy policy. Each gallery can override single values.
+- Downloads can be disabled per gallery and are counted in the audit log (no personal data of visitors).
+
+### 📋 Audit log
+
+Under *Administration → Audit log* administrators see uploads, downloads, usage rights changes, moves into the media
+library, trash, restore and permanent deletion, role and area changes, published galleries and created or deleted
 accounts – filterable by action, person and period, with CSV export.
 
 - **Retention** – 365 days by default, adjustable; older entries are removed every night.
 - **Downloads** – only counted by default. Storing who downloaded can be enabled; this records employee behaviour,
   so agree on it with your works council and data protection officer first.
 - **Logins** – optional, off by default.
-- Downloads include originals opened in full resolution (for example when zooming), because Immich uses the same
-  endpoint for both.
 
-### Website galleries
+### 🎨 Own look
 
-Administrators and media managers publish albums as public galleries under *Website galleries* in the sidebar
-(media managers only their own albums). Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
-website or embedded in an iframe.
+- **ImagePier name and logo** in the web app, browser tab and installed web app (PWA). Immich is still credited in
+  the "About" dialog.
+- **Your own logo** without rebuilding: mount a folder with your logo files (see [Custom logo](#custom-logo)).
 
-- Only images with **confirmed usage rights for website or press use** that have **not expired** are shown; the
-  filter is applied on the server, so the rest of the album stays private.
-- Every image shows its credit line. The download dialog lists credit line, license and permitted use; the download
-  starts after the visitor confirms the terms. Downloads are counted in the audit log (no personal data).
-- Downloads can be disabled per gallery. Heading, accent color, logo, footer text and links to imprint and privacy
-  policy are set by administrators (*Website galleries → Appearance*).
-
-### Possible later
+### 🧭 Possible later
 
 - **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
 - **Registration before downloads** in galleries (name, organization, intended use), stored in the audit log.
@@ -103,7 +125,7 @@ ImagePier replaces only the Immich **server** container. Machine learning, Postg
 official Immich images, and existing Immich data is used as it is.
 
 > [!IMPORTANT]
-> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.4` for Immich `v3.4.2`).
+> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.15` for Immich `v3.4.2`).
 > Downgrading Immich is not supported. Always create a database backup before switching.
 
 1. Start from a working [Immich Docker Compose installation](https://docs.immich.app/install/docker-compose).
@@ -111,7 +133,7 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.7
+   IMAGEPIER_VERSION=v3.4.2-ip.15
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
@@ -160,7 +182,7 @@ the official Immich server of the same version. Usage rights stay stored in Immi
 
 | Tag | Meaning |
 |---|---|
-| `v3.4.2-ip.4` | ImagePier release 4 based on Immich `v3.4.2` |
+| `v3.4.2-ip.15` | ImagePier release 15 based on Immich `v3.4.2` |
 | `release` | latest ImagePier release |
 | `edge` | latest build of the `imagepier` branch – for testing only |
 
@@ -170,6 +192,16 @@ Images: `ghcr.io/pixxelhoff/imagepier-server`
 
 See [IMAGEPIER.md](../IMAGEPIER.md) for the repository layout, how ImagePier stays updatable with new Immich
 releases, the CI workflows and the code conventions.
+
+## About
+
+ImagePier is developed and maintained by **[pixxelhoff](https://github.com/pixxelhoff)**.
+Questions, ideas or feedback: [contact@pixxelhoff.com](mailto:contact@pixxelhoff.com)
+
+> [!TIP]
+> **Made with vibe coding.** ImagePier was created by describing features in plain language and building them with
+> AI-assisted development. Every change runs through Immich's complete test suite in CI and is tested in daily use
+> before it is released – still, please review it like any other software before you rely on it.
 
 ## License
 
