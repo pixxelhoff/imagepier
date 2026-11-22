@@ -46,7 +46,7 @@ import { VideoStreamController } from 'src/controllers/video-stream.controller.j
 import { ViewController } from 'src/controllers/view.controller.js';
 import { WorkflowController } from 'src/controllers/workflow.controller.js';
 import { ImagePierAccessAdminController, ImagePierAccessController } from 'src/imagepier/access.controller.js';
-import { ImagePierAuditAdminController } from 'src/imagepier/audit.controller.js';
+import { ImagePierAuditAdminController, ImagePierLibraryController } from 'src/imagepier/audit.controller.js';
 import {
   ImagePierGalleryAdminController,
   ImagePierGalleryController,
@@ -109,5 +109,6 @@ export const controllers = [
   ImagePierGalleryAdminController,
   ImagePierGalleryController,
   ImagePierGalleryPublicController,
+  ImagePierLibraryController,
   ImagePierUsageRightsController,
 ];

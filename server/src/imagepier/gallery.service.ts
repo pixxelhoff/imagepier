@@ -5,7 +5,8 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import sanitize from 'sanitize-filename';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { AssetFileType, AssetType, CacheControl, SystemMetadataKey } from 'src/enum.js';
-import { getAccessForAuth } from 'src/imagepier/access-hook.js';
+import { getAccessForAuth, setAlbumAssetResolver } from 'src/imagepier/access-hook.js';
+import { canEditArea, getAreaAccounts, getCachedAccessSettings, getUserAccess } from 'src/imagepier/access-rules.js';
 import { recordAudit } from 'src/imagepier/audit.js';
 import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import {
@@ -71,6 +72,40 @@ export class ImagePierGalleryService {
     private systemMetadataRepository: SystemMetadataRepository,
   ) {
     this.logger.setContext(ImagePierGalleryService.name);
+    setAlbumAssetResolver((albumId) => this.getAlbumAssetIds(albumId));
+  }
+
+  /** Asset ids of an album, used to check shared links of albums. */
+  async getAlbumAssetIds(albumId: string) {
+    const { rows } = await sql<{ assetId: string }>`
+      SELECT aa."assetId" FROM album_asset aa WHERE aa."albumId" = ${albumId}
+    `.execute(this.db);
+    return rows.map((row) => row.assetId);
+  }
+
+  /**
+  Whether the creator of a gallery may publish assets of the given owner: own assets, and media library assets of
+  areas where the creator is editor or media manager. Administrators publish everything.
+  */
+  private async getPublishCheck(createdById: string) {
+    const { rows } = await sql<{ isAdmin: boolean }>`
+      SELECT u."isAdmin" FROM "user" u WHERE u."id" = ${createdById} AND u."deletedAt" IS NULL
+    `.execute(this.db);
+    const creator = rows[0];
+    if (!creator) {
+      return () => false;
+    }
+
+    const settings = getCachedAccessSettings();
+    const access = getUserAccess(settings, { id: createdById, isAdmin: creator.isAdmin });
+    const accounts = getAreaAccounts(settings);
+    return (ownerId: string) => {
+      if (access.role === 'admin' || ownerId === createdById) {
+        return true;
+      }
+      const areaId = accounts.get(ownerId);
+      return areaId !== undefined && canEditArea(access, areaId);
+    };
   }
 
   private async load() {
@@ -209,6 +244,7 @@ export class ImagePierGalleryService {
 
     const { rows } = await sql<{
       id: string;
+      ownerId: string;
       originalFileName: string;
       width: number | null;
       height: number | null;
@@ -216,6 +252,7 @@ export class ImagePierGalleryService {
     }>`
       SELECT
         a."id",
+        a."ownerId",
         a."originalFileName",
         e."exifImageWidth" AS "width",
         e."exifImageHeight" AS "height",
@@ -232,10 +269,11 @@ export class ImagePierGalleryService {
     `.execute(this.db);
 
     const labels = getTagLabels();
+    const canPublish = await this.getPublishCheck(gallery.createdById);
     const assets: GalleryAsset[] = [];
     for (const row of rows) {
       const rights: UsageRights | undefined = row.rights ? parseUsageRights(row.rights) : undefined;
-      if (!rights || !isPublishable(rights)) {
+      if (!rights || !isPublishable(rights) || !canPublish(row.ownerId)) {
         continue;
       }
       assets.push({

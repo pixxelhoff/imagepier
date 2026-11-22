@@ -174,6 +174,7 @@ export const AUDIT_ACTIONS = [
   'upload',
   'download',
   'usage_rights',
+  'usage_rights_confirm',
   'library_move',
   'trash',
   'restore',
@@ -212,6 +213,8 @@ export type AuditFilter = {
 
 export type LibraryTrashItem = {
   id: string;
+  ownerId: string;
+  areaId?: string;
   originalFileName: string;
   type: string;
   deletedAt: string;
@@ -239,5 +242,5 @@ export const getAuditSettings = () => request<AuditSettings>('/admin/imagepier/a
 export const updateAuditSettings = (dto: Partial<AuditSettings>) =>
   request<AuditSettings>('/admin/imagepier/audit/settings', { method: 'PUT', body: JSON.stringify(dto) });
 
-/** Media library assets in the trash; only for administrators. */
-export const getLibraryTrash = () => request<LibraryTrashItem[]>('/admin/imagepier/library/trash');
+/** Media library assets in the trash of the areas where the user is editor or media manager. */
+export const getLibraryTrash = () => request<LibraryTrashItem[]>('/imagepier/library/trash');

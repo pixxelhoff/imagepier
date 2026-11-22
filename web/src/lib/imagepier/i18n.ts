@@ -136,6 +136,7 @@ const en = {
   'audit.upload': 'Uploaded',
   'audit.download': 'Downloaded',
   'audit.usage_rights': 'Usage rights changed',
+  'audit.usage_rights_confirm': 'Usage rights confirmed',
   'audit.library_move': 'Added to media library',
   'audit.trash': 'Moved to trash',
   'audit.restore': 'Restored',
@@ -146,6 +147,8 @@ const en = {
   'audit.user_delete': 'Account deleted',
   'audit.login': 'Login',
   library_trash_title: 'Media library trash',
+  library_trash_nav: 'Trash of the areas',
+  library_trash_all_areas: 'All areas',
   library_trash_description:
     'Media library items in the trash. They are deleted automatically after the period set under Settings → Trash.',
   library_trash_empty: 'The trash is empty',
@@ -374,6 +377,7 @@ const de: Record<ImagePierMessageKey, string> = {
   'audit.upload': 'Hochgeladen',
   'audit.download': 'Heruntergeladen',
   'audit.usage_rights': 'Nutzungsrechte geändert',
+  'audit.usage_rights_confirm': 'Nutzungsrechte bestätigt',
   'audit.library_move': 'In Mediathek übernommen',
   'audit.trash': 'In den Papierkorb',
   'audit.restore': 'Wiederhergestellt',
@@ -384,6 +388,8 @@ const de: Record<ImagePierMessageKey, string> = {
   'audit.user_delete': 'Konto gelöscht',
   'audit.login': 'Anmeldung',
   library_trash_title: 'Papierkorb der Mediathek',
+  library_trash_nav: 'Papierkorb der Bereiche',
+  library_trash_all_areas: 'Alle Bereiche',
   library_trash_description:
     'Mediathek-Bilder im Papierkorb. Sie werden nach der Frist unter Einstellungen → Papierkorb automatisch gelöscht.',
   library_trash_empty: 'Der Papierkorb ist leer',

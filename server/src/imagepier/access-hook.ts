@@ -103,15 +103,15 @@ export const applyImagePierAccess = async (
       return allowed.union(new Set([...permitted].filter((id) => uploaders.get(id) === auth.user.id)));
     }
 
-    // Admins see media library assets in the trash (partner sharing hides trashed assets).
+    // Admins and editors see media library assets of their areas in the trash (partner sharing hides them).
     case Permission.AssetRead:
     case Permission.AssetView: {
       const missing = ids.difference(allowed);
-      if (userAccess.role !== 'admin' || missing.size === 0) {
+      if (!userAccess.canEditLibrary || missing.size === 0) {
         return allowed;
       }
-      const { library } = await checkLibraryAssets(missing, () => true);
-      return allowed.union(library);
+      const { permitted } = await checkLibraryAssets(missing, (areaId) => canEditArea(userAccess, areaId));
+      return allowed.union(permitted);
     }
 
     // Usage rights tags of the area accounts are used by the search of users with a level in the area.
@@ -145,6 +145,50 @@ export const requirePermanentDeleteAccess = async (auth: AuthDto, ids: string[])
   const { library, permitted } = await checkLibraryAssets(new Set(ids), (areaId) => canManageArea(userAccess, areaId));
   if (permitted.size < library.size) {
     throw new ForbiddenException('Only media managers can permanently delete assets of their areas');
+  }
+};
+
+/** Returns the asset ids of an album; registered by the ImagePier gallery service, which can query albums. */
+export type AlbumAssetResolver = (albumId: string) => Promise<string[]>;
+
+let albumAssetResolver: AlbumAssetResolver | undefined;
+
+export const setAlbumAssetResolver = (resolver: AlbumAssetResolver | undefined) => {
+  albumAssetResolver = resolver;
+};
+
+/**
+Assets among the given ones that the user may publish with a shared link: own assets, and media library assets of
+areas where the user is editor or media manager. Externals do not share media library assets.
+*/
+export const getShareableAssets = async (auth: AuthDto, ids: string[]) => {
+  const userAccess = getAccessForAuth(auth);
+  const all = new Set(ids);
+  if (userAccess.role === 'admin') {
+    return all;
+  }
+
+  const { library, permitted } = await checkLibraryAssets(
+    all,
+    (areaId) => userAccess.role === 'staff' && canEditArea(userAccess, areaId),
+  );
+  return all.difference(library.difference(permitted));
+};
+
+const SHARE_FORBIDDEN = 'Media library assets can only be shared by editors and media managers of their areas';
+
+/** Shared links with media library assets need the level editor in their areas. */
+export const requireShareableAssets = async (auth: AuthDto, ids: string[]) => {
+  const shareable = await getShareableAssets(auth, ids);
+  if (shareable.size < new Set(ids).size) {
+    throw new ForbiddenException(SHARE_FORBIDDEN);
+  }
+};
+
+/** Shared links of albums are checked against the assets the album contains when the link is created. */
+export const requireShareableAlbum = async (auth: AuthDto, albumId: string) => {
+  if (albumAssetResolver) {
+    await requireShareableAssets(auth, await albumAssetResolver(albumId));
   }
 };
 

@@ -88,8 +88,9 @@ const imagePierRequest = async (path: string, init?: RequestInit) => {
 };
 
 /** Updates the usage rights tags (used for search) of the given assets. */
-export const syncUsageRightsTags = async (assetIds: string[]) => {
-  await imagePierRequest('/usage-rights/sync', { method: 'POST', body: JSON.stringify({ assetIds }) });
+/** Updates the usage rights tags; `confirmed` marks a confirmation by a media manager in the audit log. */
+export const syncUsageRightsTags = async (assetIds: string[], confirmed = false) => {
+  await imagePierRequest('/usage-rights/sync', { method: 'POST', body: JSON.stringify({ assetIds, confirmed }) });
 };
 
 let configPromise: Promise<UsageRightsConfig> | undefined;
@@ -206,7 +207,10 @@ export const confirmUsageRights = async (assetIds: string[]) => {
     }
 
     const saved = await updateBulkAssetMetadata({ assetMetadataBulkUpsertDto: { items } });
-    await syncUsageRightsTags(items.map((item) => item.assetId));
+    await syncUsageRightsTags(
+      items.map((item) => item.assetId),
+      true,
+    );
     count += saved.filter((item) => item.value.status === 'confirmed').length;
   }
   return count;

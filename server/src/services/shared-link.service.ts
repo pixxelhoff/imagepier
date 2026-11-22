@@ -13,6 +13,7 @@ import {
   mapSharedLink,
 } from 'src/dtos/shared-link.dto.js';
 import { Permission, SharedLinkType } from 'src/enum.js';
+import { getShareableAssets, requireShareableAlbum, requireShareableAssets } from 'src/imagepier/access-hook.js';
 import { BaseService } from 'src/services/base.service.js';
 import { asDateTimeString } from 'src/utils/date.js';
 import { OpenGraphTags, findOrFail, getExternalDomain } from 'src/utils/misc.js';
@@ -75,6 +76,8 @@ export class SharedLinkService extends BaseService {
           throw new BadRequestException('Invalid albumId');
         }
         await this.requireAccess({ auth, permission: Permission.AlbumShare, ids: [dto.albumId] });
+        // ImagePier: media library assets can only be shared by editors of their areas
+        await requireShareableAlbum(auth, dto.albumId);
         break;
       }
 
@@ -84,6 +87,8 @@ export class SharedLinkService extends BaseService {
         }
 
         await this.requireAccess({ auth, permission: Permission.AssetShare, ids: dto.assetIds });
+        // ImagePier: media library assets can only be shared by editors of their areas
+        await requireShareableAssets(auth, dto.assetIds);
 
         break;
       }
@@ -157,11 +162,13 @@ export class SharedLinkService extends BaseService {
 
     const existingAssetIds = new Set(sharedLink.assets.map((asset) => asset.id));
     const notPresentAssetIds = dto.assetIds.filter((assetId) => !existingAssetIds.has(assetId));
-    const allowedAssetIds = await this.checkAccess({
+    const accessibleAssetIds = await this.checkAccess({
       auth,
       permission: Permission.AssetShare,
       ids: notPresentAssetIds,
     });
+    // ImagePier: media library assets can only be shared by editors of their areas
+    const allowedAssetIds = accessibleAssetIds.intersection(await getShareableAssets(auth, [...accessibleAssetIds]));
 
     const results: AssetIdsResponseDto[] = [];
     for (const assetId of dto.assetIds) {

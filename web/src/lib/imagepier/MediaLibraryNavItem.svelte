@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     canPublishGalleries,
+    getAssignableAreas,
     getMediaLibraryAccess,
     getVisibleAreas,
     isLibraryUser,
@@ -36,6 +37,9 @@
 
   // Only areas with a level are shown.
   const areas = $derived(showLibrary && access ? getVisibleAreas(access) : []);
+
+  // The trash of the areas is available to editors and media managers.
+  const showTrash = $derived(showLibrary && !!access && getAssignableAreas(access).length > 0);
 
   const isPhotosPage = $derived(page.url.pathname.startsWith(Route.photos()));
 
@@ -75,6 +79,11 @@
         {$ipt('photos_area', { name: area.name })}
       </a>
     {/each}
+    {#if showTrash}
+      <a href="/media-library/trash" class={itemClass(isAreaPage('trash'))}>
+        {$ipt('library_trash_nav')}
+      </a>
+    {/if}
   </div>
   {#if access && canPublishGalleries(access)}
     <NavbarItem title={$ipt('website_galleries')} href="/galleries" icon={mdiWeb} />

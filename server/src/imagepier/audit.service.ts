@@ -2,8 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { sql, type Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { OnEvent } from 'src/decorators.js';
+import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { AssetStatus, ImmichWorker, SystemMetadataKey } from 'src/enum.js';
-import { ACCESS_SETTINGS_KEY, getAreaAccounts, parseAccessSettings } from 'src/imagepier/access-rules.js';
+import { getAccessForAuth } from 'src/imagepier/access-hook.js';
+import { UPLOADED_BY_KEY, canEditArea, getCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import {
   AUDIT_SETTINGS_KEY,
   AuditAction,
@@ -55,6 +57,9 @@ export type AuditRow = {
 
 export type LibraryTrashItem = {
   id: string;
+  ownerId: string;
+  /** Area of the asset (the area of its owner) */
+  areaId?: string;
   originalFileName: string;
   type: string;
   deletedAt: Date;
@@ -282,20 +287,37 @@ export class ImagePierAuditService {
     return rows.toSorted((a, b) => (a.userName ?? '').localeCompare(b.userName ?? ''));
   }
 
-  /** Media library assets in the trash, newest first, with the person who moved them there. */
-  async getLibraryTrash(): Promise<LibraryTrashItem[]> {
-    const settings = parseAccessSettings(
-      await this.systemMetadataRepository.get(ACCESS_SETTINGS_KEY as SystemMetadataKey),
-    );
-    const accountIds = getAreaAccounts(settings).keys().toArray();
-    if (!settings.libraryUserId || accountIds.length === 0) {
+  /**
+  Media library assets in the trash of the areas where the user is editor or media manager, newest first, with the
+  person who moved them there. Externals only see the assets they delivered.
+  */
+  async getLibraryTrash(auth: AuthDto): Promise<LibraryTrashItem[]> {
+    const settings = getCachedAccessSettings();
+    const access = getAccessForAuth(auth);
+    const areaByOwner = new Map<string, string>();
+    for (const area of settings.areas) {
+      if (area.userId && canEditArea(access, area.id)) {
+        areaByOwner.set(area.userId, area.id);
+      }
+    }
+    if (!settings.libraryUserId || areaByOwner.size === 0) {
       return [];
     }
+
+    const accountIds = areaByOwner.keys().toArray();
+    const onlyDeliveredBy =
+      access.role === 'external'
+        ? sql`AND EXISTS (
+            SELECT 1 FROM asset_metadata m
+            WHERE m."assetId" = a."id" AND m."key" = ${UPLOADED_BY_KEY} AND m."value"->>'userId' = ${auth.user.id}
+          )`
+        : sql``;
 
     await this.ensureTable();
     const { rows } = await sql<LibraryTrashItem>`
       SELECT
         a."id",
+        a."ownerId",
         a."originalFileName",
         a."type",
         a."deletedAt",
@@ -307,9 +329,10 @@ export class ImagePierAuditService {
         ) AS "deletedBy"
       FROM asset a
       WHERE a."ownerId" = ${anyUuid(accountIds)} AND a."deletedAt" IS NOT NULL AND a."status" = ${AssetStatus.Trashed}
+        ${onlyDeliveredBy}
       ORDER BY a."deletedAt" DESC
       LIMIT 1000
     `.execute(this.db);
-    return rows;
+    return rows.map((row) => ({ ...row, areaId: areaByOwner.get(row.ownerId) }));
   }
 }

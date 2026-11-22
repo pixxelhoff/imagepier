@@ -1,22 +1,35 @@
 <script lang="ts">
-  import { getLibraryTrash, type LibraryTrashItem } from '#lib/imagepier/access.ts';
+  import {
+    canManageAreaOf,
+    getLibraryTrash,
+    getMyAccess,
+    type LibraryTrashItem,
+    type MyAccess,
+  } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
+  import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { locale } from '#lib/stores/preferences.store.ts';
   import { getAssetMediaUrl } from '#lib/utils.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
   import { AssetMediaSize, deleteAssets, restoreAssets } from '@immich/sdk';
-  import { Button, HelperText, Stack, Text, modalManager, toastManager } from '@immich/ui';
+  import { Button, Field, HelperText, Select, Stack, Text, modalManager, toastManager } from '@immich/ui';
   import { mdiDeleteForeverOutline, mdiHistory } from '@mdi/js';
   import { DateTime } from 'luxon';
   import { onMount } from 'svelte';
 
+  /**
+  Trash of the media library areas where the user is editor or media manager (externals: only their deliveries).
+  Restoring needs the level editor, deleting permanently the level media manager; the server checks both.
+  */
   let items = $state<LibraryTrashItem[]>([]);
+  let access = $state<MyAccess>();
+  let areaFilter = $state('');
   let loaded = $state(false);
   let failed = $state(false);
 
   const load = async () => {
     try {
-      items = await getLibraryTrash();
+      [items, access] = await Promise.all([getLibraryTrash(), getMyAccess(authManager.user.id)]);
       failed = false;
     } catch {
       failed = true;
@@ -60,6 +73,20 @@
     }
   };
 
+  const getAreaName = (areaId: string | undefined) => access?.allAreas.find((area) => area.id === areaId)?.name;
+
+  const canDelete = (item: LibraryTrashItem) => !!access && !!item.areaId && canManageAreaOf(access, item.areaId);
+
+  // Only areas that have items in the trash can be selected.
+  const areaOptions = $derived([
+    { label: $ipt('library_trash_all_areas'), value: '' },
+    ...(access?.allAreas ?? [])
+      .filter((area) => items.some((item) => item.areaId === area.id))
+      .map((area) => ({ label: area.name, value: area.id })),
+  ]);
+
+  const visibleItems = $derived(areaFilter ? items.filter((item) => item.areaId === areaFilter) : items);
+
   const formatDate = (value: string) =>
     DateTime.fromISO(value).toLocaleString(DateTime.DATETIME_SHORT, { locale: $locale });
 </script>
@@ -72,7 +99,15 @@
   {:else if loaded && items.length === 0}
     <Text color="muted">{$ipt('library_trash_empty')}</Text>
   {:else}
-    {#each items as item (item.id)}
+    {#if areaOptions.length > 2}
+      <div class="max-w-xs">
+        <Field label={$ipt('area')}>
+          <Select options={areaOptions} bind:value={areaFilter} />
+        </Field>
+      </div>
+    {/if}
+
+    {#each visibleItems as item (item.id)}
       <div class="flex items-center gap-4" data-testid="imagepier-library-trash-item">
         <img
           src={getAssetMediaUrl({ id: item.id, size: AssetMediaSize.Thumbnail })}
@@ -83,6 +118,9 @@
         <div class="min-w-0 grow">
           <Text class="truncate">{item.originalFileName}</Text>
           <Text size="small" color="muted">
+            {#if getAreaName(item.areaId)}
+              {getAreaName(item.areaId)} ·
+            {/if}
             {formatDate(item.deletedAt)}
             {#if item.deletedBy}
               · {$ipt('library_trash_deleted_by', { name: item.deletedBy })}
@@ -92,15 +130,17 @@
         <Button size="small" variant="ghost" leadingIcon={mdiHistory} onclick={() => restore(item)}>
           {$ipt('library_trash_restore')}
         </Button>
-        <Button
-          size="small"
-          variant="ghost"
-          color="danger"
-          leadingIcon={mdiDeleteForeverOutline}
-          onclick={() => deletePermanently(item)}
-        >
-          {$ipt('library_trash_delete')}
-        </Button>
+        {#if canDelete(item)}
+          <Button
+            size="small"
+            variant="ghost"
+            color="danger"
+            leadingIcon={mdiDeleteForeverOutline}
+            onclick={() => deletePermanently(item)}
+          >
+            {$ipt('library_trash_delete')}
+          </Button>
+        {/if}
       </div>
     {/each}
   {/if}

@@ -97,6 +97,10 @@ albums, face and object search, mobile apps – and adds what teams need to work
   area (or an administrator) confirms them. Only confirmed usage rights count for website galleries.
 - **External photographers** – externals with the level *Editor* deliver photos into an area and maintain the usage
   rights of their own deliveries; they cannot move other photos, share links or publish galleries.
+- **Trash per area** – editors and media managers find the trash of their areas below the areas in the sidebar;
+  editors restore, media managers delete permanently.
+- **Sharing** – shared links and website galleries only contain media library photos of areas where the person
+  sharing is at least *Editor*.
 
 ### 🌐 Website galleries
 

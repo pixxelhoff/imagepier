@@ -2,9 +2,10 @@ import { Body, Controller, Get, Put, Query } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
+import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { AUDIT_ACTIONS, MAX_RETENTION_DAYS, MIN_RETENTION_DAYS } from 'src/imagepier/audit.js';
 import { ImagePierAuditService } from 'src/imagepier/audit.service.js';
-import { Authenticated } from 'src/middleware/auth.guard.js';
+import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
 
 const AuditListQuerySchema = z.object({
   from: z.coerce.date().optional().describe('Earliest entry'),
@@ -60,10 +61,18 @@ export class ImagePierAuditAdminController {
   updateAuditSettings(@Body() dto: AuditSettingsUpdateDto) {
     return this.service.updateSettings(dto);
   }
+}
 
-  @Get('library/trash')
-  @Authenticated({ admin: true })
-  getLibraryTrash() {
-    return this.service.getLibraryTrash();
+/** ImagePier endpoints. Not part of Immich's public API specification. */
+@ApiExcludeController()
+@Controller('imagepier/library')
+export class ImagePierLibraryController {
+  constructor(private service: ImagePierAuditService) {}
+
+  /** Trash of the areas where the user is editor or media manager. */
+  @Get('trash')
+  @Authenticated()
+  getLibraryTrash(@Auth() auth: AuthDto) {
+    return this.service.getLibraryTrash(auth);
   }
 }

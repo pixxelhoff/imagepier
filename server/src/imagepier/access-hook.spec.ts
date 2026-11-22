@@ -5,8 +5,10 @@ import { Permission } from 'src/enum.js';
 import {
   applyImagePierAccess,
   applyMetadataRules,
+  getShareableAssets,
   rejectReservedMetadataKeys,
   requirePermanentDeleteAccess,
+  requireShareableAssets,
   setAssetOwnerResolver,
   setAssetUploaderResolver,
 } from 'src/imagepier/access-hook.js';
@@ -72,6 +74,40 @@ describe('ImagePier access hook', () => {
     const result = await applyImagePierAccess(
       access,
       { auth: authFor('photographer'), permission: Permission.AssetUpdate, ids: new Set(['asset-1', 'asset-4']) },
+      Promise.resolve(new Set<string>()),
+    );
+
+    expect(result).toEqual(new Set(['asset-1']));
+  });
+
+  describe('shared links', () => {
+    it('should let editors share own assets and media library assets of their areas', async () => {
+      useSettings({ user: { role: 'staff', areas: { press: 'editor', marketing: 'standard' } } });
+
+      await expect(getShareableAssets(authFor('user'), ['own', 'asset-1', 'asset-2'])).resolves.toEqual(
+        new Set(['own', 'asset-1']),
+      );
+      await expect(requireShareableAssets(authFor('user'), ['asset-2'])).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should not let externals share media library assets', async () => {
+      useSettings({ photographer: { role: 'external', areas: { press: 'editor' } } });
+
+      await expect(getShareableAssets(authFor('photographer'), ['asset-1'])).resolves.toEqual(new Set());
+    });
+
+    it('should let admins share everything', async () => {
+      useSettings({});
+
+      await expect(getShareableAssets(authFor('admin', true), ['asset-2'])).resolves.toEqual(new Set(['asset-2']));
+    });
+  });
+
+  it('should let editors view trashed media library assets of their areas', async () => {
+    useSettings({ user: { role: 'staff', areas: { press: 'editor', marketing: 'viewer' } } });
+    const result = await applyImagePierAccess(
+      access,
+      { auth: authFor('user'), permission: Permission.AssetView, ids: new Set(['asset-1', 'asset-2']) },
       Promise.resolve(new Set<string>()),
     );
 

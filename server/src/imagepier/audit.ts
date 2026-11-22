@@ -14,6 +14,7 @@ export const AUDIT_ACTIONS = [
   'upload',
   'download',
   'usage_rights',
+  'usage_rights_confirm',
   'library_move',
   'trash',
   'restore',

@@ -11,6 +11,7 @@ import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
 
 const UsageRightsSyncSchema = z.object({
   assetIds: z.array(z.uuidv4()).min(1).max(10_000).describe('Asset IDs whose usage rights tags should be updated'),
+  confirmed: z.boolean().optional().describe('Whether the usage rights were confirmed (audit log)'),
 });
 
 class UsageRightsSyncDto extends createZodDto(UsageRightsSyncSchema) {}
@@ -45,7 +46,7 @@ export class ImagePierUsageRightsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async syncTags(@Auth() auth: AuthDto, @Body() dto: UsageRightsSyncDto): Promise<void> {
     await this.service.syncTagsForAssets(auth, dto.assetIds);
-    recordAuditFor(auth, { action: 'usage_rights', assetIds: dto.assetIds });
+    recordAuditFor(auth, { action: dto.confirmed ? 'usage_rights_confirm' : 'usage_rights', assetIds: dto.assetIds });
   }
 
   @Post('library')

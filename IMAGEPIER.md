@@ -104,7 +104,16 @@ conflicts can occur during updates.
 - `applyMetadataRules` (called from Immich's asset metadata endpoints): the keys `imagepier.area` and
   `imagepier.uploaded-by` are reserved for the server; usage rights of media library assets saved with status
   `confirmed` by anyone but admins and media managers of the area are stored as `suggested` (to be reviewed).
-- The area view has an upload button for editors: files are uploaded as own assets and moved into the area.
+- Uploads in the view of an area (upload button of the navigation bar, drag and drop) are assigned to the area when
+  the user is editor there (`upload-access.svelte.ts`, hook in `fileUploadHandler`).
+- Shared links (`shared-link.service.ts`): media library assets can only be shared by staff with the level editor
+  in their areas (`requireShareableAssets`); album links are checked against the album's assets when created.
+- Website galleries only show media library assets of areas where the creator of the gallery is editor or media
+  manager, plus the creator's own assets (administrators: everything).
+- Trash of the areas: `GET /api/imagepier/library/trash` returns the trashed assets of the areas where the user is
+  editor or media manager (externals: only their deliveries); page `/media-library/trash`, also used in the
+  administration. Editors restore, media managers and admins delete permanently.
+- Audit log: confirmations of usage rights are logged as `usage_rights_confirm`.
 - Areas: stored in the same settings (`areas`, the area `shared` always exists). The area is also stored in
   `asset_metadata` (`imagepier.area`) and mirrored as tag `Usage rights/Area/<name>`.
   `GET /api/admin/imagepier/access/areas` returns the number of media managers per area, so the administration can
