@@ -80,6 +80,9 @@ conflicts can occur during updates.
 
 ## Roles and media library – technical overview
 
+What each role and level may do is described for users in [PERMISSIONS.md](PERMISSIONS.md). Keep it up to date
+when access rules change.
+
 - `server/src/imagepier/access-rules.ts`: roles (`admin`, `staff`, `external`), area levels (`viewer`, `standard`,
   `editor`, `manager`) and the in-memory copy of the settings. The settings are stored in `system_metadata` under
   `imagepier.access` (`libraryUserId`, `areas` with the `userId` of each area account, `areaAssetsMigrated`, and per

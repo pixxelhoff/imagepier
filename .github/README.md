@@ -85,7 +85,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
   | **Media manager** | + permanent deletion (staff only; every area should have at least one) |
 
   Without a level the area is not accessible. Own photos are not restricted – everybody can upload, share and delete
-  them.
+  them. **The full permission matrix** (externals, trash, sharing, galleries) is in
+  [PERMISSIONS.md](../PERMISSIONS.md).
 - **User list with roles** – *Administration → Users* shows the role of every account and can be searched, filtered
   by role and sorted by name, e-mail or role.
 - **Managing areas** – administrators create, rename and remove areas under *Administration → Media library*; areas
@@ -97,10 +98,9 @@ albums, face and object search, mobile apps – and adds what teams need to work
   area (or an administrator) confirms them. Only confirmed usage rights count for website galleries.
 - **External photographers** – externals with the level *Editor* deliver photos into an area and maintain the usage
   rights of their own deliveries; they cannot move other photos, share links or publish galleries.
-- **Trash per area** – editors and media managers find the trash of their areas below the areas in the sidebar;
-  editors restore, media managers delete permanently. Admins see the trash of all areas in Administration → Trash.
-- **E-mails in ImagePier design** – welcome, test and album e-mails use ImagePier's name, color and footer and are
-  sent in German or English; name, color and logo can be changed in `.env`.
+- **Trash per area** – editors and media managers find the trash of their areas below the areas in the sidebar,
+  filterable by area; editors restore, media managers delete permanently. Administrators see the trash of all areas
+  under *Administration → Trash*.
 - **Sharing** – shared links and website galleries only contain media library photos of areas where the person
   sharing is at least *Editor*.
 
@@ -134,11 +134,14 @@ accounts – filterable by action, person and period, with CSV export.
 - **ImagePier name and logo** in the web app, browser tab and installed web app (PWA). Immich is still credited in
   the "About" dialog.
 - **Your own logo** without rebuilding: mount a folder with your logo files (see [Custom logo](#custom-logo)).
+- **E-mails in ImagePier design** – welcome, test and album e-mails use ImagePier's name, accent color and a neutral
+  footer instead of Immich's, in German or English. Name, color and logo can be set in `.env`.
 
 ### 🧭 Possible later
 
 - **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
 - **Registration before downloads** in galleries (name, organization, intended use), stored in the audit log.
+- **E-mail templates in the administration** – logo, colors, texts and subjects per e-mail type, with preview.
 
 ## Installation
 
@@ -146,7 +149,7 @@ ImagePier replaces only the Immich **server** container. Machine learning, Postg
 official Immich images, and existing Immich data is used as it is.
 
 > [!IMPORTANT]
-> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.21` for Immich `v3.4.2`).
+> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.26` for Immich `v3.4.2`).
 > Downgrading Immich is not supported. Always create a database backup before switching.
 
 1. Start from a working [Immich Docker Compose installation](https://docs.immich.app/install/docker-compose).
@@ -154,7 +157,7 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.21
+   IMAGEPIER_VERSION=v3.4.2-ip.26
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
@@ -207,7 +210,7 @@ the official Immich server of the same version. Usage rights stay stored in Immi
 
 | Tag | Meaning |
 |---|---|
-| `v3.4.2-ip.21` | ImagePier release 21 based on Immich `v3.4.2` |
+| `v3.4.2-ip.26` | ImagePier release 26 based on Immich `v3.4.2` |
 | `release` | latest ImagePier release |
 | `edge` | latest build of the `imagepier` branch – for testing only |
 
