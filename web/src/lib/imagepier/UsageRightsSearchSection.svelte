@@ -49,6 +49,11 @@
     USAGE_RIGHTS_SELECT_CATEGORIES.filter((category) => usageRightsSearchData.getOptions(category).length > 0),
   );
   const usageOptions = $derived(usageRightsSearchData.getOptions(USAGE_RIGHTS_MULTI_CATEGORY));
+
+  const scopeOptions = $derived([
+    { label: $ipt('media_library'), value: 'library' },
+    { label: $ipt('search_scope_own'), value: 'own' },
+  ]);
 </script>
 
 <div data-testid="imagepier-search-usage-rights-section">
@@ -61,6 +66,17 @@
   {:else if usageRightsSearchData.config && !usageRightsSearchData.hasAnyOptions()}
     <Text color="muted">{$ipt('usage_rights_none')}</Text>
   {:else}
+    {#if usageRightsSearchData.hasScopeChoice()}
+      <div class="mb-4">
+        <Field label={$ipt('search_scope')}>
+          <Select
+            options={scopeOptions}
+            bind:value={() => usageRightsSearchData.scope, (value) => usageRightsSearchData.setScope(value)}
+          />
+        </Field>
+      </div>
+    {/if}
+
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       {#each selectCategories as category (category)}
         <Field label={$ipt(categoryLabels[category])}>

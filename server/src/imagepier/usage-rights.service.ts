@@ -148,6 +148,18 @@ export class ImagePierUsageRightsService extends BaseService {
     return (areas.find((area) => area.id === areaId) ?? areas.find((area) => area.id === SHARED_AREA_ID))?.name;
   }
 
+  /** Usage rights tags of the media library account, used by the search of users who see the media library. */
+  async getLibraryTags(auth: AuthDto) {
+    const { libraryUserId } = getCachedAccessSettings();
+    if (!libraryUserId || !getAccessForAuth(auth).canViewLibrary) {
+      return [];
+    }
+
+    const prefix = `${getTagPaths(getTagLabels()).root}/`;
+    const tags = await this.tagRepository.getAll(libraryUserId);
+    return tags.filter((tag) => tag.value.startsWith(prefix)).map((tag) => ({ id: tag.id, value: tag.value }));
+  }
+
   /**
   Moves own assets into the media library and sets the area of the given assets.
   Media library assets can be given another area if the user may edit them.

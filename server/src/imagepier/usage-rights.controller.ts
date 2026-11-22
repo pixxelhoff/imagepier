@@ -32,6 +32,12 @@ export class ImagePierUsageRightsController {
     return this.service.getUsageRightsConfig();
   }
 
+  @Get('library-tags')
+  @Authenticated()
+  getLibraryTags(@Auth() auth: AuthDto) {
+    return this.service.getLibraryTags(auth);
+  }
+
   @Post('sync')
   @Authenticated({ permission: Permission.AssetUpdate })
   @HttpCode(HttpStatus.NO_CONTENT)

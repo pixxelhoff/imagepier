@@ -1,7 +1,9 @@
+import { getLibraryTags, getMediaLibraryAccess, type LibraryTag } from '#lib/imagepier/access.ts';
 import { ipt } from '#lib/imagepier/i18n.ts';
 import { getUsageRightsConfig, type UsageRightsConfig } from '#lib/imagepier/usage-rights.ts';
+import { authManager } from '#lib/managers/auth-manager.svelte.ts';
 import { searchManager } from '#lib/managers/search-manager.svelte.ts';
-import { getAllTags, type TagResponseDto } from '@immich/sdk';
+import { getAllTags } from '@immich/sdk';
 import { mdiCopyright } from '@mdi/js';
 import { get } from 'svelte/store';
 
@@ -10,6 +12,8 @@ Search support for usage rights.
 
 Usage rights are mirrored into tags by the server ("Usage rights/Photographer/Jane Doe", ...).
 The search tab translates the selected values into tag IDs of Immich's regular tag filter.
+Tags belong to the owner of the assets, so media library assets carry tags of the media library account.
+Immich combines tag IDs with AND, therefore one search uses either the media library tags or the own tags.
 */
 
 export type UsageRightsCategory = Exclude<keyof UsageRightsConfig['tags'], 'root'>;
@@ -34,16 +38,35 @@ const ALL_CATEGORIES = [...USAGE_RIGHTS_SELECT_CATEGORIES, USAGE_RIGHTS_MULTI_CA
 
 export type UsageRightsOption = { id: string; label: string };
 
+export type UsageRightsScope = 'library' | 'own';
+
+const loadLibraryTags = async (): Promise<LibraryTag[]> => {
+  try {
+    const access = await getMediaLibraryAccess(authManager.user.id);
+    return access?.libraryUserId ? await getLibraryTags() : [];
+  } catch {
+    return [];
+  }
+};
+
 class UsageRightsSearchData {
   config = $state<UsageRightsConfig>();
-  tags = $state<TagResponseDto[]>([]);
+  ownTags = $state<LibraryTag[]>([]);
+  libraryTags = $state<LibraryTag[]>([]);
+  scope = $state<UsageRightsScope>('own');
   private loading?: Promise<void>;
 
+  get tags() {
+    return this.scope === 'library' ? this.libraryTags : this.ownTags;
+  }
+
   load() {
-    this.loading ??= Promise.all([getUsageRightsConfig(), getAllTags()])
-      .then(([config, tags]) => {
+    this.loading ??= Promise.all([getUsageRightsConfig(), getAllTags(), loadLibraryTags()])
+      .then(([config, ownTags, libraryTags]) => {
         this.config = config;
-        this.tags = tags;
+        this.ownTags = ownTags;
+        this.libraryTags = libraryTags;
+        this.scope = this.detectScope();
       })
       .catch((error: unknown) => {
         this.loading = undefined;
@@ -55,6 +78,42 @@ class UsageRightsSearchData {
   /** Forces the next load() to fetch fresh tags, e.g. after the search dialog was reopened. */
   invalidate() {
     this.loading = undefined;
+  }
+
+  /** Keeps the scope of a previous search; otherwise the media library is searched if it has tags. */
+  private detectScope(): UsageRightsScope {
+    const selected = searchManager.filter.tagIds;
+    if (selected && this.ownTags.some((tag) => selected.has(tag.id))) {
+      return 'own';
+    }
+    return this.hasUsageRightsTags(this.libraryTags) ? 'library' : 'own';
+  }
+
+  private hasUsageRightsTags(tags: LibraryTag[]) {
+    const prefix = this.config ? `${this.config.tags.root}/` : undefined;
+    return !!prefix && tags.some((tag) => tag.value.startsWith(prefix));
+  }
+
+  /** Whether both the media library and the own photos can be searched. */
+  hasScopeChoice() {
+    return this.hasUsageRightsTags(this.libraryTags) && this.hasUsageRightsTags(this.ownTags);
+  }
+
+  /** Switches the scope and removes the selected values of the previous scope. */
+  setScope(value: string) {
+    const scope: UsageRightsScope = value === 'library' ? 'library' : 'own';
+    const tagIds = searchManager.filter.tagIds;
+    if (scope === this.scope || !tagIds) {
+      this.scope = scope;
+      return;
+    }
+
+    for (const category of ALL_CATEGORIES) {
+      for (const option of this.getOptions(category)) {
+        tagIds.delete(option.id);
+      }
+    }
+    this.scope = scope;
   }
 
   getOptions(category: UsageRightsCategory): UsageRightsOption[] {

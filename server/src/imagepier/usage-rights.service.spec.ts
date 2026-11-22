@@ -1,4 +1,5 @@
 import { ASSET_AREA_KEY, SHARED_AREA_ID, setCachedAccessSettings } from 'src/imagepier/access-rules.js';
+import { getTagLabels } from 'src/imagepier/usage-rights-tags.js';
 import { USAGE_RIGHTS_KEY } from 'src/imagepier/usage-rights.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { AssetFactory } from 'test/factories/asset.factory.js';
@@ -155,6 +156,33 @@ describe(ImagePierUsageRightsService.name, () => {
 
       await expect(sut.moveToLibrary(auth, ['asset-1'], 'press')).rejects.toThrow();
       expect(mocks.asset.updateAll).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getLibraryTags', () => {
+    afterEach(() => {
+      setCachedAccessSettings({ areas: [], users: {} });
+    });
+
+    it('should return the usage rights tags of the media library', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      const root = getTagLabels().root;
+      setCachedAccessSettings({ libraryUserId: 'library-id', areas: [], users: {} });
+      mocks.tag.getAll.mockResolvedValue([
+        { id: 'tag-1', value: `${root}/Area/Press` },
+        { id: 'tag-2', value: 'Holiday' },
+      ] as any);
+
+      await expect(sut.getLibraryTags(auth)).resolves.toEqual([{ id: 'tag-1', value: `${root}/Area/Press` }]);
+      expect(mocks.tag.getAll).toHaveBeenCalledWith('library-id');
+    });
+
+    it('should return nothing for external users', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({ libraryUserId: 'library-id', areas: [], users: { 'user-id': { role: 'external' } } });
+
+      await expect(sut.getLibraryTags(auth)).resolves.toEqual([]);
+      expect(mocks.tag.getAll).not.toHaveBeenCalled();
     });
   });
 

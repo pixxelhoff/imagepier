@@ -91,6 +91,11 @@ export const moveToMediaLibrary = (assetIds: string[], areaId: string) =>
     body: JSON.stringify({ assetIds, areaId }),
   });
 
+export type LibraryTag = { id: string; value: string };
+
+/** Usage rights tags of the media library account; tags belong to the account that owns the assets. */
+export const getLibraryTags = () => request<LibraryTag[]>('/imagepier/usage-rights/library-tags');
+
 export const getAreasAdmin = () => request<Area[]>('/admin/imagepier/access/areas');
 
 export const updateAreasAdmin = (areas: Array<{ id?: string; name: string }>) =>
