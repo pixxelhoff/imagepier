@@ -3,7 +3,7 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
-import { ASSIGNABLE_ROLES } from 'src/imagepier/access-rules.js';
+import { ASSIGNABLE_ROLES, getCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import { ImagePierAccessService } from 'src/imagepier/access.service.js';
 import { recordAuditFor } from 'src/imagepier/audit.js';
 import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
@@ -75,7 +75,10 @@ export class ImagePierAccessAdminController {
   @Authenticated({ admin: true })
   async updateUserAccess(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto, @Body() dto: UserAccessUpdateDto) {
     const result = await this.service.updateUserAccessAdmin(id, dto);
-    recordAuditFor(auth, { action: 'access', details: { userId: id, ...dto } });
+    const { areas } = getCachedAccessSettings();
+    const areaNames = dto.areas?.map((areaId) => areas.find((area) => area.id === areaId)?.name ?? areaId);
+    const { role, canUpload, canDownload } = dto;
+    recordAuditFor(auth, { action: 'access', details: { userId: id, role, canUpload, canDownload, areaNames } });
     return result;
   }
 }

@@ -4,6 +4,7 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
+import { getCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import { recordAuditFor } from 'src/imagepier/audit.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
@@ -52,7 +53,8 @@ export class ImagePierUsageRightsController {
   @HttpCode(HttpStatus.OK)
   async moveToLibrary(@Auth() auth: AuthDto, @Body() dto: MoveToLibraryDto) {
     const result = await this.service.moveToLibrary(auth, dto.assetIds, dto.areaId);
-    recordAuditFor(auth, { action: 'library_move', assetIds: dto.assetIds, details: { areaId: dto.areaId } });
+    const area = getCachedAccessSettings().areas.find((item) => item.id === dto.areaId)?.name;
+    recordAuditFor(auth, { action: 'library_move', assetIds: dto.assetIds, details: { areaId: dto.areaId, area } });
     return result;
   }
 }

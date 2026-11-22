@@ -42,6 +42,7 @@ export type AuditFilter = {
 
 export type AuditRow = {
   id: string;
+  assetName: string | null;
   createdAt: Date;
   userId: string | null;
   userName: string | null;
@@ -117,12 +118,12 @@ export class ImagePierAuditService {
 
   @OnEvent({ name: 'UserCreate' })
   onUserCreate(user: ArgOf<'UserCreate'>) {
-    this.add({ action: 'user_create', details: { id: user.id, name: user.name } });
+    this.add({ action: 'user_create', details: { account: user.name } });
   }
 
   @OnEvent({ name: 'UserTrash' })
   onUserTrash(user: ArgOf<'UserTrash'>) {
-    this.add({ action: 'user_delete', details: { id: user.id, name: user.name } });
+    this.add({ action: 'user_delete', details: { account: user.name } });
   }
 
   private add(entry: AuditEntry) {
@@ -182,8 +183,13 @@ export class ImagePierAuditService {
 
       let name = stored.userName ?? null;
       if (stored.userId && !name) {
-        const user = await this.userRepository.get(stored.userId, { withDeleted: true });
-        name = user?.name ?? null;
+        name = await this.getUserName(stored.userId);
+      }
+
+      // Changes of another account: store its name, the id alone is not readable in the log.
+      const details = { ...stored.details };
+      if (typeof details.userId === 'string' && !details.account) {
+        details.account = await this.getUserName(details.userId);
       }
 
       await this.ensureTable();
@@ -196,12 +202,17 @@ export class ImagePierAuditService {
           ${stored.action},
           ${`{${assetIds.join(',')}}`}::uuid[],
           ${entry.assetIds?.length ?? 0},
-          ${stored.details ? JSON.stringify(stored.details) : null}::jsonb
+          ${stored.details ? JSON.stringify(details) : null}::text::jsonb
         )
       `.execute(this.db);
     } catch (error) {
       this.logger.warn(`Unable to write the audit log (${entry.action}): ${error}`);
     }
+  }
+
+  private async getUserName(userId: string) {
+    const user = await this.userRepository.get(userId, { withDeleted: true });
+    return user?.name ?? null;
   }
 
   async cleanup() {
@@ -234,8 +245,18 @@ export class ImagePierAuditService {
     const where = sql.join(conditions, sql` AND `);
 
     const { rows } = await sql<AuditRow>`
-      SELECT "id", "createdAt", "userId", "userName", "action", "assetIds", "assetCount", "details"
-      FROM imagepier_audit
+      SELECT
+        l."id",
+        l."createdAt",
+        l."userId",
+        l."userName",
+        l."action",
+        l."assetIds",
+        l."assetCount",
+        CASE WHEN jsonb_typeof(l."details") = 'string' THEN (l."details" #>> '{}')::jsonb ELSE l."details" END
+          AS "details",
+        (SELECT a."originalFileName" FROM asset a WHERE a."id" = l."assetIds"[1]) AS "assetName"
+      FROM imagepier_audit l
       WHERE ${where}
       ORDER BY "createdAt" DESC
       LIMIT ${filter.limit} OFFSET ${filter.offset}

@@ -127,6 +127,7 @@ export type AuditSettings = { retentionDays: number; downloadsWithUser: boolean;
 
 export type AuditItem = {
   id: string;
+  assetName: string | null;
   createdAt: string;
   userId: string | null;
   userName: string | null;

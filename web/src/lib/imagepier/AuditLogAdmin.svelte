@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    ASSIGNABLE_ROLES,
     AUDIT_ACTIONS,
     getAuditLog,
     getAuditSettings,
@@ -11,6 +12,7 @@
     type AuditSettings,
   } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
+  import { Route } from '#lib/route.ts';
   import { locale } from '#lib/stores/preferences.store.ts';
   import { downloadBlob } from '#lib/utils.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
@@ -137,11 +139,67 @@
   const formatPerson = (item: AuditItem) =>
     item.userName ?? (item.action === 'download' && !item.userId ? $ipt('audit_anonymous') : '–');
 
+  const toText = (value: unknown) => (Array.isArray(value) ? value.join(', ') : String(value));
+  const yesNo = (value: unknown) => $ipt(value ? 'audit_yes' : 'audit_no');
+  const formatRole = (value: unknown) => {
+    const role = ASSIGNABLE_ROLES.find((item) => item === value);
+    return role ? $ipt(`role.${role}`) : toText(value);
+  };
+
+  /** Readable details; technical ids are left out. */
+  const formatDetail = (key: string, value: unknown) => {
+    switch (key) {
+      case 'kind': {
+        return value === 'archive' ? $ipt('audit_kind_archive') : $ipt('audit_kind_original');
+      }
+      case 'sharedLink': {
+        return value ? $ipt('audit_shared_link') : undefined;
+      }
+      case 'deviceType':
+      case 'deviceOS': {
+        return toText(value);
+      }
+      case 'account': {
+        return `${$ipt('audit_account')}: ${toText(value)}`;
+      }
+      case 'role': {
+        return `${$ipt('role')}: ${formatRole(value)}`;
+      }
+      case 'canUpload': {
+        return `${$ipt('can_upload')}: ${yesNo(value)}`;
+      }
+      case 'canDownload': {
+        return `${$ipt('can_download')}: ${yesNo(value)}`;
+      }
+      case 'area': {
+        return `${$ipt('area')}: ${toText(value)}`;
+      }
+      case 'areas': {
+        return `${$ipt('areas')}: ${toText(value)}`;
+      }
+      case 'areaNames': {
+        return `${$ipt('responsible_areas')}: ${toText(value)}`;
+      }
+      default: {
+        return;
+      }
+    }
+  };
+
   const formatDetails = (item: AuditItem) =>
     Object.entries(item.details ?? {})
-      .filter(([, value]) => value !== null && value !== undefined && value !== false)
-      .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
+      .filter(([, value]) => value !== null && value !== undefined)
+      .map(([key, value]) => formatDetail(key, value))
+      .filter((text) => !!text)
       .join(' · ');
+
+  const formatAsset = (item: AuditItem) => {
+    if (!item.assetName) {
+      return '';
+    }
+    const more = item.assetCount - 1;
+    return more > 0 ? `${item.assetName} ${$ipt('audit_more', { count: more })}` : item.assetName;
+  };
 
   const csvValue = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
 
@@ -152,14 +210,16 @@
         $ipt('audit_time'),
         $ipt('audit_person'),
         $ipt('audit_action'),
+        $ipt('audit_asset'),
         $ipt('audit_count'),
         $ipt('audit_details'),
         'Asset IDs',
       ];
       const rows = result.items.map((item) => [
-        item.createdAt,
+        formatTime(item.createdAt),
         formatPerson(item),
         $ipt(`audit.${item.action}`),
+        formatAsset(item),
         item.assetCount,
         formatDetails(item),
         item.assetIds.join(' '),
@@ -226,6 +286,7 @@
           <TableHeading>{$ipt('audit_time')}</TableHeading>
           <TableHeading>{$ipt('audit_person')}</TableHeading>
           <TableHeading>{$ipt('audit_action')}</TableHeading>
+          <TableHeading>{$ipt('audit_asset')}</TableHeading>
           <TableHeading>{$ipt('audit_count')}</TableHeading>
           <TableHeading>{$ipt('audit_details')}</TableHeading>
         </TableHeader>
@@ -235,6 +296,13 @@
               <TableCell>{formatTime(item.createdAt)}</TableCell>
               <TableCell>{formatPerson(item)}</TableCell>
               <TableCell>{$ipt(`audit.${item.action}`)}</TableCell>
+              <TableCell>
+                {#if item.assetName && item.assetIds[0]}
+                  <a href={Route.viewAsset({ id: item.assetIds[0] })} class="text-primary underline">
+                    {formatAsset(item)}
+                  </a>
+                {/if}
+              </TableCell>
               <TableCell>{item.assetCount > 0 ? item.assetCount : ''}</TableCell>
               <TableCell>{formatDetails(item)}</TableCell>
             </TableRow>

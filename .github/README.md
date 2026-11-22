@@ -68,7 +68,7 @@ for every image, and soon shared libraries with roles and an embeddable website 
 
 ### Audit log
 
-Under *Administration → Media library → Audit log* administrators see uploads, downloads, usage rights changes,
+Under *Administration → Audit log* administrators see uploads, downloads, usage rights changes,
 moves into the media library, trash, restore and permanent deletion, role and area changes, and created or deleted
 accounts – filterable by action, person and period, with CSV export.
 

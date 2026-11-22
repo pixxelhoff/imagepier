@@ -1,6 +1,5 @@
 <script lang="ts">
   import AdminPageLayout from '#lib/components/layouts/AdminPageLayout.svelte';
-  import AuditLogAdmin from '#lib/imagepier/AuditLogAdmin.svelte';
   import MediaLibraryAdmin from '#lib/imagepier/MediaLibraryAdmin.svelte';
   import MediaLibraryTrash from '#lib/imagepier/MediaLibraryTrash.svelte';
   import { ipt } from '#lib/imagepier/i18n.ts';
@@ -25,11 +24,6 @@
       <section>
         <Heading size="tiny" tag="h2" class="mb-4">{$ipt('library_trash_title')}</Heading>
         <MediaLibraryTrash />
-      </section>
-
-      <section>
-        <Heading size="tiny" tag="h2" class="mb-4">{$ipt('audit_title')}</Heading>
-        <AuditLogAdmin />
       </section>
     </Stack>
   </Container>

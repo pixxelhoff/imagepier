@@ -46,7 +46,7 @@ conflicts can occur during updates.
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
 | `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Media library" admin entry |
-| `web/src/routes/admin/media-library/` | new admin page (areas, media library trash, audit log); no Immich file changed |
+| `web/src/routes/admin/media-library/`, `web/src/routes/admin/audit/` | new admin pages (areas and media library trash; audit log); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
