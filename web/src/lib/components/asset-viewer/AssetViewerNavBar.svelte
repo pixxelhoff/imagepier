@@ -7,6 +7,7 @@
   import SetVisibilityAction from '#lib/components/asset-viewer/actions/SetVisibilityAction.svelte';
   import type { OnAction, PreAction } from '#lib/components/asset-viewer/actions/action.ts';
   import ButtonContextMenu from '#lib/components/shared-components/context-menu/ButtonContextMenu.svelte';
+  import MediaLibraryDeleteAction from '#lib/imagepier/MediaLibraryDeleteAction.svelte';
   import { assetViewerManager } from '#lib/managers/asset-viewer-manager.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { languageManager } from '#lib/managers/language-manager.svelte.ts';
@@ -120,6 +121,9 @@
 
     {#if isOwner}
       <DeleteAction {asset} {onAction} {preAction} {onUndoDelete} />
+    {:else}
+      <!-- ImagePier: media library assets can be moved to the trash by the responsible media managers -->
+      <MediaLibraryDeleteAction {asset} {onAction} {preAction} {onUndoDelete} />
     {/if}
 
     {#if !sharedLink}

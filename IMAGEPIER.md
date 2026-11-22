@@ -54,6 +54,7 @@ conflicts can occur during updates.
 | `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log |
 | `web/src/lib/components/layouts/UserPageLayout.svelte` | hides the upload button without upload permission |
 | `web/src/routes/(user)/+layout.svelte` | no drag-and-drop upload without upload permission |
+| `web/src/lib/components/asset-viewer/AssetViewerNavBar.svelte` | trash button for media library assets (`MediaLibraryDeleteAction`) |
 | `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
 | `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
