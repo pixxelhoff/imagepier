@@ -10,6 +10,7 @@
 <p align="center">
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-AGPL_v3-3F51B5?style=for-the-badge" alt="License: AGPL v3"></a>
   <a href="https://github.com/immich-app/immich"><img src="https://img.shields.io/badge/based_on-Immich_v3.4.2-4250af?style=for-the-badge" alt="Based on Immich v3.4.2"></a>
+  <img src="https://img.shields.io/badge/status-in_development-e0a100?style=for-the-badge" alt="Status: in development">
   <a href="https://github.com/pixxelhoff/imagepier/pkgs/container/imagepier-server"><img src="https://img.shields.io/badge/image-ghcr.io-a66cff?style=for-the-badge" alt="Container image on ghcr.io"></a>
 </p>
 
@@ -22,6 +23,11 @@
 </p>
 
 ---
+
+> [!WARNING]
+> **ImagePier is still under active development and not recommended for production use yet.**
+> Features, permissions and data structures can still change between releases, and upgrades may require manual
+> steps. Try it on a test installation with sample photos, and keep backups of your database and library.
 
 ImagePier keeps everything that makes [Immich](https://github.com/immich-app/immich) great – fast uploads, timeline,
 albums, face and object search, mobile apps – and adds what teams need to work with photos professionally:
@@ -87,8 +93,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
 
 ### 🌐 Website galleries
 
-Administrators and media managers publish albums as public galleries under *Website galleries* in the sidebar
-(media managers only their own albums). Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
+Administrators, editors and media managers (staff only, not externals) publish albums as public galleries under
+*Website galleries* in the sidebar – everyone except administrators only their own albums. Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
 website or embedded in an iframe – no login needed for visitors.
 
 - Only images with **confirmed usage rights for website or press use** that have **not expired** are shown. The
@@ -127,7 +133,7 @@ ImagePier replaces only the Immich **server** container. Machine learning, Postg
 official Immich images, and existing Immich data is used as it is.
 
 > [!IMPORTANT]
-> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.15` for Immich `v3.4.2`).
+> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.21` for Immich `v3.4.2`).
 > Downgrading Immich is not supported. Always create a database backup before switching.
 
 1. Start from a working [Immich Docker Compose installation](https://docs.immich.app/install/docker-compose).
@@ -135,7 +141,7 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.15
+   IMAGEPIER_VERSION=v3.4.2-ip.21
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
@@ -184,7 +190,7 @@ the official Immich server of the same version. Usage rights stay stored in Immi
 
 | Tag | Meaning |
 |---|---|
-| `v3.4.2-ip.15` | ImagePier release 15 based on Immich `v3.4.2` |
+| `v3.4.2-ip.21` | ImagePier release 21 based on Immich `v3.4.2` |
 | `release` | latest ImagePier release |
 | `edge` | latest build of the `imagepier` branch – for testing only |
 
