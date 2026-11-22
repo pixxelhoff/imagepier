@@ -13,6 +13,7 @@ ImagePier roles and access rules.
   - viewer: view assets and add them to own albums
   - standard: viewer + download
   - editor: standard + upload into the area, maintain usage rights, trash and restore
+    (externals only for assets they added themselves; usage rights entered by editors need confirmation)
   - manager: editor + permanent deletion and confirming usage rights (staff only)
 - Without a level an area is not accessible. Own assets are not affected by these rules.
 
@@ -39,6 +40,12 @@ export const SHARED_AREA_ID = 'shared';
 /** Asset metadata key that also stores the area of a media library asset (the owner decides). */
 export const ASSET_AREA_KEY = 'imagepier.area';
 
+/** Asset metadata key that stores who added an asset to the media library: `{ userId }`. */
+export const UPLOADED_BY_KEY = 'imagepier.uploaded-by';
+
+/** Metadata keys that only the server writes; the asset metadata endpoints reject them. */
+export const RESERVED_METADATA_KEYS: readonly string[] = [ASSET_AREA_KEY, UPLOADED_BY_KEY];
+
 export type Area = {
   id: string;
   name: string;
@@ -57,6 +64,8 @@ export type AccessSettings = {
   libraryUserId?: string;
   /** Whether assets of earlier versions were moved to the accounts of their areas. */
   areaAssetsMigrated?: boolean;
+  /** Whether files of assets assigned to areas by earlier versions were moved to the folders of the areas. */
+  areaFilesMoved?: boolean;
   areas: Area[];
   users: Record<string, StoredUserAccess>;
 };
@@ -108,7 +117,13 @@ export const parseAccessSettings = (value: unknown, sharedAreaName = 'Shared'): 
     }
   }
 
-  return { libraryUserId, areaAssetsMigrated: record.areaAssetsMigrated === true, areas, users };
+  return {
+    libraryUserId,
+    areaAssetsMigrated: record.areaAssetsMigrated === true,
+    areaFilesMoved: record.areaFilesMoved === true,
+    areas,
+    users,
+  };
 };
 
 /** Area id per area account. */
@@ -151,6 +166,9 @@ export const parseStoredUserAccess = (value: unknown): StoredUserAccess => {
 
 /** Reads the area id stored in the asset metadata. */
 export const parseAssetArea = (value: unknown) => asText((value as { areaId?: unknown } | undefined)?.areaId);
+
+/** Reads the user id stored under `UPLOADED_BY_KEY`. */
+export const parseUploadedBy = (value: unknown) => asText((value as { userId?: unknown } | undefined)?.userId);
 
 export const getUserAccess = (settings: AccessSettings, user: { id: string; isAdmin: boolean }): UserAccess => {
   // Admins have full access. Without a media library account the rules are not active and Immich's behaviour applies.

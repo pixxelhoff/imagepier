@@ -34,6 +34,7 @@ describe('access rules', () => {
       ).toEqual({
         libraryUserId,
         areaAssetsMigrated: false,
+        areaFilesMoved: false,
         areas: [{ id: SHARED_AREA_ID, name: 'Shared', userId: libraryUserId }],
         users: {
           a: { role: undefined, areas: undefined },
@@ -75,6 +76,7 @@ describe('access rules', () => {
       expect(parseAccessSettings(null)).toEqual({
         libraryUserId: undefined,
         areaAssetsMigrated: false,
+        areaFilesMoved: false,
         areas: [{ id: SHARED_AREA_ID, name: 'Shared' }],
         users: {},
       });

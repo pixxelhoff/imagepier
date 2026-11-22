@@ -117,17 +117,20 @@ export const loadUsageRights = async (assetId: string): Promise<UsageRights | un
   return item ? normalizeUsageRights(item.value) : undefined;
 };
 
-/** Asset metadata key of the media library area; keep in sync with server/src/imagepier/access-rules.ts. */
+/** Asset metadata keys of the media library; keep in sync with server/src/imagepier/access-rules.ts. */
 export const ASSET_AREA_KEY = 'imagepier.area';
+export const UPLOADED_BY_KEY = 'imagepier.uploaded-by';
 
-/** Usage rights and media library area of an asset, read with a single request. */
+/** Usage rights, media library area and the person who added an asset, read with a single request. */
 export const loadAssetDetails = async (assetId: string) => {
   const items = await getAssetMetadata({ id: assetId });
   const rights = items.find(({ key }) => key === USAGE_RIGHTS_KEY);
   const areaId = items.find(({ key }) => key === ASSET_AREA_KEY)?.value.areaId;
+  const uploadedBy = items.find(({ key }) => key === UPLOADED_BY_KEY)?.value.userId;
   return {
     rights: rights ? normalizeUsageRights(rights.value) : undefined,
     areaId: typeof areaId === 'string' ? areaId : undefined,
+    uploadedBy: typeof uploadedBy === 'string' ? uploadedBy : undefined,
   };
 };
 
@@ -179,4 +182,32 @@ export const applyUsageRightsToAssets = async (assetIds: string[], patch: Partia
     await updateBulkAssetMetadata({ assetMetadataBulkUpsertDto: { items } });
     await syncUsageRightsTags(chunk);
   }
+};
+
+/**
+Confirms the usage rights of the given assets; assets without usage rights are skipped.
+The server only accepts this from admins, media managers of the area and owners of the assets.
+*/
+export const confirmUsageRights = async (assetIds: string[]) => {
+  let count = 0;
+  for (let index = 0; index < assetIds.length; index += BULK_CHUNK_SIZE) {
+    const chunk = assetIds.slice(index, index + BULK_CHUNK_SIZE);
+    const existing = await Promise.all(chunk.map((assetId) => loadUsageRights(assetId)));
+    const items = chunk
+      .map((assetId, position) => ({ assetId, rights: existing[position] }))
+      .filter(({ rights }) => rights?.status === 'suggested')
+      .map(({ assetId, rights }) => ({
+        assetId,
+        key: USAGE_RIGHTS_KEY,
+        value: compact(normalizeUsageRights({ ...rights, status: 'confirmed', suggestedFrom: undefined })),
+      }));
+    if (items.length === 0) {
+      continue;
+    }
+
+    const saved = await updateBulkAssetMetadata({ assetMetadataBulkUpsertDto: { items } });
+    await syncUsageRightsTags(items.map((item) => item.assetId));
+    count += saved.filter((item) => item.value.status === 'confirmed').length;
+  }
+  return count;
 };

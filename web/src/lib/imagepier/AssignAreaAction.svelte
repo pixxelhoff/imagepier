@@ -45,12 +45,13 @@
   const currentArea = $derived(access ? getAreaOfOwner(access, asset.ownerId) : undefined);
   const isOwner = $derived(asset.ownerId === authManager.user.id);
   const targets = $derived(access ? getAssignableAreas(access).filter((area) => area.id !== currentArea?.id) : []);
+  // Externals add own assets to areas, but do not move media library assets between areas.
   const canAssign = $derived(
     !!access &&
       !asset.isTrashed &&
       isLibraryUser(access, authManager.user.id) &&
       targets.length > 0 &&
-      (isOwner || (!!currentArea && canEditAreaOf(access, currentArea.id))),
+      (isOwner || (!!currentArea && access.role !== 'external' && canEditAreaOf(access, currentArea.id))),
   );
 
   const handleAssign = async () => {

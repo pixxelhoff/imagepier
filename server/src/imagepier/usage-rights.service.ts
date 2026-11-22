@@ -2,11 +2,19 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { mapNotification } from 'src/dtos/notification.dto.js';
-import { ImmichWorker, NotificationLevel, NotificationType, Permission, SystemMetadataKey } from 'src/enum.js';
+import {
+  AssetPathType,
+  ImmichWorker,
+  NotificationLevel,
+  NotificationType,
+  Permission,
+  SystemMetadataKey,
+} from 'src/enum.js';
 import { getAccessForAuth } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
   ASSET_AREA_KEY,
+  UPLOADED_BY_KEY,
   canEditArea,
   getAreaAccounts,
   getAreaLevel,
@@ -16,7 +24,8 @@ import {
   parseAccessSettings,
   parseAssetArea,
 } from 'src/imagepier/access-rules.js';
-import { setAreaAssetMigration } from 'src/imagepier/access.service.js';
+import { setAreaMigrations } from 'src/imagepier/access.service.js';
+import { FolderOwner, getRelocatedPath } from 'src/imagepier/asset-files.js';
 import {
   EXPIRING_SOON_DAYS,
   MISSING_FIELDS,
@@ -67,7 +76,7 @@ export class ImagePierUsageRightsService extends BaseService {
 
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   onConfigInit() {
-    setAreaAssetMigration(() => this.migrateAreaAssets());
+    setAreaMigrations({ moveAssets: () => this.migrateAreaAssets(), moveFiles: () => this.moveAreaAssetFiles() });
     this.cronRepository.create({
       name: REFRESH_CRON_NAME,
       expression: REFRESH_CRON_EXPRESSION,
@@ -215,6 +224,10 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     if (libraryIds.length > 0) {
+      // Externals add own assets to areas, but do not move media library assets between areas.
+      if (access.role === 'external') {
+        throw new ForbiddenException('Externals cannot move media library assets');
+      }
       await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: libraryIds });
     }
 
@@ -222,11 +235,20 @@ export class ImagePierUsageRightsService extends BaseService {
     const moveIds = assets.filter((asset) => asset.ownerId !== target.userId).map((asset) => asset.id);
     if (moveIds.length > 0) {
       await this.assetRepository.updateAll(moveIds, { ownerId: target.userId });
+      const users = await this.getFolderOwners();
+      for (const assetId of moveIds) {
+        await this.tryMoveFilesToOwner(assetId, users);
+      }
     }
 
     for (const assetId of [...ownIds, ...libraryIds]) {
       await this.assetRepository.upsertMetadata(assetId, [{ key: ASSET_AREA_KEY, value: { areaId } }]);
       await this.syncTags(assetId);
+    }
+
+    // Remembers who added own assets, so externals can maintain the assets they delivered.
+    for (const assetId of ownIds) {
+      await this.assetRepository.upsertMetadata(assetId, [{ key: UPLOADED_BY_KEY, value: { userId: auth.user.id } }]);
     }
 
     return { count: ownIds.length + libraryIds.length };
@@ -255,6 +277,7 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     let count = 0;
+    const users = await this.getFolderOwners();
     for (const assetId of assetIds) {
       const asset = await this.assetRepository.getById(assetId);
       const item = await this.assetRepository.getMetadataByKey(assetId, ASSET_AREA_KEY);
@@ -265,9 +288,114 @@ export class ImagePierUsageRightsService extends BaseService {
 
       await this.assetRepository.updateAll([assetId], { ownerId: area.userId });
       await this.syncTags(assetId);
+      await this.tryMoveFilesToOwner(assetId, users);
       count++;
     }
     return count;
+  }
+
+  /**
+  Earlier versions changed only the owner of assets assigned to areas, so their files stayed in the folders of the
+  previous owner, which Immich removes when that user is deleted. Moves these files into the folders of the area
+  accounts; called once by the access service.
+  */
+  async moveAreaAssetFiles() {
+    const accounts = getAreaAccounts(await this.loadAccessSettings());
+    const users = await this.getFolderOwners();
+    const areaPrefix = `${getTagPaths(getTagLabels()).area}/`;
+    let count = 0;
+    for (const accountId of accounts.keys()) {
+      for (const tag of await this.tagRepository.getAll(accountId)) {
+        if (!tag.value.startsWith(areaPrefix)) {
+          continue;
+        }
+        for (const assetId of await this.tagRepository.getAssetIdsByTagId(tag.id)) {
+          if (await this.tryMoveFilesToOwner(assetId, users)) {
+            count++;
+          }
+        }
+      }
+    }
+    return count;
+  }
+
+  /** All users with their storage labels, to find the folders of previous owners. */
+  private async getFolderOwners(): Promise<FolderOwner[]> {
+    const users = await this.userRepository.getList({ withDeleted: true });
+    return users.map((user) => ({ id: user.id, storageLabel: user.storageLabel }));
+  }
+
+  private async tryMoveFilesToOwner(assetId: string, users: FolderOwner[]) {
+    try {
+      return await this.moveFilesToOwner(assetId, users);
+    } catch (error) {
+      this.logger.warn(`Unable to move the files of asset ${assetId} to the folders of its owner: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+  Moves the original, thumbnails and encoded videos of an asset into the folders of its owner, and the video part
+  of a live photo along with it. Returns whether files were moved.
+  */
+  async moveFilesToOwner(assetId: string, users: FolderOwner[]): Promise<boolean> {
+    const asset = await this.assetRepository.getById(assetId, { files: true });
+    const owner = users.find((user) => user.id === asset?.ownerId);
+    if (!asset || !owner) {
+      return false;
+    }
+
+    let moved = false;
+    const originalPath = getRelocatedPath(asset.originalPath, owner, users);
+    if (originalPath && (await this.isFreePath(originalPath))) {
+      const stats = await this.storageRepository.stat(asset.originalPath);
+      await this.storageCore.moveFile({
+        entityId: asset.id,
+        pathType: AssetPathType.Original,
+        oldPath: asset.originalPath,
+        newPath: originalPath,
+        assetInfo: { sizeInBytes: stats.size, checksum: asset.checksum },
+      });
+      moved = true;
+    }
+
+    for (const file of asset.files ?? []) {
+      const path = getRelocatedPath(file.path, owner, users);
+      if (!path || !(await this.isFreePath(path))) {
+        continue;
+      }
+
+      if (file.isEdited) {
+        // Immich's move only tracks unedited files.
+        this.storageCore.ensureFolders(path);
+        await this.storageRepository.rename(file.path, path);
+        await this.assetRepository.upsertFile({ assetId: asset.id, type: file.type, path, isEdited: true });
+      } else {
+        await this.storageCore.moveFile({ entityId: asset.id, pathType: file.type, oldPath: file.path, newPath: path });
+      }
+      moved = true;
+    }
+
+    // The video part of a live photo is a hidden asset of its own and belongs to the same owner.
+    if (asset.livePhotoVideoId) {
+      const [video] = await this.assetRepository.getByIds([asset.livePhotoVideoId]);
+      if (video && video.ownerId !== asset.ownerId) {
+        await this.assetRepository.updateAll([video.id], { ownerId: asset.ownerId });
+      }
+      if (video && (await this.moveFilesToOwner(video.id, users))) {
+        moved = true;
+      }
+    }
+
+    return moved;
+  }
+
+  private async isFreePath(path: string) {
+    if (await this.storageRepository.checkFileExists(path)) {
+      this.logger.warn(`Not moving a file to ${path}: the file already exists`);
+      return false;
+    }
+    return true;
   }
 
   /** Called by the web app after usage rights were saved. */

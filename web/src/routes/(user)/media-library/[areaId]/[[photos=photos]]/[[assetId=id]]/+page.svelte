@@ -4,11 +4,15 @@
   import Timeline from '#lib/components/timeline/Timeline.svelte';
   import DownloadAction from '#lib/components/timeline/actions/DownloadAction.svelte';
   import MediaLibraryActions from '#lib/imagepier/MediaLibraryActions.svelte';
+  import { moveToMediaLibrary } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { assetMultiSelectManager } from '#lib/managers/asset-multi-select-manager.svelte.ts';
   import { getAssetBulkActions } from '#lib/services/asset.service.ts';
+  import { openFileUploadDialog } from '#lib/utils/file-uploader.ts';
+  import { handleError } from '#lib/utils/handle-error.ts';
   import { AssetVisibility } from '@immich/sdk';
-  import { ActionButton, CommandPaletteDefaultProvider, Text } from '@immich/ui';
+  import { ActionButton, Button, CommandPaletteDefaultProvider, Text, toastManager } from '@immich/ui';
+  import { mdiTrayArrowUp } from '@mdi/js';
   import { t } from 'svelte-i18n';
   import type { PageData } from './$types';
 
@@ -25,6 +29,30 @@
   );
   const actions = $derived(getAssetBulkActions($t));
 
+  // Increased after an upload, so the timeline of the area is loaded again.
+  let timelineKey = $state(0);
+
+  /** Uploads files as own assets of the user and assigns them to the area right away. */
+  const handleUpload = async () => {
+    if (!area) {
+      return;
+    }
+
+    const areaId = area.id;
+    const assetIds = await openFileUploadDialog();
+    if (assetIds.length === 0) {
+      return;
+    }
+
+    try {
+      const { count } = await moveToMediaLibrary(assetIds, areaId);
+      toastManager.primary($ipt('upload_to_area_done', { count }));
+      timelineKey++;
+    } catch (error) {
+      handleError(error, $ipt('upload_to_area_failed'));
+    }
+  };
+
   const handleEscape = () => {
     if (assetMultiSelectManager.selectionActive) {
       assetMultiSelectManager.clear();
@@ -33,12 +61,28 @@
 </script>
 
 <UserPageLayout title={data.meta.title} hideNavbar={assetMultiSelectManager.selectionActive} scrollbar={false}>
+  {#snippet buttons()}
+    {#if area?.canUpload && area.userId}
+      <Button
+        leadingIcon={mdiTrayArrowUp}
+        onclick={() => void handleUpload()}
+        size="small"
+        variant="ghost"
+        color="secondary"
+      >
+        <Text class="hidden md:block">{$ipt('upload_to_area')}</Text>
+      </Button>
+    {/if}
+  {/snippet}
+
   {#if !area}
     <Text class="m-6" color="muted">{$ipt('area_not_found')}</Text>
   {:else if !options}
     <Text class="m-6" color="muted">{$ipt('area_empty')}</Text>
   {:else}
-    <Timeline enableRouting={true} {options} assetInteraction={assetMultiSelectManager} onEscape={handleEscape} />
+    {#key timelineKey}
+      <Timeline enableRouting={true} {options} assetInteraction={assetMultiSelectManager} onEscape={handleEscape} />
+    {/key}
   {/if}
 </UserPageLayout>
 

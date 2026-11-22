@@ -91,7 +91,12 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Managing areas** – administrators create, rename and remove areas under *Administration → Media library*; areas
   without a media manager are marked, and areas that still contain images cannot be removed. Each media library
   asset shows its area, and the usage rights search works per area.
-- **Add to media library** – own assets can be moved into an area with the level *Editor* or higher (selection menu).
+- **Assign to area** – own assets can be assigned to an area with the level *Editor* or higher (selection menu or
+  the menu of a single photo); editors can also upload directly in the view of an area.
+- **Confirming usage rights** – usage rights entered by editors stay *to be reviewed* until a media manager of the
+  area (or an administrator) confirms them. Only confirmed usage rights count for website galleries.
+- **External photographers** – externals with the level *Editor* deliver photos into an area and maintain the usage
+  rights of their own deliveries; they cannot move other photos, share links or publish galleries.
 
 ### 🌐 Website galleries
 

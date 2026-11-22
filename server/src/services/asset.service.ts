@@ -37,7 +37,11 @@ import {
   Permission,
   QueueName,
 } from 'src/enum.js';
-import { requirePermanentDeleteAccess } from 'src/imagepier/access-hook.js';
+import {
+  applyMetadataRules,
+  rejectReservedMetadataKeys,
+  requirePermanentDeleteAccess,
+} from 'src/imagepier/access-hook.js';
 import { BaseService } from 'src/services/base.service.js';
 import type { JobItem, JobOf } from 'src/types.js';
 import { requireElevatedPermission } from 'src/utils/access.js';
@@ -427,7 +431,8 @@ export class AssetService extends BaseService {
       uniqueKeys.add(key);
     }
 
-    return this.assetRepository.upsertBulkMetadata(dto.items);
+    // ImagePier: reserved keys and confirmation of usage rights
+    return this.assetRepository.upsertBulkMetadata(await applyMetadataRules(auth, dto.items));
   }
 
   async upsertMetadata(auth: AuthDto, id: string, dto: AssetMetadataUpsertDto): Promise<AssetMetadataResponseDto[]> {
@@ -442,7 +447,15 @@ export class AssetService extends BaseService {
       uniqueKeys.add(key);
     }
 
-    return this.assetRepository.upsertMetadata(id, dto.items);
+    // ImagePier: reserved keys and confirmation of usage rights
+    const items = await applyMetadataRules(
+      auth,
+      dto.items.map((item) => ({ ...item, assetId: id })),
+    );
+    return this.assetRepository.upsertMetadata(
+      id,
+      items.map(({ key, value }) => ({ key, value })),
+    );
   }
 
   async getMetadataByKey(auth: AuthDto, id: string, key: string): Promise<AssetMetadataResponseDto> {
@@ -457,11 +470,13 @@ export class AssetService extends BaseService {
 
   async deleteMetadataByKey(auth: AuthDto, id: string, key: string): Promise<void> {
     await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: [id] });
+    rejectReservedMetadataKeys([key]);
     return this.assetRepository.deleteMetadataByKey(id, key);
   }
 
   async deleteBulkMetadata(auth: AuthDto, dto: AssetMetadataBulkDeleteDto) {
     await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: dto.items.map((item) => item.assetId) });
+    rejectReservedMetadataKeys(dto.items.map((item) => item.key));
     await this.assetRepository.deleteBulkMetadata(dto.items);
   }
 

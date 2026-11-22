@@ -2,13 +2,14 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { ImmichWorker, SystemMetadataKey, UserStatus } from 'src/enum.js';
-import { getAccessForAuth, setAssetOwnerResolver } from 'src/imagepier/access-hook.js';
+import { getAccessForAuth, setAssetOwnerResolver, setAssetUploaderResolver } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
   AccessSettings,
   Area,
   SHARED_AREA_ID,
   StoredUserAccess,
+  UPLOADED_BY_KEY,
   getAreaAccounts,
   getAreaLevel,
   getSharedAreaName,
@@ -16,6 +17,7 @@ import {
   isAtLeast,
   parseAccessSettings,
   parseStoredUserAccess,
+  parseUploadedBy,
   setCachedAccessSettings,
 } from 'src/imagepier/access-rules.js';
 import { BaseService } from 'src/services/base.service.js';
@@ -44,13 +46,18 @@ export const getAreaAccountEmail = (libraryEmail: string, areaId: string) => {
 /** Display name of an area account, e.g. "Media library: Press". */
 export const getAreaAccountName = (libraryName: string, areaName: string) => `${libraryName}: ${areaName}`;
 
-/** Moves media library assets of earlier versions to the account of their area; registered by the usage rights service. */
-type AreaAssetMigration = () => Promise<number>;
+/** One-time upgrades of media library assets; registered by the usage rights service. */
+export type AreaMigrations = {
+  /** Moves assets of earlier versions from the shared account to the account of their area. */
+  moveAssets: () => Promise<number>;
+  /** Moves files of assets assigned to areas into the folders of the area accounts. */
+  moveFiles: () => Promise<number>;
+};
 
-let areaAssetMigration: AreaAssetMigration | undefined;
+let areaMigrations: AreaMigrations | undefined;
 
-export const setAreaAssetMigration = (migration: AreaAssetMigration | undefined) => {
-  areaAssetMigration = migration;
+export const setAreaMigrations = (migrations: AreaMigrations | undefined) => {
+  areaMigrations = migrations;
 };
 
 /**
@@ -68,6 +75,7 @@ export class ImagePierAccessService extends BaseService {
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   async onConfigInit() {
     setAssetOwnerResolver((assetIds) => this.getAssetOwners(assetIds));
+    setAssetUploaderResolver((assetIds) => this.getAssetUploaders(assetIds));
     await this.loadSettings();
     this.cronRepository.create({
       name: SYNC_CRON_NAME,
@@ -168,15 +176,25 @@ export class ImagePierAccessService extends BaseService {
     }
   }
 
-  /** Runs once after upgrading: media library assets move from the shared account to the account of their area. */
+  /** Runs once after upgrading: assets and their files move to the accounts of their areas. */
   private async migrateAreaAssets() {
-    if (this.settings.areaAssetsMigrated || !areaAssetMigration) {
+    if (!areaMigrations) {
       return;
     }
 
-    const count = await areaAssetMigration();
-    this.logger.log(`Moved ${count} media library assets to the accounts of their areas`);
-    await this.saveSettings({ ...this.settings, areaAssetsMigrated: true });
+    if (!this.settings.areaAssetsMigrated) {
+      const count = await areaMigrations.moveAssets();
+      this.logger.log(`Moved ${count} media library assets to the accounts of their areas`);
+      await this.saveSettings({ ...this.settings, areaAssetsMigrated: true });
+    }
+
+    if (this.settings.areaFilesMoved) {
+      return;
+    }
+
+    const count = await areaMigrations.moveFiles();
+    this.logger.log(`Moved the files of ${count} media library assets to the folders of their areas`);
+    await this.saveSettings({ ...this.settings, areaFilesMoved: true });
   }
 
   /** Shares every area account with the users who have a level in the area, and removes it from everybody else. */
@@ -218,6 +236,19 @@ export class ImagePierAccessService extends BaseService {
   async getAssetOwners(assetIds: string[]) {
     const assets = await this.assetRepository.getByIds(assetIds);
     return new Map(assets.map((asset) => [asset.id, asset.ownerId]));
+  }
+
+  /** Who added each given asset to the media library (asset metadata `UPLOADED_BY_KEY`). */
+  async getAssetUploaders(assetIds: string[]) {
+    const uploaders = new Map<string, string>();
+    for (const assetId of assetIds) {
+      const item = await this.assetRepository.getMetadataByKey(assetId, UPLOADED_BY_KEY);
+      const userId = parseUploadedBy(item?.value);
+      if (userId) {
+        uploaders.set(assetId, userId);
+      }
+    }
+    return uploaders;
   }
 
   /** Number of assets of an account, including the trash. */
@@ -283,7 +314,12 @@ export class ImagePierAccessService extends BaseService {
     const removed = this.settings.areas.filter((area) => result.every((item) => item.id !== area.id));
     for (const area of removed) {
       if (area.userId && (await this.countAssets(area.userId)) > 0) {
-        throw new BadRequestException(`The area "${area.name}" still contains assets`);
+        // `code` and `area` let the web app show a translated message.
+        throw new BadRequestException({
+          message: `The area "${area.name}" still contains assets`,
+          code: 'area_not_empty',
+          area: area.name,
+        });
       }
     }
 

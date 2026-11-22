@@ -1,4 +1,4 @@
-import { getMediaLibraryAccess, getVisibleAreas } from '#lib/imagepier/access.ts';
+import { canEditAreaOf, getMediaLibraryAccess, getVisibleAreas } from '#lib/imagepier/access.ts';
 import { ipt } from '#lib/imagepier/i18n.ts';
 import { authManager } from '#lib/managers/auth-manager.svelte.ts';
 import { authenticate } from '#lib/utils/auth.ts';
@@ -6,7 +6,7 @@ import { get } from 'svelte/store';
 import type { PageLoad } from './$types';
 
 /** Area with the account that owns its assets; the account is missing until the server has created it. */
-export type AreaView = { id: string; name: string; userId?: string };
+export type AreaView = { id: string; name: string; userId?: string; canUpload: boolean };
 
 const loadArea = async (areaId: string): Promise<AreaView | undefined> => {
   try {
@@ -16,7 +16,9 @@ const loadArea = async (areaId: string): Promise<AreaView | undefined> => {
     }
 
     const area = getVisibleAreas(access).find((item) => item.id === areaId);
-    return area ? { id: area.id, name: area.name, userId: area.userId } : undefined;
+    return area
+      ? { id: area.id, name: area.name, userId: area.userId, canUpload: canEditAreaOf(access, area.id) }
+      : undefined;
   } catch {
     return;
   }

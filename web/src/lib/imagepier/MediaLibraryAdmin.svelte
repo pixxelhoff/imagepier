@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SHARED_AREA_ID, getAreasAdmin, updateAreasAdmin } from '#lib/imagepier/access.ts';
+  import { SHARED_AREA_ID, getAreaNotEmptyName, getAreasAdmin, updateAreasAdmin } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
   import { Button, HelperText, IconButton, Input, Stack, Text, toastManager } from '@immich/ui';
@@ -39,7 +39,14 @@
       areas = await updateAreasAdmin(areas.filter((area) => area.name.trim().length > 0));
       toastManager.primary($ipt('areas_saved'));
     } catch (error) {
-      handleError(error, $ipt('areas_save_failed'));
+      const name = getAreaNotEmptyName(error);
+      if (name) {
+        toastManager.danger($ipt('area_not_empty', { name }));
+      } else {
+        handleError(error, $ipt('areas_save_failed'));
+      }
+      // Shows the stored areas again, including an area that could not be removed.
+      await load();
     } finally {
       saving = false;
     }

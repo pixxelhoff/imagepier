@@ -1,4 +1,9 @@
-import { ASSET_AREA_KEY, SHARED_AREA_ID, setCachedAccessSettings } from 'src/imagepier/access-rules.js';
+import {
+  ASSET_AREA_KEY,
+  SHARED_AREA_ID,
+  UPLOADED_BY_KEY,
+  setCachedAccessSettings,
+} from 'src/imagepier/access-rules.js';
 import { getTagLabels, getTagPaths } from 'src/imagepier/usage-rights-tags.js';
 import { USAGE_RIGHTS_KEY } from 'src/imagepier/usage-rights.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
@@ -11,6 +16,7 @@ describe(ImagePierUsageRightsService.name, () => {
 
   beforeEach(() => {
     ({ sut, mocks } = newTestService(ImagePierUsageRightsService));
+    mocks.user.getList.mockResolvedValue([]);
   });
 
   it('should work', () => {
@@ -194,6 +200,36 @@ describe(ImagePierUsageRightsService.name, () => {
       ]);
     });
 
+    it('should remember who added own assets', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({
+        libraryUserId,
+        areas,
+        users: { 'user-id': { role: 'external', areas: { press: 'editor' } } },
+      });
+      mocks.asset.getByIds.mockResolvedValue([{ id: 'asset-1', ownerId: 'user-id' }] as any);
+      mocks.asset.getById.mockResolvedValue(undefined);
+
+      await sut.moveToLibrary(auth, ['asset-1'], 'press');
+
+      expect(mocks.asset.upsertMetadata).toHaveBeenCalledWith('asset-1', [
+        { key: UPLOADED_BY_KEY, value: { userId: 'user-id' } },
+      ]);
+    });
+
+    it('should not let externals move media library assets', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({
+        libraryUserId,
+        areas,
+        users: { 'user-id': { role: 'external', areas: { press: 'editor', [SHARED_AREA_ID]: 'editor' } } },
+      });
+      mocks.asset.getByIds.mockResolvedValue([{ id: 'asset-1', ownerId: libraryUserId }] as any);
+
+      await expect(sut.moveToLibrary(auth, ['asset-1'], 'press')).rejects.toThrow('Externals');
+      expect(mocks.asset.updateAll).not.toHaveBeenCalled();
+    });
+
     it('should need the level editor in the target area', async () => {
       const auth = { user: { id: 'user-id', isAdmin: false } } as any;
       setCachedAccessSettings({
@@ -246,6 +282,15 @@ describe(ImagePierUsageRightsService.name, () => {
 
       await expect(sut.getLibraryTags(auth)).resolves.toEqual([]);
       expect(mocks.tag.getAll).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('moveFilesToOwner', () => {
+    it('should not move files of assets whose owner is unknown', async () => {
+      mocks.asset.getById.mockResolvedValue({ id: 'asset-1', ownerId: 'area', originalPath: '/x', files: [] } as any);
+
+      await expect(sut.moveFilesToOwner('asset-1', [])).resolves.toBe(false);
+      expect(mocks.storage.rename).not.toHaveBeenCalled();
     });
   });
 

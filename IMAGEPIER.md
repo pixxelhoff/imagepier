@@ -98,13 +98,21 @@ conflicts can occur during updates.
   points to another area to that area's account and re-syncs its tags (`areaAssetsMigrated` is set afterwards).
 - `access-hook.ts` (per area, via the asset owner resolver): `AssetDownload` of media library assets needs `standard`,
   `AssetUpdate`/`AssetDelete` need `editor`; permanent deletion (`requirePermanentDeleteAccess`) needs `manager`.
-  `TagRead` covers the tags of the area accounts with a level. Own assets are not restricted.
+  `TagRead` covers the tags of the area accounts with a level. Own assets are not restricted. Externals with the
+  level `editor` only edit and trash assets they added themselves (`asset_metadata` key `imagepier.uploaded-by`,
+  written when own assets are moved into an area; resolved via the asset uploader resolver).
+- `applyMetadataRules` (called from Immich's asset metadata endpoints): the keys `imagepier.area` and
+  `imagepier.uploaded-by` are reserved for the server; usage rights of media library assets saved with status
+  `confirmed` by anyone but admins and media managers of the area are stored as `suggested` (to be reviewed).
+- The area view has an upload button for editors: files are uploaded as own assets and moved into the area.
 - Areas: stored in the same settings (`areas`, the area `shared` always exists). The area is also stored in
   `asset_metadata` (`imagepier.area`) and mirrored as tag `Usage rights/Area/<name>`.
   `GET /api/admin/imagepier/access/areas` returns the number of media managers per area, so the administration can
   warn about areas without one.
 - `POST /api/imagepier/usage-rights/library` moves own assets and media library assets into an area (owner change to
-  the area account). Faces of moved assets stay linked to the people of the previous owner. The usage rights search
+  the area account). Their files (original, thumbnails, encoded videos, the video part of live photos) move into the
+  folders of the area account (`asset-files.ts`, Immich's `StorageCore.moveFile`), because Immich removes the folders
+  of a deleted user. Assets assigned by earlier releases are moved once on startup (`areaFilesMoved`). Faces of moved assets stay linked to the people of the previous owner. The usage rights search
   works per area, because Immich combines tag filters with AND and every area account has its own tags.
 - Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`, `GET /api/admin/imagepier/access/users`
   (role of every account for the user list), `GET|PUT /api/admin/imagepier/access/users/:id`,

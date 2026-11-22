@@ -1,8 +1,21 @@
 <script lang="ts">
   import UsageRightsModal from '#lib/imagepier/UsageRightsModal.svelte';
-  import { canEditAreaOf, getAreaOfOwner, getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
+  import {
+    canEditLibraryAssetOf,
+    canManageAreaOf,
+    getAreaOfOwner,
+    getMediaLibraryAccess,
+    type MyAccess,
+  } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
-  import { isExpired, loadAssetDetails, saveUsageRights, type UsageRights } from '#lib/imagepier/usage-rights.ts';
+  import {
+    confirmUsageRights,
+    isExpired,
+    loadAssetDetails,
+    loadUsageRights,
+    saveUsageRights,
+    type UsageRights,
+  } from '#lib/imagepier/usage-rights.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { locale } from '#lib/stores/preferences.store.ts';
   import { copyToClipboard } from '#lib/utils.ts';
@@ -11,6 +24,7 @@
   import { Icon, IconButton, Text, modalManager, toastManager } from '@immich/ui';
   import {
     mdiAlertCircleOutline,
+    mdiCheckDecagramOutline,
     mdiContentCopy,
     mdiCopyright,
     mdiFolderMultipleImage,
@@ -27,18 +41,21 @@
   let { asset, isOwner }: Props = $props();
 
   let rights = $state<UsageRights | undefined>();
+  let uploadedBy = $state<string | undefined>();
   let loadedAssetId = $state<string | undefined>();
   let access = $state<MyAccess>();
 
   $effect(() => {
     const assetId = asset.id;
     rights = undefined;
+    uploadedBy = undefined;
     loadedAssetId = undefined;
 
     loadAssetDetails(assetId)
       .then((result) => {
         if (asset.id === assetId) {
           rights = result.rights;
+          uploadedBy = result.uploadedBy;
           loadedAssetId = assetId;
         }
       })
@@ -63,7 +80,11 @@
   // Media library assets belong to the account of their area.
   const area = $derived(access ? getAreaOfOwner(access, asset.ownerId) : undefined);
   const isLibraryAsset = $derived(!!area);
-  const canEdit = $derived(isOwner || (!!access && !!area && canEditAreaOf(access, area.id)));
+  const canEdit = $derived(
+    isOwner || (!!access && !!area && canEditLibraryAssetOf(access, authManager.user.id, area.id, uploadedBy)),
+  );
+  // Usage rights entered by editors stay "to be reviewed" until a media manager confirms them.
+  const canConfirm = $derived(isOwner || (!!access && !!area && canManageAreaOf(access, area.id)));
   const areaName = $derived(area?.name);
 
   const expired = $derived(isExpired(rights));
@@ -83,9 +104,25 @@
       if (asset.id === assetId) {
         rights = saved;
       }
-      toastManager.primary($ipt('usage_rights_saved'));
+      toastManager.primary(
+        saved.status === 'confirmed' ? $ipt('usage_rights_saved') : $ipt('usage_rights_saved_for_review'),
+      );
     } catch (error) {
       handleError(error, $ipt('usage_rights_save_failed'));
+    }
+  };
+
+  const handleConfirm = async () => {
+    const assetId = asset.id;
+    try {
+      await confirmUsageRights([assetId]);
+      const confirmed = await loadUsageRights(assetId);
+      if (asset.id === assetId) {
+        rights = confirmed;
+      }
+      toastManager.primary($ipt('usage_rights_confirmed', { count: 1 }));
+    } catch (error) {
+      handleError(error, $ipt('usage_rights_confirm_failed'));
     }
   };
 </script>
@@ -121,7 +158,24 @@
 
         <div class="flex w-full flex-col gap-2 text-sm">
           {#if rights.status === 'suggested'}
-            <p class="text-xs text-amber-600 dark:text-amber-400">{$ipt('usage_rights_suggested')}</p>
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-xs text-amber-600 dark:text-amber-400">
+                {rights.suggestedFrom?.length ? $ipt('usage_rights_suggested') : $ipt('usage_rights_unconfirmed')}
+              </p>
+              {#if canConfirm}
+                <IconButton
+                  icon={mdiCheckDecagramOutline}
+                  aria-label={$ipt('usage_rights_confirm')}
+                  title={$ipt('usage_rights_confirm')}
+                  class="-my-1 shrink-0"
+                  size="small"
+                  shape="round"
+                  color="primary"
+                  variant="ghost"
+                  onclick={handleConfirm}
+                />
+              {/if}
+            </div>
           {/if}
 
           {#if rights.creditLine}

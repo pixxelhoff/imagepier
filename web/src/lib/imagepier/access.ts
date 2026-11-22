@@ -42,15 +42,36 @@ export type StoredUserAccess = {
 
 export type UserAccessAdmin = { stored: StoredUserAccess; effective: UserAccess; isLibrary: boolean; allAreas: Area[] };
 
+/** Failed ImagePier request; `body` is the error response of the server, if any. */
+export class ImagePierRequestError extends Error {
+  readonly body: unknown;
+
+  constructor(message: string, body: unknown) {
+    super(message);
+    this.name = 'ImagePierRequestError';
+    this.body = body;
+  }
+}
+
 const request = async <T>(path: string, init?: RequestInit) => {
   const response = await fetch(`${defaults.baseUrl}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...defaults.headers },
   });
   if (!response.ok) {
-    throw new Error(`ImagePier request failed: ${response.status} ${response.statusText}`);
+    const body: unknown = await response.json().catch(() => undefined);
+    throw new ImagePierRequestError(`ImagePier request failed: ${response.status} ${response.statusText}`, body);
   }
   return (await response.json()) as T;
+};
+
+/** Name of the area that could not be removed because it still contains assets. */
+export const getAreaNotEmptyName = (error: unknown) => {
+  if (!(error instanceof ImagePierRequestError)) {
+    return;
+  }
+  const body = (error.body ?? {}) as { code?: unknown; area?: unknown };
+  return body.code === 'area_not_empty' && typeof body.area === 'string' ? body.area : undefined;
 };
 
 let myAccess: { userId: string; promise: Promise<MyAccess> } | undefined;
@@ -91,6 +112,21 @@ export const getAssignableAreas = (access: MyAccess) =>
 /** Whether the user may edit media library assets of the given area; keep in sync with the server rules. */
 export const canEditAreaOf = (access: UserAccess, areaId: string | undefined) =>
   isAtLeast(access.areas[areaId ?? SHARED_AREA_ID], 'editor');
+
+/** Whether the user may confirm usage rights and permanently delete assets of the given area. */
+export const canManageAreaOf = (access: UserAccess, areaId: string | undefined) =>
+  access.role === 'admin' || isAtLeast(access.areas[areaId ?? SHARED_AREA_ID], 'manager');
+
+/**
+Whether the user may edit and trash a media library asset: editors of its area; externals only assets they added.
+Keep in sync with the server rules.
+*/
+export const canEditLibraryAssetOf = (
+  access: UserAccess,
+  userId: string,
+  areaId: string,
+  uploadedBy: string | undefined,
+) => canEditAreaOf(access, areaId) && (access.role !== 'external' || uploadedBy === userId);
 
 /** Whether the user may publish website galleries (editors and media managers, not externals). */
 export const canPublishGalleries = (access: UserAccess) =>

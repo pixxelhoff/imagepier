@@ -4,10 +4,19 @@ import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
 import {
   applyImagePierAccess,
+  applyMetadataRules,
+  rejectReservedMetadataKeys,
   requirePermanentDeleteAccess,
   setAssetOwnerResolver,
+  setAssetUploaderResolver,
 } from 'src/imagepier/access-hook.js';
-import { AccessSettings, SHARED_AREA_ID, setCachedAccessSettings } from 'src/imagepier/access-rules.js';
+import {
+  AccessSettings,
+  SHARED_AREA_ID,
+  UPLOADED_BY_KEY,
+  setCachedAccessSettings,
+} from 'src/imagepier/access-rules.js';
+import { USAGE_RIGHTS_KEY } from 'src/imagepier/usage-rights.js';
 import type { AccessRepository } from 'src/repositories/access.repository.js';
 
 const libraryUserId = 'library-id';
@@ -33,6 +42,13 @@ const resolver = vitest.fn((ids: string[]) =>
   Promise.resolve(new Map(ids.filter((id) => Object.hasOwn(owners, id)).map((id) => [id, owners[id]]))),
 );
 
+/** Usage rights saved as confirmed. */
+const confirmed = (assetId: string) => ({
+  assetId,
+  key: USAGE_RIGHTS_KEY,
+  value: { status: 'confirmed', photographer: 'Jane Doe' },
+});
+
 const useSettings = (users: AccessSettings['users'], withLibrary = true) =>
   setCachedAccessSettings({ libraryUserId: withLibrary ? libraryUserId : undefined, areas, users });
 
@@ -45,6 +61,52 @@ describe('ImagePier access hook', () => {
   afterEach(() => {
     setCachedAccessSettings({ areas: [], users: {} });
     setAssetOwnerResolver(undefined);
+    setAssetUploaderResolver(undefined);
+  });
+
+  it('should let external editors edit only the media library assets they added', async () => {
+    useSettings({ photographer: { role: 'external', areas: { press: 'editor' } } });
+    setAssetUploaderResolver((ids) =>
+      Promise.resolve(new Map(ids.filter((id) => id === 'asset-1').map((id) => [id, 'photographer']))),
+    );
+    const result = await applyImagePierAccess(
+      access,
+      { auth: authFor('photographer'), permission: Permission.AssetUpdate, ids: new Set(['asset-1', 'asset-4']) },
+      Promise.resolve(new Set<string>()),
+    );
+
+    expect(result).toEqual(new Set(['asset-1']));
+  });
+
+  describe('applyMetadataRules', () => {
+    it('should save usage rights of editors as to be reviewed', async () => {
+      useSettings({ user: { role: 'staff', areas: { press: 'editor', marketing: 'manager' } } });
+
+      const result = await applyMetadataRules(authFor('user'), [
+        confirmed('asset-1'),
+        confirmed('asset-2'),
+        confirmed('own'),
+      ]);
+
+      expect(result.map((item) => item.value.status)).toEqual(['suggested', 'confirmed', 'confirmed']);
+    });
+
+    it('should let admins confirm usage rights', async () => {
+      useSettings({});
+
+      const result = await applyMetadataRules(authFor('admin', true), [confirmed('asset-1')]);
+
+      expect(result[0].value.status).toBe('confirmed');
+    });
+
+    it('should reject reserved keys', async () => {
+      useSettings({});
+
+      await expect(
+        applyMetadataRules(authFor('admin', true), [{ assetId: 'own', key: UPLOADED_BY_KEY, value: { userId: 'x' } }]),
+      ).rejects.toThrow('reserved');
+      expect(() => rejectReservedMetadataKeys(['imagepier.area'])).toThrow('reserved');
+    });
   });
 
   it('should not change anything without a media library account', async () => {
