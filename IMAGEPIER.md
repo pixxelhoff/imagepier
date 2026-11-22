@@ -108,8 +108,13 @@ conflicts can occur during updates.
 - Public endpoints (`@Authenticated({ public: true })`): `GET /api/imagepier/gallery/:key`,
   `GET /api/imagepier/gallery/:key/assets/:id?size=thumbnail|preview`, `GET /api/imagepier/gallery/:key/assets/:id/download`
   (original with usage rights credits, counted in the audit log). Every file request checks that the asset is published.
-- Management: `GET|POST /api/imagepier/galleries`, `DELETE /api/imagepier/galleries/:id`,
-  `GET|PUT /api/admin/imagepier/gallery/branding`.
+- ZIP archives: `GET /api/imagepier/gallery/:key/download` (all published assets) and `POST` to the same path with a
+  form field `ids` (comma separated, for a selection; a form post avoids long URLs). Files get usage rights credits like
+  single downloads; the download is recorded once with all asset IDs.
+- Management: `GET|POST /api/imagepier/galleries` (`GET` also returns the default branding),
+  `PUT|DELETE /api/imagepier/galleries/:id`, `GET|PUT /api/admin/imagepier/gallery/branding`.
+- Branding: the admin sets a default; each gallery can store its own values (`gallery.branding`). Empty values fall
+  back to the default (`mergeBranding()`).
 - Web: public page `web/src/routes/gallery/[key]/` (no login), management page `web/src/routes/(user)/galleries/`,
   sidebar entry in `MediaLibraryNavItem.svelte`. No Immich file changed.
 
@@ -137,7 +142,8 @@ so Immich source files stay untouched. The plugin is disabled in unit tests (`mo
 - `HIDDEN_COMPONENTS` turns Immich components into empty ones (the sidebar purchase reminder).
 - `TEXT_REPLACEMENTS` changes literal strings such as page titles.
 - Translation files (`i18n/*.json`): "Immich" becomes "ImagePier", except in keys about the Immich project itself
-  (purchase, support, official resources, release announcements).
+  (purchase, support, official resources, release announcements). `TRANSLATION_OVERRIDES` replaces single
+  translations per language (German: "Administration" instead of "Verwaltung").
 
 After an Immich update, check the web build log for `ImagePier branding not applied` – it lists replacements that no
 longer match and need to be adjusted.

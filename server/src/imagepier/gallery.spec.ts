@@ -1,4 +1,11 @@
-import { isPublishable, parseBranding, parseGallerySettings } from 'src/imagepier/gallery.js';
+import {
+  getArchiveName,
+  isPublishable,
+  mergeBranding,
+  parseAssetIds,
+  parseBranding,
+  parseGallerySettings,
+} from 'src/imagepier/gallery.js';
 import { UsageRights } from 'src/imagepier/usage-rights.js';
 
 const today = new Date('2026-06-01T00:00:00Z');
@@ -75,6 +82,39 @@ describe('ImagePier galleries', () => {
       };
       expect(parseGallerySettings({ galleries: [gallery, { id: 'broken' }] }).galleries).toEqual([gallery]);
       expect(parseGallerySettings(undefined)).toEqual({ galleries: [], branding: parseBranding(undefined) });
+    });
+
+    it('should clean the appearance of a gallery', () => {
+      const gallery = { id: 'gallery-1', key: 'key-1', albumId: 'album-1', branding: { color: 'red', title: 'Press' } };
+      const [result] = parseGallerySettings({ galleries: [gallery] }).galleries;
+      expect(result.branding).toEqual(expect.objectContaining({ title: 'Press', color: undefined }));
+    });
+  });
+
+  describe('mergeBranding', () => {
+    it('should prefer the values of the gallery', () => {
+      const defaults = { title: 'Media', color: '#0055a4', imprintUrl: 'https://example.com/imprint' };
+      expect(mergeBranding(defaults, { title: 'Press', color: undefined })).toEqual({
+        title: 'Press',
+        color: '#0055a4',
+        imprintUrl: 'https://example.com/imprint',
+      });
+      expect(mergeBranding(defaults)).toEqual(defaults);
+    });
+  });
+
+  describe('parseAssetIds', () => {
+    it('should keep valid and unique IDs', () => {
+      const id = '0f4c2a5e-1b7d-4c55-9a3e-6f1e2d3c4b5a';
+      expect(parseAssetIds(` ${id},${id.toUpperCase()},invalid,`)).toEqual([id]);
+      expect(parseAssetIds(undefined)).toEqual([]);
+    });
+  });
+
+  describe('getArchiveName', () => {
+    it('should remove characters that are not allowed in file names', () => {
+      expect(getArchiveName('Harbour / Sail: 2026?')).toBe('Harbour Sail 2026.zip');
+      expect(getArchiveName(' ')).toBe('gallery.zip');
     });
   });
 });

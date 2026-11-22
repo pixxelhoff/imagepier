@@ -41,7 +41,11 @@ export type Gallery = {
   allowDownload: boolean;
   createdById: string;
   createdAt: string;
+  /** Own appearance; empty values use the default appearance. */
+  branding?: GalleryBranding;
 };
+
+export type GalleryList = { galleries: Gallery[]; defaults: GalleryBranding };
 
 /** Size limit of the logo, stored as data URL. */
 export const MAX_LOGO_LENGTH = 400_000;
@@ -67,13 +71,19 @@ export const getGalleryImageUrl = (key: string, assetId: string, size: 'thumbnai
 export const getGalleryDownloadUrl = (key: string, assetId: string) =>
   `${defaults.baseUrl}${galleryPath(key)}/assets/${assetId}/download`;
 
+/** ZIP archive: GET for all images, form POST with `ids` for a selection. */
+export const getGalleryArchiveUrl = (key: string) => `${defaults.baseUrl}${galleryPath(key)}/download`;
+
 /** Address of the public gallery page, for links on websites. */
 export const getGalleryPageUrl = (key: string) => `${location.origin}/gallery/${key}`;
 
-export const getGalleries = () => request<Gallery[]>('/imagepier/galleries');
+export const getGalleries = () => request<GalleryList>('/imagepier/galleries');
 
 export const createGallery = (dto: { albumId: string; title: string; allowDownload: boolean }) =>
   request<Gallery>('/imagepier/galleries', { method: 'POST', body: JSON.stringify(dto) });
+
+export const updateGallery = (id: string, dto: { title: string; allowDownload: boolean; branding: GalleryBranding }) =>
+  request<Gallery>(`/imagepier/galleries/${id}`, { method: 'PUT', body: JSON.stringify(dto) });
 
 export const deleteGallery = (id: string) => request<void>(`/imagepier/galleries/${id}`, { method: 'DELETE' });
 

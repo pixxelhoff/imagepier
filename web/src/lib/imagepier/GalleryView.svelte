@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    getGalleryArchiveUrl,
     getGalleryCredit,
     getGalleryDownloadUrl,
     getGalleryImageUrl,
@@ -12,6 +13,7 @@
   import { mdiChevronLeft, mdiChevronRight, mdiClose, mdiDownload } from '@mdi/js';
   import { DateTime } from 'luxon';
   import { onMount } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
 
   interface Props {
     galleryKey: string;
@@ -23,6 +25,24 @@
   let failed = $state(false);
   let selectedIndex = $state<number>();
   let accepted = $state(false);
+  let bulkAccepted = $state(false);
+  const selection = new SvelteSet<string>();
+
+  const toggle = (id: string, checked: boolean) => {
+    if (checked) {
+      selection.add(id);
+    } else {
+      selection.delete(id);
+    }
+  };
+
+  const selectAll = () => {
+    for (const asset of gallery?.assets ?? []) {
+      selection.add(asset.id);
+    }
+  };
+
+  const downloadClass = 'inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium text-white';
 
   onMount(() => {
     void getPublicGallery(galleryKey)
@@ -95,9 +115,56 @@
     {:else if gallery && gallery.assets.length === 0}
       <Text>{$ipt('gallery_empty')}</Text>
     {:else if gallery}
+      {#if gallery.allowDownload}
+        <div class="mb-6 flex flex-col gap-3 rounded-lg border p-4 text-sm">
+          <div class="flex flex-wrap items-center gap-4">
+            <span>{$ipt('gallery_selected', { count: selection.size, total: gallery.assets.length })}</span>
+            <button type="button" class="underline" onclick={selectAll}>{$ipt('gallery_select_all')}</button>
+            {#if selection.size > 0}
+              <button type="button" class="underline" onclick={() => selection.clear()}>
+                {$ipt('gallery_select_none')}
+              </button>
+            {/if}
+          </div>
+          <Text size="small" color="muted">{$ipt('gallery_download_archive_hint')}</Text>
+          <div class="flex items-start gap-2">
+            <Checkbox
+              id="imagepier-gallery-accept-all"
+              size="tiny"
+              checked={bulkAccepted}
+              onCheckedChange={(value) => (bulkAccepted = value)}
+            />
+            <Label for="imagepier-gallery-accept-all" label={$ipt('gallery_terms_accept')} />
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <form method="post" action={getGalleryArchiveUrl(galleryKey)}>
+              <input type="hidden" name="ids" value={[...selection].join(',')} />
+              <button
+                type="submit"
+                disabled={!bulkAccepted || selection.size === 0}
+                class={[downloadClass, (!bulkAccepted || selection.size === 0) && 'opacity-50']}
+                style:background-color={accent}
+              >
+                <Icon icon={mdiDownload} size="20" />
+                {$ipt('gallery_download_selection', { count: selection.size })}
+              </button>
+            </form>
+            <a
+              href={getGalleryArchiveUrl(galleryKey)}
+              aria-disabled={!bulkAccepted}
+              tabindex={bulkAccepted ? undefined : -1}
+              class={[downloadClass, !bulkAccepted && 'pointer-events-none opacity-50']}
+              style:background-color={accent}
+            >
+              <Icon icon={mdiDownload} size="20" />
+              {$ipt('gallery_download_all', { count: gallery.assets.length })}
+            </a>
+          </div>
+        </div>
+      {/if}
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {#each gallery.assets as asset, index (asset.id)}
-          <figure>
+          <figure class="relative">
             <button type="button" class="block w-full" onclick={() => open(index)}>
               <img
                 src={getGalleryImageUrl(galleryKey, asset.id, 'thumbnail')}
@@ -106,6 +173,16 @@
                 loading="lazy"
               />
             </button>
+            {#if gallery.allowDownload}
+              <input
+                type="checkbox"
+                class="absolute top-2 left-2 size-5 cursor-pointer"
+                style:accent-color={accent}
+                aria-label={$ipt('gallery_select_image', { name: asset.fileName })}
+                checked={selection.has(asset.id)}
+                onchange={(event) => toggle(asset.id, event.currentTarget.checked)}
+              />
+            {/if}
             <figcaption class="mt-1 text-xs text-gray-600">{getGalleryCredit(asset)}</figcaption>
           </figure>
         {/each}

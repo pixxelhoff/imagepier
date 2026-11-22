@@ -48,6 +48,11 @@ const TEXT_REPLACEMENTS: { file: string; search: string; replace: string }[] = [
 // Translation keys that refer to the Immich project itself and keep its name.
 const KEEP_IMMICH_NAME = /buy|purchase|support|official|obtainium|my_immich|version_announcement/;
 
+// Single translations that ImagePier words differently, by language file.
+const TRANSLATION_OVERRIDES: Record<string, Record<string, string>> = {
+  de: { administration: 'Administration' },
+};
+
 const normalizeId = (id: string) => id.split('?', 1)[0].replaceAll('\\', '/');
 
 // Loading screen in the built index.html (from Immich's app.html): Immich logo -> spinning ring in ImagePier colors.
@@ -128,9 +133,10 @@ export const imagePierBranding = (): Plugin => {
     transform(code, id) {
       const file = normalizeId(id);
 
-      if (/\/i18n\/[\w-]+\.json$/.test(file)) {
-        const messages = JSON.parse(code) as Record<string, unknown>;
-        return { code: JSON.stringify(rebrandTranslations(messages)), map: null };
+      const translation = /\/i18n\/([\w-]+)\.json$/.exec(file);
+      if (translation) {
+        const messages = rebrandTranslations(JSON.parse(code) as Record<string, unknown>);
+        return { code: JSON.stringify({ ...messages, ...TRANSLATION_OVERRIDES[translation[1]] }), map: null };
       }
 
       if (file === `${brandingDir}version.ts`) {

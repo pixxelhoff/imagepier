@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { sql, type Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
+import sanitize from 'sanitize-filename';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { AssetFileType, AssetType, CacheControl, SystemMetadataKey } from 'src/enum.js';
 import { getAccessForAuth } from 'src/imagepier/access-hook.js';
@@ -12,7 +13,9 @@ import {
   Gallery,
   GalleryBranding,
   GallerySettings,
+  getArchiveName,
   isPublishable,
+  mergeBranding,
   parseBranding,
   parseGallerySettings,
 } from 'src/imagepier/gallery.js';
@@ -21,7 +24,7 @@ import { USAGE_RIGHTS_KEY, UsageRights, parseUsageRights } from 'src/imagepier/u
 import { AssetRepository } from 'src/repositories/asset.repository.js';
 import { LoggingRepository } from 'src/repositories/logging.repository.js';
 import { MetadataRepository } from 'src/repositories/metadata.repository.js';
-import { StorageRepository } from 'src/repositories/storage.repository.js';
+import { ImmichReadStream, StorageRepository } from 'src/repositories/storage.repository.js';
 import { SystemMetadataRepository } from 'src/repositories/system-metadata.repository.js';
 import type { DB } from 'src/schema/index.js';
 import type { SystemMetadata } from 'src/types.js';
@@ -87,13 +90,16 @@ export class ImagePierGalleryService {
     return access;
   }
 
-  /** Galleries of the user; administrators see all galleries. */
+  /** Galleries of the user (administrators see all galleries) and the default appearance. */
   async getGalleries(auth: AuthDto) {
     const access = this.requireEditor(auth);
-    const { galleries } = await this.load();
+    const { galleries, branding } = await this.load();
     const visible = galleries.filter((gallery) => access.role === 'admin' || gallery.createdById === auth.user.id);
     const albums = await this.getAlbumNames(visible.map((gallery) => gallery.albumId));
-    return visible.map((gallery) => ({ ...gallery, albumName: albums.get(gallery.albumId) ?? null }));
+    return {
+      galleries: visible.map((gallery) => ({ ...gallery, albumName: albums.get(gallery.albumId) ?? null })),
+      defaults: branding,
+    };
   }
 
   async createGallery(auth: AuthDto, dto: { albumId: string; title: string; allowDownload: boolean }) {
@@ -126,7 +132,7 @@ export class ImagePierGalleryService {
     return gallery;
   }
 
-  async deleteGallery(auth: AuthDto, id: string) {
+  private async requireOwnGallery(auth: AuthDto, id: string) {
     const access = this.requireEditor(auth);
     const settings = await this.load();
     const gallery = settings.galleries.find((item) => item.id === id);
@@ -136,6 +142,29 @@ export class ImagePierGalleryService {
     if (access.role !== 'admin' && gallery.createdById !== auth.user.id) {
       throw new ForbiddenException('No access to this gallery');
     }
+    return { settings, gallery };
+  }
+
+  /** Title, downloads and the own appearance of a gallery. */
+  async updateGallery(
+    auth: AuthDto,
+    id: string,
+    dto: { title: string; allowDownload: boolean; branding?: GalleryBranding },
+  ) {
+    const { settings, gallery } = await this.requireOwnGallery(auth, id);
+    const branding = parseBranding(dto.branding);
+    const updated: Gallery = {
+      ...gallery,
+      title: dto.title.trim(),
+      allowDownload: dto.allowDownload,
+      branding: Object.values(branding).some((value) => value !== undefined) ? branding : undefined,
+    };
+    await this.save({ ...settings, galleries: settings.galleries.map((item) => (item.id === id ? updated : item)) });
+    return updated;
+  }
+
+  async deleteGallery(auth: AuthDto, id: string) {
+    const { settings, gallery } = await this.requireOwnGallery(auth, id);
     await this.save({ ...settings, galleries: settings.galleries.filter((item) => item.id !== id) });
     return gallery;
   }
@@ -168,7 +197,7 @@ export class ImagePierGalleryService {
     if (!gallery) {
       throw new NotFoundException('Gallery not found');
     }
-    return { gallery, branding: settings.branding };
+    return { gallery, branding: mergeBranding(settings.branding, gallery.branding) };
   }
 
   private async getContent(gallery: Gallery): Promise<GalleryContent> {
@@ -279,5 +308,52 @@ export class ImagePierGalleryService {
       contentType: mimeTypes.lookup(path),
       cacheControl: CacheControl.PrivateWithoutCache,
     });
+  }
+
+  /** Public: ZIP archive of the selected or all published assets, with usage rights credits. */
+  async downloadArchive(key: string, assetIds: string[]): Promise<ImmichReadStream> {
+    const { gallery } = await this.getGallery(key);
+    if (!gallery.allowDownload) {
+      throw new ForbiddenException('Downloads are disabled for this gallery');
+    }
+    const content = await this.getContent(gallery);
+    const requested = new Set(assetIds);
+    const ids = content.assets
+      .filter((asset) => requested.size === 0 || requested.has(asset.id))
+      .map((asset) => asset.id);
+    if (ids.length === 0) {
+      throw new NotFoundException('No assets to download');
+    }
+
+    recordAudit({ action: 'download', assetIds: ids, details: { kind: 'gallery', gallery: gallery.title } });
+
+    const zip = this.storageRepository.createZipStream();
+    const assets = await this.assetRepository.getForOriginals(ids, true);
+    const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
+    const names: Record<string, number> = {};
+    const { assetRepository, metadataRepository, storageRepository, logger } = this;
+    const repositories = { assetRepository, metadataRepository, storageRepository, logger };
+
+    for (const id of ids) {
+      const asset = assetMap.get(id);
+      if (!asset) {
+        continue;
+      }
+      const path = asset.editedPath ?? asset.originalPath;
+      const name = getFileNameWithoutExtension(sanitize(asset.originalFileName) || 'image');
+      const extension = getFilenameExtension(path);
+      const count = names[name + extension] ?? 0;
+      names[name + extension] = count + 1;
+      const fileName = count === 0 ? name + extension : `${name}+${count}${extension}`;
+      zip.addFile(await applyUsageRightsCredits(repositories, id, path), fileName);
+    }
+
+    void zip.finalize();
+
+    return {
+      stream: zip.stream,
+      type: 'application/zip',
+      disposition: `attachment; filename*=UTF-8''${encodeURIComponent(getArchiveName(gallery.title))}`,
+    };
   }
 }

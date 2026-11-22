@@ -1,11 +1,14 @@
 <script lang="ts">
+  import GalleryBrandingFields from '#lib/imagepier/GalleryBrandingFields.svelte';
   import { getMyAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import {
     createGallery,
     deleteGallery,
     getGalleries,
     getGalleryPageUrl,
+    updateGallery,
     type Gallery,
+    type GalleryBranding,
   } from '#lib/imagepier/gallery.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -15,6 +18,7 @@
   import {
     Button,
     Field,
+    Heading,
     HelperText,
     Icon,
     IconButton,
@@ -26,11 +30,14 @@
     modalManager,
     toastManager,
   } from '@immich/ui';
-  import { mdiContentCopy, mdiDeleteOutline, mdiOpenInNew, mdiPlus } from '@mdi/js';
+  import { mdiContentCopy, mdiDeleteOutline, mdiOpenInNew, mdiPencilOutline, mdiPlus } from '@mdi/js';
   import { onMount } from 'svelte';
+
+  type GalleryEdit = { id: string; title: string; allowDownload: boolean; branding: GalleryBranding };
 
   let access = $state<MyAccess>();
   let galleries = $state<Gallery[]>([]);
+  let defaults = $state<GalleryBranding>({});
   let albums = $state<AlbumResponseDto[]>([]);
   let failed = $state(false);
   let saving = $state(false);
@@ -39,11 +46,15 @@
   let title = $state('');
   let allowDownload = $state(true);
 
+  let edit = $state<GalleryEdit>();
+  let updating = $state(false);
+
   const load = async () => {
     try {
       access = await getMyAccess(authManager.user.id);
-      const [items, allAlbums] = await Promise.all([getGalleries(), getAllAlbums({})]);
-      galleries = items;
+      const [list, allAlbums] = await Promise.all([getGalleries(), getAllAlbums({})]);
+      galleries = list.galleries;
+      defaults = list.defaults;
       albums =
         access.role === 'admin'
           ? allAlbums
@@ -92,7 +103,42 @@
   };
 
   const describe = (gallery: Gallery) =>
-    `${gallery.albumName ?? '–'} · ${$ipt(gallery.allowDownload ? 'gallery_download_on' : 'gallery_download_off')}`;
+    [
+      gallery.albumName ?? '–',
+      $ipt(gallery.allowDownload ? 'gallery_download_on' : 'gallery_download_off'),
+      ...(gallery.branding ? [$ipt('gallery_own_branding_active')] : []),
+    ].join(' · ');
+
+  const startEdit = (gallery: Gallery) => {
+    edit = {
+      id: gallery.id,
+      title: gallery.title,
+      allowDownload: gallery.allowDownload,
+      branding: { ...gallery.branding },
+    };
+  };
+
+  const saveEdit = async () => {
+    if (!edit || !edit.title.trim()) {
+      return;
+    }
+    updating = true;
+    try {
+      const { id, branding } = edit;
+      const updated = await updateGallery(id, {
+        title: edit.title.trim(),
+        allowDownload: edit.allowDownload,
+        branding,
+      });
+      galleries = galleries.map((item) => (item.id === id ? { ...updated, albumName: item.albumName } : item));
+      edit = undefined;
+      toastManager.primary($ipt('gallery_saved'));
+    } catch (error) {
+      handleError(error, $ipt('gallery_failed'));
+    } finally {
+      updating = false;
+    }
+  };
 
   const remove = async (gallery: Gallery) => {
     const isConfirmed = await modalManager.showDialog({
@@ -104,6 +150,9 @@
     try {
       await deleteGallery(gallery.id);
       galleries = galleries.filter((item) => item.id !== gallery.id);
+      if (edit?.id === gallery.id) {
+        edit = undefined;
+      }
       toastManager.primary($ipt('gallery_deleted'));
     } catch (error) {
       handleError(error, $ipt('gallery_failed'));
@@ -151,11 +200,38 @@
             shape="round"
             color="secondary"
             variant="ghost"
+            icon={mdiPencilOutline}
+            aria-label={$ipt('gallery_edit')}
+            onclick={() => startEdit(gallery)}
+          />
+          <IconButton
+            shape="round"
+            color="secondary"
+            variant="ghost"
             icon={mdiDeleteOutline}
             aria-label={$ipt('gallery_delete')}
             onclick={() => remove(gallery)}
           />
         </div>
+        {#if edit && edit.id === gallery.id}
+          <div class="flex flex-col gap-4 rounded-2xl border p-4">
+            <Text>{$ipt('gallery_edit')}</Text>
+            <Field label={$ipt('gallery_title')}>
+              <Input bind:value={edit.title} />
+            </Field>
+            <Field label={$ipt('gallery_allow_download')}>
+              <Switch bind:checked={edit.allowDownload} />
+            </Field>
+            <Heading size="tiny" tag="h3">{$ipt('gallery_own_branding')}</Heading>
+            <GalleryBrandingFields bind:branding={edit.branding} {defaults} />
+            <div class="flex gap-2">
+              <Button onclick={saveEdit} loading={updating} disabled={!edit.title.trim()}>{$ipt('save')}</Button>
+              <Button variant="ghost" color="secondary" onclick={() => (edit = undefined)}>
+                {$ipt('gallery_cancel')}
+              </Button>
+            </div>
+          </div>
+        {/if}
       {/each}
     </div>
 

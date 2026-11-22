@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,6 +12,7 @@ import {
   Put,
   Query,
   Res,
+  StreamableFile,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { NextFunction, Response } from 'express';
@@ -18,11 +20,11 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { recordAuditFor } from 'src/imagepier/audit.js';
-import { MAX_LOGO_LENGTH } from 'src/imagepier/gallery.js';
+import { MAX_LOGO_LENGTH, parseAssetIds } from 'src/imagepier/gallery.js';
 import { ImagePierGalleryService } from 'src/imagepier/gallery.service.js';
 import { Auth, Authenticated, FileResponse } from 'src/middleware/auth.guard.js';
 import { LoggingRepository } from 'src/repositories/logging.repository.js';
-import { sendFile } from 'src/utils/file.js';
+import { asStreamableFile, sendFile } from 'src/utils/file.js';
 import { UUIDParamDto } from 'src/validation.js';
 
 const GalleryKeyParamSchema = z.object({
@@ -52,6 +54,12 @@ const GalleryCreateSchema = z.object({
 
 class GalleryCreateDto extends createZodDto(GalleryCreateSchema) {}
 
+const GalleryArchiveSchema = z.object({
+  ids: z.string().max(400_000).optional().describe('Comma separated asset IDs; all assets if empty'),
+});
+
+class GalleryArchiveDto extends createZodDto(GalleryArchiveSchema) {}
+
 const GalleryBrandingSchema = z.object({
   title: z.string().max(100).optional().describe('Heading of all galleries'),
   color: z.string().max(7).optional().describe('Accent color, e.g. #0055a4'),
@@ -62,6 +70,14 @@ const GalleryBrandingSchema = z.object({
 });
 
 class GalleryBrandingDto extends createZodDto(GalleryBrandingSchema) {}
+
+const GalleryUpdateSchema = z.object({
+  title: z.string().trim().min(1).max(100).describe('Title shown on the gallery page'),
+  allowDownload: z.boolean().describe('Whether visitors can download originals'),
+  branding: GalleryBrandingSchema.optional().describe('Own appearance; empty values use the default appearance'),
+});
+
+class GalleryUpdateDto extends createZodDto(GalleryUpdateSchema) {}
 
 /** Public gallery pages. Not part of Immich's public API specification. */
 @ApiExcludeController()
@@ -96,6 +112,26 @@ export class ImagePierGalleryPublicController {
   async downloadAsset(@Param() { key, id }: GalleryAssetParamDto, @Res() res: Response, @Next() next: NextFunction) {
     await sendFile(res, next, () => this.service.downloadAsset(key, id), this.logger);
   }
+
+  @Get(':key/download')
+  @FileResponse()
+  @Authenticated({ public: true })
+  downloadAll(@Param() { key }: GalleryKeyParamDto): Promise<StreamableFile> {
+    return this.service.downloadArchive(key, []).then(asStreamableFile);
+  }
+
+  /** Selected assets; a form post, so large selections do not exceed the URL length. */
+  @Post(':key/download')
+  @FileResponse()
+  @HttpCode(HttpStatus.OK)
+  @Authenticated({ public: true })
+  downloadSelection(@Param() { key }: GalleryKeyParamDto, @Body() { ids }: GalleryArchiveDto): Promise<StreamableFile> {
+    const assetIds = parseAssetIds(ids);
+    if (assetIds.length === 0) {
+      throw new BadRequestException('No assets selected');
+    }
+    return this.service.downloadArchive(key, assetIds).then(asStreamableFile);
+  }
 }
 
 /** Gallery management for administrators and media managers. */
@@ -115,6 +151,14 @@ export class ImagePierGalleryController {
   async createGallery(@Auth() auth: AuthDto, @Body() dto: GalleryCreateDto) {
     const gallery = await this.service.createGallery(auth, dto);
     recordAuditFor(auth, { action: 'gallery', details: { gallery: gallery.title, published: true } });
+    return gallery;
+  }
+
+  @Put(':id')
+  @Authenticated()
+  async updateGallery(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto, @Body() dto: GalleryUpdateDto) {
+    const gallery = await this.service.updateGallery(auth, id, dto);
+    recordAuditFor(auth, { action: 'gallery', details: { gallery: gallery.title } });
     return gallery;
   }
 

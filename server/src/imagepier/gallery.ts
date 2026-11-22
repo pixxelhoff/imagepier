@@ -24,6 +24,8 @@ export type Gallery = {
   allowDownload: boolean;
   createdById: string;
   createdAt: string;
+  /** Appearance of this gallery; empty values use the default appearance. */
+  branding?: GalleryBranding;
 };
 
 export type GalleryBranding = {
@@ -67,7 +69,47 @@ export const parseGallerySettings = (value: unknown): GallerySettings => {
           !!gallery && typeof gallery.id === 'string' && typeof gallery.key === 'string' && !!gallery.albumId,
       )
     : [];
-  return { galleries, branding: parseBranding(record.branding) };
+  return {
+    galleries: galleries.map((gallery) => ({
+      ...gallery,
+      branding: gallery.branding ? parseBranding(gallery.branding) : undefined,
+    })),
+    branding: parseBranding(record.branding),
+  };
+};
+
+const BRANDING_KEYS = ['title', 'color', 'logo', 'footer', 'imprintUrl', 'privacyUrl'] as const;
+
+/** Appearance of a gallery: its own values, otherwise the default appearance. */
+export const mergeBranding = (defaults: GalleryBranding, overrides: GalleryBranding = {}): GalleryBranding => {
+  const result: GalleryBranding = {};
+  for (const key of BRANDING_KEYS) {
+    const value = overrides[key] ?? defaults[key];
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+
+/** Parses a comma separated list of asset IDs; invalid entries are ignored. */
+export const parseAssetIds = (value = '') => {
+  const ids = value
+    .split(',')
+    .map((id) => id.trim().toLowerCase())
+    .filter((id) => /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/.test(id));
+  return [...new Set(ids)];
+};
+
+/** File name of a ZIP archive, derived from the gallery title. */
+export const getArchiveName = (title: string) => {
+  const name = [...title]
+    .filter((char) => (char.codePointAt(0) ?? 0) >= 32 && !String.raw`\/:*?"<>|`.includes(char))
+    .join('')
+    .replaceAll(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80);
+  return `${name || 'gallery'}.zip`;
 };
 
 /** Whether an asset with these usage rights may appear in a public gallery. */
