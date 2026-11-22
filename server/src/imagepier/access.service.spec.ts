@@ -1,5 +1,5 @@
 import { setCachedAccessSettings } from 'src/imagepier/access-rules.js';
-import { ImagePierAccessService } from 'src/imagepier/access.service.js';
+import { ImagePierAccessService, getAreaAccountEmail } from 'src/imagepier/access.service.js';
 import { ServiceMocks, newTestService } from 'test/utils.js';
 
 const libraryUserId = 'library-id';
@@ -73,6 +73,43 @@ describe(ImagePierAccessService.name, () => {
       await sut.syncLibrarySharing();
 
       expect(mocks.partner.getAll).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateAreas', () => {
+    it('should not remove an area that still contains assets', async () => {
+      mocks.systemMetadata.get.mockResolvedValue({
+        libraryUserId,
+        areas: [{ id: 'press', name: 'Press', userId: 'press-account' }],
+        users: {},
+      } as any);
+      mocks.asset.getStatistics.mockResolvedValue({ image: 2, video: 0, audio: 0, other: 0 } as any);
+
+      await expect(sut.updateAreas([{ id: 'shared', name: 'General' }])).rejects.toThrow('still contains assets');
+      expect(mocks.systemMetadata.set).not.toHaveBeenCalled();
+    });
+
+    it('should remove the account of an empty area', async () => {
+      mocks.systemMetadata.get.mockResolvedValue({
+        libraryUserId,
+        areas: [{ id: 'press', name: 'Press', userId: 'press-account' }],
+        users: {},
+      } as any);
+      mocks.asset.getStatistics.mockResolvedValue({ image: 0, video: 0, audio: 0, other: 0 } as any);
+      mocks.partner.getAll.mockResolvedValue([{ sharedById: 'press-account', sharedWithId: 'user' }] as any);
+      mocks.user.get.mockResolvedValue({ id: libraryUserId, name: 'Media library: General' } as any);
+      mocks.user.getList.mockResolvedValue([]);
+
+      await sut.updateAreas([{ id: 'shared', name: 'General' }]);
+
+      expect(mocks.partner.remove).toHaveBeenCalledWith({ sharedById: 'press-account', sharedWithId: 'user' });
+      expect(mocks.user.update).toHaveBeenCalledWith('press-account', expect.objectContaining({ status: 'deleted' }));
+    });
+  });
+
+  describe('getAreaAccountEmail', () => {
+    it('should add the area id to the media library e-mail', () => {
+      expect(getAreaAccountEmail('media-library@imagepier.local', 'abc')).toBe('media-library+abc@imagepier.local');
     });
   });
 

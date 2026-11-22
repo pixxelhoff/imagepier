@@ -120,28 +120,56 @@ describe(ImagePierUsageRightsService.name, () => {
     it('should read the area from the stored settings outside of the API worker', async () => {
       mocks.systemMetadata.get.mockResolvedValue({
         libraryUserId: 'library-id',
-        areas: [{ id: 'press', name: 'Press' }],
+        areas: [{ id: 'press', name: 'Press', userId: 'press-account' }],
         users: {},
       } as any);
-      mocks.asset.getById.mockResolvedValue({ id: 'asset-1', ownerId: 'library-id', tags: [] } as any);
-      mocks.asset.getMetadataByKey.mockImplementation(((_: string, key: string) =>
-        Promise.resolve(key === ASSET_AREA_KEY ? { key, value: { areaId: 'press' } } : undefined)) as any);
+      mocks.asset.getById.mockResolvedValue({ id: 'asset-1', ownerId: 'press-account', tags: [] } as any);
+      mocks.asset.getMetadataByKey.mockResolvedValue(undefined);
       mocks.tag.upsertValue.mockImplementation(({ value }) => Promise.resolve({ id: `tag-${value}`, value } as any));
 
       await sut.syncTags('asset-1');
 
       const areaPath = getTagPaths(getTagLabels()).area;
       expect(mocks.tag.upsertValue).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'library-id', value: `${areaPath}/Press` }),
+        expect.objectContaining({ userId: 'press-account', value: `${areaPath}/Press` }),
       );
+    });
+  });
+
+  describe('migrateAreaAssets', () => {
+    it('should move assets of earlier versions to the account of their area', async () => {
+      const areaPath = getTagPaths(getTagLabels()).area;
+      mocks.systemMetadata.get.mockResolvedValue({
+        libraryUserId: 'library-id',
+        areas: [{ id: 'press', name: 'Press', userId: 'press-account' }],
+        users: {},
+      } as any);
+      mocks.tag.getAll.mockResolvedValue([
+        { id: 'tag-area', value: `${areaPath}/Press` },
+        { id: 'tag-other', value: 'Holiday' },
+      ] as any);
+      mocks.tag.getAssetIdsByTagId.mockResolvedValue(['asset-1', 'asset-2']);
+      mocks.asset.getById.mockImplementation(((id: string) =>
+        Promise.resolve({ id, ownerId: 'library-id', tags: [] })) as any);
+      mocks.asset.getMetadataByKey.mockImplementation(((id: string, key: string) =>
+        Promise.resolve(
+          key === ASSET_AREA_KEY && id === 'asset-1' ? { key, value: { areaId: 'press' } } : undefined,
+        )) as any);
+      mocks.tag.upsertValue.mockImplementation(({ value }) => Promise.resolve({ id: `tag-${value}`, value } as any));
+
+      await expect(sut.migrateAreaAssets()).resolves.toBe(1);
+
+      expect(mocks.tag.getAssetIdsByTagId).toHaveBeenCalledTimes(1);
+      expect(mocks.asset.updateAll).toHaveBeenCalledTimes(1);
+      expect(mocks.asset.updateAll).toHaveBeenCalledWith(['asset-1'], { ownerId: 'press-account' });
     });
   });
 
   describe('moveToLibrary', () => {
     const libraryUserId = 'library-id';
     const areas = [
-      { id: SHARED_AREA_ID, name: 'Shared' },
-      { id: 'press', name: 'Press' },
+      { id: SHARED_AREA_ID, name: 'Shared', userId: libraryUserId },
+      { id: 'press', name: 'Press', userId: 'press-account' },
     ];
 
     afterEach(() => {
@@ -160,7 +188,7 @@ describe(ImagePierUsageRightsService.name, () => {
 
       await expect(sut.moveToLibrary(auth, ['asset-1'], 'press')).resolves.toEqual({ count: 1 });
 
-      expect(mocks.asset.updateAll).toHaveBeenCalledWith(['asset-1'], { ownerId: libraryUserId });
+      expect(mocks.asset.updateAll).toHaveBeenCalledWith(['asset-1'], { ownerId: 'press-account' });
       expect(mocks.asset.upsertMetadata).toHaveBeenCalledWith('asset-1', [
         { key: ASSET_AREA_KEY, value: { areaId: 'press' } },
       ]);
@@ -198,7 +226,7 @@ describe(ImagePierUsageRightsService.name, () => {
       const root = getTagLabels().root;
       setCachedAccessSettings({
         libraryUserId: 'library-id',
-        areas: [{ id: 'press', name: 'Press' }],
+        areas: [{ id: 'press', name: 'Press', userId: 'press-account' }],
         users: { 'user-id': { role: 'staff', areas: { press: 'viewer' } } },
       });
       mocks.tag.getAll.mockResolvedValue([
@@ -206,8 +234,10 @@ describe(ImagePierUsageRightsService.name, () => {
         { id: 'tag-2', value: 'Holiday' },
       ] as any);
 
-      await expect(sut.getLibraryTags(auth)).resolves.toEqual([{ id: 'tag-1', value: `${root}/Area/Press` }]);
-      expect(mocks.tag.getAll).toHaveBeenCalledWith('library-id');
+      await expect(sut.getLibraryTags(auth)).resolves.toEqual([
+        { id: 'tag-1', value: `${root}/Area/Press`, areaId: 'press' },
+      ]);
+      expect(mocks.tag.getAll).toHaveBeenCalledWith('press-account');
     });
 
     it('should return nothing for users without areas', async () => {

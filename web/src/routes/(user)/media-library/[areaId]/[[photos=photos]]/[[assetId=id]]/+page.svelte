@@ -19,10 +19,9 @@
   let { data }: Props = $props();
 
   const area = $derived(data.area);
+  // The area view is the timeline of the area account, which is shared with the user.
   const options = $derived(
-    area?.tagId
-      ? { userId: area.libraryUserId, tagId: area.tagId, visibility: AssetVisibility.Timeline, withStacked: true }
-      : undefined,
+    area?.userId ? { userId: area.userId, visibility: AssetVisibility.Timeline, withStacked: true } : undefined,
   );
   const actions = $derived(getAssetBulkActions($t));
 
@@ -49,6 +48,8 @@
     <ActionButton action={actions.CreateSharedLink} />
     <ActionButton action={actions.AddToAlbum} />
     <DownloadAction />
-    <MediaLibraryActions ownerId={area.libraryUserId} />
+    {#if area.userId}
+      <MediaLibraryActions ownerId={area.userId} />
+    {/if}
   </AssetSelectControlBar>
 {/if}

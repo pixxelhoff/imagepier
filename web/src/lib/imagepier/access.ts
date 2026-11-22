@@ -15,7 +15,12 @@ export type AreaLevel = (typeof AREA_LEVELS)[number];
 /** Area that existed before areas were introduced; assets without an area belong to it. */
 export const SHARED_AREA_ID = 'shared';
 
-export type Area = { id: string; name: string };
+export type Area = {
+  id: string;
+  name: string;
+  /** Technical account that owns the assets of the area */
+  userId?: string;
+};
 
 /** Area in the administration, with the number of media managers. */
 export type AreaAdmin = Area & { managers?: number };
@@ -91,11 +96,13 @@ export const canEditAreaOf = (access: UserAccess, areaId: string | undefined) =>
 export const canPublishGalleries = (access: UserAccess) =>
   access.role === 'admin' || (access.role === 'staff' && access.canEditLibrary);
 
-/** Name of an area; assets without area belong to the shared area. */
-export const getAreaName = (access: MyAccess, areaId: string | undefined) => {
-  const area = access.allAreas.find((item) => item.id === (areaId ?? SHARED_AREA_ID));
-  return (area ?? access.allAreas.find((item) => item.id === SHARED_AREA_ID))?.name;
-};
+/** Area whose account owns assets of the given owner; undefined for regular users. */
+export const getAreaOfOwner = (access: MyAccess, ownerId: string) =>
+  access.allAreas.find((area) => !!area.userId && area.userId === ownerId);
+
+/** Whether the media library is set up and the user is a regular user (not an area account). */
+export const isLibraryUser = (access: MyAccess, userId: string) =>
+  !!access.libraryUserId && !getAreaOfOwner(access, userId);
 
 export const moveToMediaLibrary = (assetIds: string[], areaId: string) =>
   request<{ count: number }>('/imagepier/usage-rights/library', {
@@ -105,15 +112,18 @@ export const moveToMediaLibrary = (assetIds: string[], areaId: string) =>
 
 export type LibraryTag = { id: string; value: string };
 
-/** Usage rights tags of the media library account; tags belong to the account that owns the assets. */
-export const getLibraryTags = () => request<LibraryTag[]>('/imagepier/usage-rights/library-tags');
+/** Usage rights tag of an area account. */
+export type AreaTag = LibraryTag & { areaId: string };
+
+/** Usage rights tags of the areas the user can see; tags belong to the account that owns the assets. */
+export const getLibraryTags = () => request<AreaTag[]>('/imagepier/usage-rights/library-tags');
 
 export const getAreasAdmin = () => request<AreaAdmin[]>('/admin/imagepier/access/areas');
 
 export const updateAreasAdmin = (areas: Array<{ id?: string; name: string }>) =>
   request<AreaAdmin[]>('/admin/imagepier/access/areas', { method: 'PUT', body: JSON.stringify({ areas }) });
 
-/** Role of every account; the media library account is marked as `library`. */
+/** Role of every account; area accounts are marked as `library`. */
 export type UserListRole = Role | 'library';
 
 export const getUserRolesAdmin = () => request<Record<string, UserListRole>>('/admin/imagepier/access/users');

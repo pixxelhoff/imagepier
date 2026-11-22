@@ -7,6 +7,7 @@
   import SetVisibilityAction from '#lib/components/asset-viewer/actions/SetVisibilityAction.svelte';
   import type { OnAction, PreAction } from '#lib/components/asset-viewer/actions/action.ts';
   import ButtonContextMenu from '#lib/components/shared-components/context-menu/ButtonContextMenu.svelte';
+  import AssignAreaAction from '#lib/imagepier/AssignAreaAction.svelte';
   import MediaLibraryDeleteAction from '#lib/imagepier/MediaLibraryDeleteAction.svelte';
   import { assetViewerManager } from '#lib/managers/asset-viewer-manager.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -139,6 +140,8 @@
 
         <ActionMenuItem action={Actions.AddToAlbum} />
         <ActionMenuItem action={Actions.RemoveFromAlbum} />
+        <!-- ImagePier: assign the asset to an area of the media library -->
+        <AssignAreaAction {asset} />
 
         <ActionMenuItem action={StackActions.AddUploads} />
         <ActionMenuItem action={StackActions.Unstack} />

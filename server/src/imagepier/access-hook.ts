@@ -5,6 +5,8 @@ import {
   canDownloadArea,
   canEditArea,
   canManageArea,
+  getAreaAccounts,
+  getAreaLevel,
   getCachedAccessSettings,
   getUserAccess,
 } from 'src/imagepier/access-rules.js';
@@ -12,37 +14,39 @@ import type { AccessRepository } from 'src/repositories/access.repository.js';
 
 type AccessCheck = { auth: AuthDto; permission: Permission; ids: Set<string> };
 
-/** Returns the area id of each given asset (undefined: no area). */
-export type AssetAreaResolver = (assetIds: string[]) => Promise<Map<string, string | undefined>>;
+/** Returns the owner id of each given asset; unknown assets are missing. */
+export type AssetOwnerResolver = (assetIds: string[]) => Promise<Map<string, string>>;
 
-let assetAreaResolver: AssetAreaResolver | undefined;
+let assetOwnerResolver: AssetOwnerResolver | undefined;
 
-/** Registered by the ImagePier access service, which can read the asset metadata. */
-export const setAssetAreaResolver = (resolver: AssetAreaResolver | undefined) => {
-  assetAreaResolver = resolver;
+/** Registered by the ImagePier access service, which can read the assets. */
+export const setAssetOwnerResolver = (resolver: AssetOwnerResolver | undefined) => {
+  assetOwnerResolver = resolver;
 };
 
 /** Access for the current user according to the ImagePier role settings. */
 export const getAccessForAuth = (auth: AuthDto) => getUserAccess(getCachedAccessSettings(), auth.user);
 
-/** Media library assets among the given ids, and those of them whose area passes the check. */
-const checkLibraryAssets = async (
-  access: AccessRepository,
-  ids: Set<string>,
-  isPermitted: (areaId: string | undefined) => boolean,
-) => {
-  const { libraryUserId } = getCachedAccessSettings();
-  if (!libraryUserId || ids.size === 0) {
-    return { library: new Set<string>(), permitted: new Set<string>() };
+/** Media library assets (owned by an area account) among the given ids, and those whose area passes the check. */
+const checkLibraryAssets = async (ids: Set<string>, isPermitted: (areaId: string) => boolean) => {
+  const library = new Set<string>();
+  const permitted = new Set<string>();
+  const accounts = getAreaAccounts(getCachedAccessSettings());
+  if (accounts.size === 0 || ids.size === 0 || !assetOwnerResolver) {
+    return { library, permitted };
   }
 
-  const library = await access.asset.checkOwnerAccess(libraryUserId, ids, false);
-  if (library.size === 0) {
-    return { library, permitted: library };
+  for (const [assetId, ownerId] of await assetOwnerResolver([...ids])) {
+    const areaId = accounts.get(ownerId);
+    if (areaId === undefined || !ids.has(assetId)) {
+      continue;
+    }
+    library.add(assetId);
+    if (isPermitted(areaId)) {
+      permitted.add(assetId);
+    }
   }
-
-  const areas = assetAreaResolver ? await assetAreaResolver([...library]) : new Map<string, string | undefined>();
-  return { library, permitted: new Set([...library].filter((id) => isPermitted(areas.get(id)))) };
+  return { library, permitted };
 };
 
 /**
@@ -56,8 +60,8 @@ export const applyImagePierAccess = async (
 ): Promise<Set<string>> => {
   const allowed = await granted;
   const userAccess = getAccessForAuth(auth);
-  const { libraryUserId } = getCachedAccessSettings();
-  if (!libraryUserId) {
+  const settings = getCachedAccessSettings();
+  if (!settings.libraryUserId) {
     return allowed;
   }
 
@@ -67,9 +71,7 @@ export const applyImagePierAccess = async (
       if (userAccess.role === 'admin') {
         return allowed;
       }
-      const { library, permitted } = await checkLibraryAssets(access, allowed, (areaId) =>
-        canDownloadArea(userAccess, areaId),
-      );
+      const { library, permitted } = await checkLibraryAssets(allowed, (areaId) => canDownloadArea(userAccess, areaId));
       return allowed.difference(library.difference(permitted));
     }
 
@@ -80,7 +82,7 @@ export const applyImagePierAccess = async (
       if (!userAccess.canEditLibrary || missing.size === 0) {
         return allowed;
       }
-      const { permitted } = await checkLibraryAssets(access, missing, (areaId) => canEditArea(userAccess, areaId));
+      const { permitted } = await checkLibraryAssets(missing, (areaId) => canEditArea(userAccess, areaId));
       return allowed.union(permitted);
     }
 
@@ -91,16 +93,20 @@ export const applyImagePierAccess = async (
       if (userAccess.role !== 'admin' || missing.size === 0) {
         return allowed;
       }
-      return allowed.union(await access.asset.checkOwnerAccess(libraryUserId, missing, false));
+      const { library } = await checkLibraryAssets(missing, () => true);
+      return allowed.union(library);
     }
 
-    // Area tags of the media library are used for the area views in the sidebar.
+    // Usage rights tags of the area accounts are used by the search of users with a level in the area.
     case Permission.TagRead: {
-      const missing = ids.difference(allowed);
-      if (!userAccess.canViewLibrary || missing.size === 0) {
-        return allowed;
+      let result = allowed;
+      for (const area of settings.areas) {
+        const missing = ids.difference(result);
+        if (missing.size > 0 && area.userId && getAreaLevel(userAccess, area.id)) {
+          result = result.union(await access.tag.checkOwnerAccess(area.userId, missing));
+        }
       }
-      return allowed.union(await access.tag.checkOwnerAccess(libraryUserId, missing));
+      return result;
     }
 
     default: {
@@ -113,15 +119,13 @@ export const applyImagePierAccess = async (
 Own assets can be deleted permanently by everybody. Media library assets only by admins and by media managers of
 their areas.
 */
-export const requirePermanentDeleteAccess = async (access: AccessRepository, auth: AuthDto, ids: string[]) => {
+export const requirePermanentDeleteAccess = async (auth: AuthDto, ids: string[]) => {
   const userAccess = getAccessForAuth(auth);
   if (userAccess.role === 'admin') {
     return;
   }
 
-  const { library, permitted } = await checkLibraryAssets(access, new Set(ids), (areaId) =>
-    canManageArea(userAccess, areaId),
-  );
+  const { library, permitted } = await checkLibraryAssets(new Set(ids), (areaId) => canManageArea(userAccess, areaId));
   if (permitted.size < library.size) {
     throw new ForbiddenException('Only media managers can permanently delete assets of their areas');
   }

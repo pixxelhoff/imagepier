@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ipt, type ImagePierMessageKey } from '#lib/imagepier/i18n.ts';
   import {
+    OWN_SCOPE,
     USAGE_RIGHTS_MULTI_CATEGORY,
     USAGE_RIGHTS_SELECT_CATEGORIES,
     selectUsageRightsOption,
@@ -50,10 +51,15 @@
   );
   const usageOptions = $derived(usageRightsSearchData.getOptions(USAGE_RIGHTS_MULTI_CATEGORY));
 
-  const scopeOptions = $derived([
-    { label: $ipt('media_library'), value: 'library' },
-    { label: $ipt('search_scope_own'), value: 'own' },
-  ]);
+  const scopeOptions = $derived(
+    usageRightsSearchData.getScopes().map((scope) => ({
+      label:
+        scope === OWN_SCOPE
+          ? $ipt('search_scope_own')
+          : $ipt('photos_area', { name: usageRightsSearchData.getAreaName(scope) ?? scope }),
+      value: scope,
+    })),
+  );
 </script>
 
 <div data-testid="imagepier-search-usage-rights-section">

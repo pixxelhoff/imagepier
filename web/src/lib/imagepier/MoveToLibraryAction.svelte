@@ -4,6 +4,7 @@
   import {
     getAssignableAreas,
     getMediaLibraryAccess,
+    isLibraryUser,
     moveToMediaLibrary,
     type MyAccess,
   } from '#lib/imagepier/access.ts';
@@ -29,9 +30,10 @@
     void loadAccess(authManager.user.id);
   });
 
-  const isLibraryShared = $derived(!!access?.libraryUserId && access.libraryUserId !== authManager.user.id);
   // Needs the level editor in at least one area.
-  const canMove = $derived(isLibraryShared && !!access && getAssignableAreas(access).length > 0);
+  const canMove = $derived(
+    !!access && isLibraryUser(access, authManager.user.id) && getAssignableAreas(access).length > 0,
+  );
 
   const handleMove = async () => {
     if (!access) {

@@ -1,19 +1,20 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
-import { ImmichWorker, SystemMetadataKey } from 'src/enum.js';
-import { getAccessForAuth, setAssetAreaResolver } from 'src/imagepier/access-hook.js';
+import { ImmichWorker, SystemMetadataKey, UserStatus } from 'src/enum.js';
+import { getAccessForAuth, setAssetOwnerResolver } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
-  ASSET_AREA_KEY,
   AccessSettings,
   Area,
   SHARED_AREA_ID,
   StoredUserAccess,
+  getAreaAccounts,
+  getAreaLevel,
   getSharedAreaName,
   getUserAccess,
+  isAtLeast,
   parseAccessSettings,
-  parseAssetArea,
   parseStoredUserAccess,
   setCachedAccessSettings,
 } from 'src/imagepier/access-rules.js';
@@ -34,11 +35,30 @@ const getLibraryAccount = () => ({
   name: process.env.IMAGEPIER_LIBRARY_NAME ?? (isGerman() ? 'Mediathek' : 'Media library'),
 });
 
-/**
-Roles and the shared media library.
+/** E-mail of an area account, derived from the media library e-mail: `media-library+<area id>@imagepier.local`. */
+export const getAreaAccountEmail = (libraryEmail: string, areaId: string) => {
+  const at = libraryEmail.lastIndexOf('@');
+  return at > 0 ? `${libraryEmail.slice(0, at)}+${areaId}${libraryEmail.slice(at)}` : `${libraryEmail}+${areaId}`;
+};
 
-- Creates the technical media library account on startup (once an admin exists).
-- Shares the media library with all non-external users (Immich partner sharing, shown in the timeline).
+/** Display name of an area account, e.g. "Media library: Press". */
+export const getAreaAccountName = (libraryName: string, areaName: string) => `${libraryName}: ${areaName}`;
+
+/** Moves media library assets of earlier versions to the account of their area; registered by the usage rights service. */
+type AreaAssetMigration = () => Promise<number>;
+
+let areaAssetMigration: AreaAssetMigration | undefined;
+
+export const setAreaAssetMigration = (migration: AreaAssetMigration | undefined) => {
+  areaAssetMigration = migration;
+};
+
+/**
+Roles and the media library areas.
+
+- Creates a technical account per area on startup (once an admin exists). The account of the shared area is the
+  original media library account.
+- Shares each area account with the users who have a level in the area (Immich partner sharing, shown in the timeline).
 - Stores the role settings per account and keeps the in-memory copy used by the access checks up to date.
 */
 @Injectable()
@@ -47,7 +67,7 @@ export class ImagePierAccessService extends BaseService {
 
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   async onConfigInit() {
-    setAssetAreaResolver((assetIds) => this.getAssetAreas(assetIds));
+    setAssetOwnerResolver((assetIds) => this.getAssetOwners(assetIds));
     await this.loadSettings();
     this.cronRepository.create({
       name: SYNC_CRON_NAME,
@@ -85,7 +105,11 @@ export class ImagePierAccessService extends BaseService {
 
   async setupLibrary() {
     await this.loadSettings();
-    await this.ensureLibraryAccount();
+    if (!(await this.ensureLibraryAccount())) {
+      return;
+    }
+    await this.ensureAreaAccounts();
+    await this.migrateAreaAssets();
     await this.syncLibrarySharing();
   }
 
@@ -108,51 +132,114 @@ export class ImagePierAccessService extends BaseService {
       this.logger.log(`Created media library account ${account.email}`);
     }
 
-    await this.saveSettings({ ...this.settings, libraryUserId: library.id });
+    await this.saveSettings(parseAccessSettings({ ...this.settings, libraryUserId: library.id }, getSharedAreaName()));
     return library.id;
   }
 
-  /** Shares the media library with every user who may see it, and removes it from everybody else. */
-  async syncLibrarySharing() {
-    const { libraryUserId } = this.settings;
-    if (!libraryUserId) {
+  /** Creates the account of every area that has none yet, and keeps the account names in line with the area names. */
+  async ensureAreaAccounts() {
+    const library = getLibraryAccount();
+    const areas: Area[] = [];
+    let changed = false;
+
+    for (const area of this.settings.areas) {
+      const name = getAreaAccountName(library.name, area.name);
+      let user: { id: string; name: string } | undefined = area.userId
+        ? await this.userRepository.get(area.userId, {})
+        : undefined;
+      if (!user && area.id !== SHARED_AREA_ID) {
+        const email = getAreaAccountEmail(library.email, area.id);
+        user = await this.userRepository.getByEmail(email);
+        if (!user) {
+          user = await this.createUser({ email, name, isAdmin: false });
+          this.logger.log(`Created account ${email} for area ${area.name}`);
+        }
+        changed = true;
+      }
+
+      if (user && user.name !== name) {
+        await this.userRepository.update(user.id, { name });
+      }
+      areas.push({ ...area, userId: user?.id ?? area.userId });
+    }
+
+    if (changed) {
+      await this.saveSettings({ ...this.settings, areas });
+    }
+  }
+
+  /** Runs once after upgrading: media library assets move from the shared account to the account of their area. */
+  private async migrateAreaAssets() {
+    if (this.settings.areaAssetsMigrated || !areaAssetMigration) {
       return;
     }
 
-    const partners = await this.partnerRepository.getAll(libraryUserId);
-    const sharedWith = new Map(
-      partners
-        .filter((partner) => partner.sharedById === libraryUserId)
-        .map((partner) => [partner.sharedWithId, partner]),
-    );
+    const count = await areaAssetMigration();
+    this.logger.log(`Moved ${count} media library assets to the accounts of their areas`);
+    await this.saveSettings({ ...this.settings, areaAssetsMigrated: true });
+  }
 
-    for (const user of await this.userRepository.getList()) {
-      if (user.id === libraryUserId) {
-        continue;
-      }
+  /** Shares every area account with the users who have a level in the area, and removes it from everybody else. */
+  async syncLibrarySharing() {
+    const accounts = getAreaAccounts(this.settings);
+    if (!this.settings.libraryUserId || accounts.size === 0) {
+      return;
+    }
 
-      const { canViewLibrary } = getUserAccess(this.settings, user);
-      const partner = sharedWith.get(user.id);
-      if (canViewLibrary && !partner) {
-        await this.partnerRepository.create({ sharedById: libraryUserId, sharedWithId: user.id, inTimeline: true });
-      } else if (canViewLibrary && partner && !partner.inTimeline) {
-        // "All photos" always includes the media library; "My photos" hides it in the web app.
-        const ids = { sharedById: libraryUserId, sharedWithId: user.id };
-        await this.partnerRepository.update(ids, { inTimeline: true });
-      } else if (!canViewLibrary && partner) {
-        await this.partnerRepository.remove({ sharedById: libraryUserId, sharedWithId: user.id });
+    const allUsers = await this.userRepository.getList();
+    const users = allUsers
+      .filter((user) => !accounts.has(user.id))
+      .map((user) => ({ id: user.id, access: getUserAccess(this.settings, user) }));
+    for (const [accountId, areaId] of accounts) {
+      const partners = await this.partnerRepository.getAll(accountId);
+      const sharedWith = new Map(
+        partners
+          .filter((partner) => partner.sharedById === accountId)
+          .map((partner) => [partner.sharedWithId, partner]),
+      );
+
+      for (const user of users) {
+        const canView = isAtLeast(getAreaLevel(user.access, areaId), 'viewer');
+        const partner = sharedWith.get(user.id);
+        const ids = { sharedById: accountId, sharedWithId: user.id };
+        if (canView && !partner) {
+          await this.partnerRepository.create({ ...ids, inTimeline: true });
+        } else if (canView && partner && !partner.inTimeline) {
+          // "All photos" always includes the areas; "My photos" hides them in the web app.
+          await this.partnerRepository.update(ids, { inTimeline: true });
+        } else if (!canView && partner) {
+          await this.partnerRepository.remove(ids);
+        }
       }
     }
   }
 
-  /** Area ids of the given assets; assets without an area are undefined. */
-  async getAssetAreas(assetIds: string[]) {
-    const areas = new Map<string, string | undefined>();
-    for (const assetId of assetIds) {
-      const item = await this.assetRepository.getMetadataByKey(assetId, ASSET_AREA_KEY);
-      areas.set(assetId, parseAssetArea(item?.value));
+  /** Owner of each given asset, also for assets in the trash. */
+  async getAssetOwners(assetIds: string[]) {
+    const assets = await this.assetRepository.getByIds(assetIds);
+    return new Map(assets.map((asset) => [asset.id, asset.ownerId]));
+  }
+
+  /** Number of assets of an account, including the trash. */
+  private async countAssets(userId: string) {
+    let total = 0;
+    for (const isTrashed of [false, true]) {
+      const stats = await this.assetRepository.getStatistics(userId, { isTrashed });
+      for (const value of Object.values(stats)) {
+        total += Number(value);
+      }
     }
-    return areas;
+    return total;
+  }
+
+  /** Removes the account of a deleted area, like an administrator deleting a user. */
+  private async removeAreaAccount(userId: string) {
+    for (const partner of await this.partnerRepository.getAll(userId)) {
+      if (partner.sharedById === userId) {
+        await this.partnerRepository.remove({ sharedById: userId, sharedWithId: partner.sharedWithId });
+      }
+    }
+    await this.userRepository.update(userId, { status: UserStatus.Deleted, deletedAt: new Date() });
   }
 
   getMyAccess(auth: AuthDto) {
@@ -172,15 +259,19 @@ export class ImagePierAccessService extends BaseService {
     }));
   }
 
-  /** Replaces the list of areas. Areas without id are created; the shared area always stays. */
+  /**
+  Replaces the list of areas. Areas without id are created with their own account; the shared area always stays.
+  Areas that still contain assets cannot be removed.
+  */
   async updateAreas(areas: Array<{ id?: string; name: string }>) {
     await this.loadSettings();
     const result: Area[] = [];
     for (const area of areas) {
       const name = area.name.trim();
       const id = area.id ?? this.cryptoRepository.randomUUID();
+      const existing = this.settings.areas.find((item) => item.id === id);
       if (name && result.every((item) => item.id !== id)) {
-        result.push({ id, name });
+        result.push({ id, name, userId: existing?.userId });
       }
     }
 
@@ -189,18 +280,33 @@ export class ImagePierAccessService extends BaseService {
       result.unshift(shared ?? { id: SHARED_AREA_ID, name: getSharedAreaName() });
     }
 
+    const removed = this.settings.areas.filter((area) => result.every((item) => item.id !== area.id));
+    for (const area of removed) {
+      if (area.userId && (await this.countAssets(area.userId)) > 0) {
+        throw new BadRequestException(`The area "${area.name}" still contains assets`);
+      }
+    }
+
     await this.saveSettings({ ...this.settings, areas: result });
+    for (const area of removed) {
+      if (area.userId) {
+        await this.removeAreaAccount(area.userId);
+      }
+    }
+
+    if (this.settings.libraryUserId) {
+      await this.ensureAreaAccounts();
+      await this.syncLibrarySharing();
+    }
     return this.getAreas();
   }
 
-  /** Role of every account for the user list; the media library account is marked as `library`. */
+  /** Role of every account for the user list; area accounts are marked as `library`. */
   async getUserRolesAdmin() {
+    const accounts = getAreaAccounts(this.settings);
     const users = await this.userRepository.getList({ withDeleted: true });
     return Object.fromEntries(
-      users.map((user) => [
-        user.id,
-        user.id === this.settings.libraryUserId ? 'library' : getUserAccess(this.settings, user).role,
-      ]),
+      users.map((user) => [user.id, accounts.has(user.id) ? 'library' : getUserAccess(this.settings, user).role]),
     );
   }
 
@@ -219,8 +325,8 @@ export class ImagePierAccessService extends BaseService {
       throw new BadRequestException('User not found');
     }
 
-    if (user.id === this.settings.libraryUserId) {
-      throw new BadRequestException('The media library account has no role');
+    if (getAreaAccounts(this.settings).has(user.id)) {
+      throw new BadRequestException('Area accounts have no role');
     }
 
     await this.loadSettings();
@@ -238,7 +344,7 @@ export class ImagePierAccessService extends BaseService {
     return {
       stored: this.settings.users[user.id] ?? {},
       effective: getUserAccess(this.settings, user),
-      isLibrary: user.id === this.settings.libraryUserId,
+      isLibrary: getAreaAccounts(this.settings).has(user.id),
       allAreas: this.settings.areas,
     };
   }

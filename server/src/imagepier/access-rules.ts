@@ -1,7 +1,10 @@
 /**
 ImagePier roles and access rules.
 
-- A technical "media library" account owns all official media. Each media library asset belongs to an area.
+- Every area (department) has a technical account that owns its media. The area of a media library asset is the area
+  of its owner. The account of the shared area is the original media library account (`libraryUserId`).
+- Each area account is shared (Immich partner sharing) with the users who have a level in the area, so timeline,
+  search, map and mobile apps only show the areas a user has access to.
 - Roles extend Immich's admin flag:
   - admin: everything (Immich admins)
   - staff: employees
@@ -33,10 +36,15 @@ export type AreaLevel = (typeof AREA_LEVELS)[number];
 /** Area that existed before areas were introduced; assets without an area belong to it. */
 export const SHARED_AREA_ID = 'shared';
 
-/** Asset metadata key that stores the area of a media library asset. */
+/** Asset metadata key that also stores the area of a media library asset (the owner decides). */
 export const ASSET_AREA_KEY = 'imagepier.area';
 
-export type Area = { id: string; name: string };
+export type Area = {
+  id: string;
+  name: string;
+  /** Technical account that owns the assets of the area */
+  userId?: string;
+};
 
 export type StoredUserAccess = {
   role?: AssignableRole;
@@ -45,7 +53,10 @@ export type StoredUserAccess = {
 };
 
 export type AccessSettings = {
+  /** Account of the shared area; the media library rules are active once it exists. */
   libraryUserId?: string;
+  /** Whether assets of earlier versions were moved to the accounts of their areas. */
+  areaAssetsMigrated?: boolean;
   areas: Area[];
   users: Record<string, StoredUserAccess>;
 };
@@ -82,19 +93,31 @@ export const parseAccessSettings = (value: unknown, sharedAreaName = 'Shared'): 
     const id = asText(entry.id);
     const name = asText(entry.name);
     if (id && name && areas.every((area) => area.id !== id)) {
-      areas.push({ id, name });
+      areas.push({ id, name, userId: asText(entry.userId) });
     }
   }
   if (areas.every((area) => area.id !== SHARED_AREA_ID)) {
     areas.unshift({ id: SHARED_AREA_ID, name: sharedAreaName });
   }
 
-  return {
-    libraryUserId: typeof record.libraryUserId === 'string' ? record.libraryUserId : undefined,
-    areas,
-    users,
-  };
+  // The shared area always uses the original media library account.
+  const libraryUserId = asText(record.libraryUserId);
+  for (const area of areas) {
+    if (area.id === SHARED_AREA_ID) {
+      area.userId = libraryUserId;
+    }
+  }
+
+  return { libraryUserId, areaAssetsMigrated: record.areaAssetsMigrated === true, areas, users };
 };
+
+/** Area id per area account. */
+export const getAreaAccounts = (settings: AccessSettings) =>
+  new Map(settings.areas.flatMap((area) => (area.userId ? [[area.userId, area.id] as const] : [])));
+
+/** Area that owns assets of the given account, or undefined for regular users. */
+export const getAreaOfOwner = (settings: AccessSettings, ownerId: string) =>
+  settings.areas.find((area) => !!area.userId && area.userId === ownerId);
 
 /**
 Reads the stored access of one user.

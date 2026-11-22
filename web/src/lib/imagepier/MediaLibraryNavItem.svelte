@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { canPublishGalleries, getMediaLibraryAccess, getVisibleAreas, type MyAccess } from '#lib/imagepier/access.ts';
+  import {
+    canPublishGalleries,
+    getMediaLibraryAccess,
+    getVisibleAreas,
+    isLibraryUser,
+    type MyAccess,
+  } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { photosScope, type PhotosScope } from '#lib/imagepier/photos-scope.svelte.ts';
   import { uploadAccess } from '#lib/imagepier/upload-access.svelte.ts';
@@ -26,9 +32,7 @@
     void loadAccess(authManager.user.id);
   });
 
-  const showLibrary = $derived(
-    !!access?.canViewLibrary && !!access.libraryUserId && access.libraryUserId !== authManager.user.id,
-  );
+  const showLibrary = $derived(!!access && access.canViewLibrary && isLibraryUser(access, authManager.user.id));
 
   // Only areas with a level are shown.
   const areas = $derived(showLibrary && access ? getVisibleAreas(access) : []);

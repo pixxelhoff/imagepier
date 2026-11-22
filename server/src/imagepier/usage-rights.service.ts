@@ -7,13 +7,16 @@ import { getAccessForAuth } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
   ASSET_AREA_KEY,
-  SHARED_AREA_ID,
   canEditArea,
+  getAreaAccounts,
+  getAreaLevel,
+  getAreaOfOwner,
   getCachedAccessSettings,
   getSharedAreaName,
   parseAccessSettings,
   parseAssetArea,
 } from 'src/imagepier/access-rules.js';
+import { setAreaAssetMigration } from 'src/imagepier/access.service.js';
 import {
   EXPIRING_SOON_DAYS,
   MISSING_FIELDS,
@@ -64,6 +67,7 @@ export class ImagePierUsageRightsService extends BaseService {
 
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   onConfigInit() {
+    setAreaAssetMigration(() => this.migrateAreaAssets());
     this.cronRepository.create({
       name: REFRESH_CRON_NAME,
       expression: REFRESH_CRON_EXPRESSION,
@@ -108,7 +112,7 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     const rights = await this.getUsageRights(assetId);
-    const areaName = await this.getAreaName(assetId, asset.ownerId);
+    const areaName = await this.getAreaName(asset.ownerId);
     const tagLabels = getTagLabels();
     const rootPrefix = `${getTagPaths(tagLabels).root}/`;
     const currentTags = (asset.tags ?? []).filter((tag) => tag.value.startsWith(rootPrefix));
@@ -148,42 +152,51 @@ export class ImagePierUsageRightsService extends BaseService {
     return parseAccessSettings(value, getSharedAreaName());
   }
 
-  /** Name of the area of a media library asset; assets without area belong to the shared area. */
-  private async getAreaName(assetId: string, ownerId: string) {
-    const { libraryUserId, areas } = await this.loadAccessSettings();
-    if (!libraryUserId || ownerId !== libraryUserId) {
-      return;
-    }
-
-    const item = await this.assetRepository.getMetadataByKey(assetId, ASSET_AREA_KEY);
-    const areaId = parseAssetArea(item?.value) ?? SHARED_AREA_ID;
-    return (areas.find((area) => area.id === areaId) ?? areas.find((area) => area.id === SHARED_AREA_ID))?.name;
+  /** Name of the area of a media library asset (the area of its owner). */
+  private async getAreaName(ownerId: string) {
+    return getAreaOfOwner(await this.loadAccessSettings(), ownerId)?.name;
   }
 
-  /** Usage rights tags of the media library account, used by the search of users who see the media library. */
+  /** Usage rights tags of the areas the user has a level in; tags belong to the account of each area. */
   async getLibraryTags(auth: AuthDto) {
-    const { libraryUserId } = getCachedAccessSettings();
-    if (!libraryUserId || !getAccessForAuth(auth).canViewLibrary) {
+    const { libraryUserId, areas } = getCachedAccessSettings();
+    const access = getAccessForAuth(auth);
+    if (!libraryUserId) {
       return [];
     }
 
     const prefix = `${getTagPaths(getTagLabels()).root}/`;
-    const tags = await this.tagRepository.getAll(libraryUserId);
-    return tags.filter((tag) => tag.value.startsWith(prefix)).map((tag) => ({ id: tag.id, value: tag.value }));
+    const result: Array<{ id: string; value: string; areaId: string }> = [];
+    for (const area of areas) {
+      if (!area.userId || !getAreaLevel(access, area.id)) {
+        continue;
+      }
+      for (const tag of await this.tagRepository.getAll(area.userId)) {
+        if (tag.value.startsWith(prefix)) {
+          result.push({ id: tag.id, value: tag.value, areaId: area.id });
+        }
+      }
+    }
+    return result;
   }
 
   /**
-  Moves own assets into the media library and sets the area of the given assets.
+  Moves own assets and media library assets into an area: they become assets of the area account.
   Needs the level editor in the target area; media library assets also need it in their current area.
   */
   async moveToLibrary(auth: AuthDto, assetIds: string[], areaId: string) {
-    const { libraryUserId, areas } = getCachedAccessSettings();
-    if (!libraryUserId) {
+    const settings = getCachedAccessSettings();
+    const target = settings.areas.find((area) => area.id === areaId);
+    if (!settings.libraryUserId) {
       throw new BadRequestException('The media library is not set up');
     }
 
-    if (areas.every((area) => area.id !== areaId)) {
+    if (!target) {
       throw new BadRequestException('Unknown area');
+    }
+
+    if (!target.userId) {
+      throw new BadRequestException('The area is not set up yet');
     }
 
     const access = getAccessForAuth(auth);
@@ -191,10 +204,11 @@ export class ImagePierUsageRightsService extends BaseService {
       throw new ForbiddenException('No access to this area');
     }
 
+    const accounts = getAreaAccounts(settings);
     const assets = await this.assetRepository.getByIds(assetIds);
     const ownIds = assets.filter((asset) => asset.ownerId === auth.user.id).map((asset) => asset.id);
     const libraryIds = assets
-      .filter((asset) => asset.ownerId === libraryUserId && asset.ownerId !== auth.user.id)
+      .filter((asset) => accounts.has(asset.ownerId) && asset.ownerId !== auth.user.id)
       .map((asset) => asset.id);
     if (ownIds.length + libraryIds.length !== new Set(assetIds).size) {
       throw new BadRequestException('Not found or no access');
@@ -204,8 +218,10 @@ export class ImagePierUsageRightsService extends BaseService {
       await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: libraryIds });
     }
 
-    if (ownIds.length > 0) {
-      await this.assetRepository.updateAll(ownIds, { ownerId: libraryUserId });
+    // All assets are own or media library assets (checked above).
+    const moveIds = assets.filter((asset) => asset.ownerId !== target.userId).map((asset) => asset.id);
+    if (moveIds.length > 0) {
+      await this.assetRepository.updateAll(moveIds, { ownerId: target.userId });
     }
 
     for (const assetId of [...ownIds, ...libraryIds]) {
@@ -214,6 +230,44 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     return { count: ownIds.length + libraryIds.length };
+  }
+
+  /**
+  Earlier versions kept all media library assets in one account and stored the area in the asset metadata.
+  Moves those assets to the account of their area; called once by the access service after the area accounts exist.
+  */
+  async migrateAreaAssets() {
+    const settings = await this.loadAccessSettings();
+    const { libraryUserId } = settings;
+    if (!libraryUserId) {
+      return 0;
+    }
+
+    // Every media library asset carries an area tag of its owner ("Usage rights/Area/…").
+    const areaPrefix = `${getTagPaths(getTagLabels()).area}/`;
+    const assetIds = new Set<string>();
+    for (const tag of await this.tagRepository.getAll(libraryUserId)) {
+      if (tag.value.startsWith(areaPrefix)) {
+        for (const assetId of await this.tagRepository.getAssetIdsByTagId(tag.id)) {
+          assetIds.add(assetId);
+        }
+      }
+    }
+
+    let count = 0;
+    for (const assetId of assetIds) {
+      const asset = await this.assetRepository.getById(assetId);
+      const item = await this.assetRepository.getMetadataByKey(assetId, ASSET_AREA_KEY);
+      const area = settings.areas.find(({ id }) => id === parseAssetArea(item?.value));
+      if (!asset || asset.ownerId !== libraryUserId || !area?.userId || area.userId === libraryUserId) {
+        continue;
+      }
+
+      await this.assetRepository.updateAll([assetId], { ownerId: area.userId });
+      await this.syncTags(assetId);
+      count++;
+    }
+    return count;
   }
 
   /** Called by the web app after usage rights were saved. */

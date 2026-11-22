@@ -1,4 +1,11 @@
-import { getLibraryTags, getMediaLibraryAccess, type LibraryTag } from '#lib/imagepier/access.ts';
+import {
+  getLibraryTags,
+  getMediaLibraryAccess,
+  getVisibleAreas,
+  type Area,
+  type AreaTag,
+  type LibraryTag,
+} from '#lib/imagepier/access.ts';
 import { ipt } from '#lib/imagepier/i18n.ts';
 import { getUsageRightsConfig, type UsageRightsConfig } from '#lib/imagepier/usage-rights.ts';
 import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -12,8 +19,8 @@ Search support for usage rights.
 
 Usage rights are mirrored into tags by the server ("Usage rights/Photographer/Jane Doe", ...).
 The search tab translates the selected values into tag IDs of Immich's regular tag filter.
-Tags belong to the owner of the assets, so media library assets carry tags of the media library account.
-Immich combines tag IDs with AND, therefore one search uses either the media library tags or the own tags.
+Tags belong to the owner of the assets, so media library assets carry tags of the account of their area.
+Immich combines tag IDs with AND, therefore one search uses the tags of one area or the own tags.
 */
 
 export type UsageRightsCategory = Exclude<keyof UsageRightsConfig['tags'], 'root'>;
@@ -38,34 +45,57 @@ const ALL_CATEGORIES = [...USAGE_RIGHTS_SELECT_CATEGORIES, USAGE_RIGHTS_MULTI_CA
 
 export type UsageRightsOption = { id: string; label: string };
 
-export type UsageRightsScope = 'library' | 'own';
+/** `own` or the id of an area. */
+export type UsageRightsScope = string;
 
-const loadLibraryTags = async (): Promise<LibraryTag[]> => {
+export const OWN_SCOPE = 'own';
+
+const loadLibrary = async (): Promise<{ areas: Area[]; tags: AreaTag[] }> => {
   try {
     const access = await getMediaLibraryAccess(authManager.user.id);
-    return access?.libraryUserId ? await getLibraryTags() : [];
+    return access?.libraryUserId
+      ? { areas: getVisibleAreas(access), tags: await getLibraryTags() }
+      : { areas: [], tags: [] };
   } catch {
-    return [];
+    return { areas: [], tags: [] };
   }
 };
 
 class UsageRightsSearchData {
   config = $state<UsageRightsConfig>();
   ownTags = $state<LibraryTag[]>([]);
-  libraryTags = $state<LibraryTag[]>([]);
-  scope = $state<UsageRightsScope>('own');
+  libraryTags = $state<AreaTag[]>([]);
+  areas = $state<Area[]>([]);
+  scope = $state<UsageRightsScope>(OWN_SCOPE);
   private loading?: Promise<void>;
 
-  get tags() {
-    return this.scope === 'library' ? this.libraryTags : this.ownTags;
+  get tags(): LibraryTag[] {
+    return this.getTagsOf(this.scope);
+  }
+
+  private getTagsOf(scope: UsageRightsScope): LibraryTag[] {
+    return scope === OWN_SCOPE ? this.ownTags : this.libraryTags.filter((tag) => tag.areaId === scope);
+  }
+
+  /** Areas and own photos that can be searched, i.e. that have usage rights tags. */
+  getScopes() {
+    return [
+      ...this.areas.filter((area) => this.hasUsageRightsTags(this.getTagsOf(area.id))).map((area) => area.id),
+      ...(this.hasUsageRightsTags(this.ownTags) ? [OWN_SCOPE] : []),
+    ];
+  }
+
+  getAreaName(scope: UsageRightsScope) {
+    return this.areas.find((area) => area.id === scope)?.name;
   }
 
   load() {
-    this.loading ??= Promise.all([getUsageRightsConfig(), getAllTags(), loadLibraryTags()])
-      .then(([config, ownTags, libraryTags]) => {
+    this.loading ??= Promise.all([getUsageRightsConfig(), getAllTags(), loadLibrary()])
+      .then(([config, ownTags, library]) => {
         this.config = config;
         this.ownTags = ownTags;
-        this.libraryTags = libraryTags;
+        this.areas = library.areas;
+        this.libraryTags = library.tags;
         this.scope = this.detectScope();
       })
       .catch((error: unknown) => {
@@ -80,13 +110,14 @@ class UsageRightsSearchData {
     this.loading = undefined;
   }
 
-  /** Keeps the scope of a previous search; otherwise the media library is searched if it has tags. */
+  /** Keeps the scope of a previous search; otherwise the first area with tags is searched. */
   private detectScope(): UsageRightsScope {
     const selected = searchManager.filter.tagIds;
     if (selected && this.ownTags.some((tag) => selected.has(tag.id))) {
-      return 'own';
+      return OWN_SCOPE;
     }
-    return this.hasUsageRightsTags(this.libraryTags) ? 'library' : 'own';
+    const previous = selected ? this.libraryTags.find((tag) => selected.has(tag.id)) : undefined;
+    return previous?.areaId ?? this.getScopes()[0] ?? OWN_SCOPE;
   }
 
   private hasUsageRightsTags(tags: LibraryTag[]) {
@@ -94,14 +125,14 @@ class UsageRightsSearchData {
     return !!prefix && tags.some((tag) => tag.value.startsWith(prefix));
   }
 
-  /** Whether both the media library and the own photos can be searched. */
+  /** Whether more than one area or the own photos can be searched. */
   hasScopeChoice() {
-    return this.hasUsageRightsTags(this.libraryTags) && this.hasUsageRightsTags(this.ownTags);
+    return this.getScopes().length > 1;
   }
 
   /** Switches the scope and removes the selected values of the previous scope. */
   setScope(value: string) {
-    const scope: UsageRightsScope = value === 'library' ? 'library' : 'own';
+    const scope: UsageRightsScope = this.getScopes().includes(value) ? value : OWN_SCOPE;
     const tagIds = searchManager.filter.tagIds;
     if (scope === this.scope || !tagIds) {
       this.scope = scope;

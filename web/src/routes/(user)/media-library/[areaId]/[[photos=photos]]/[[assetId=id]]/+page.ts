@@ -1,12 +1,12 @@
-import { getLibraryTags, getMediaLibraryAccess, getVisibleAreas } from '#lib/imagepier/access.ts';
+import { getMediaLibraryAccess, getVisibleAreas } from '#lib/imagepier/access.ts';
 import { ipt } from '#lib/imagepier/i18n.ts';
-import { getUsageRightsConfig } from '#lib/imagepier/usage-rights.ts';
 import { authManager } from '#lib/managers/auth-manager.svelte.ts';
 import { authenticate } from '#lib/utils/auth.ts';
 import { get } from 'svelte/store';
 import type { PageLoad } from './$types';
 
-export type AreaView = { id: string; name: string; libraryUserId: string; tagId?: string };
+/** Area with the account that owns its assets; the account is missing until the server has created it. */
+export type AreaView = { id: string; name: string; userId?: string };
 
 const loadArea = async (areaId: string): Promise<AreaView | undefined> => {
   try {
@@ -16,14 +16,7 @@ const loadArea = async (areaId: string): Promise<AreaView | undefined> => {
     }
 
     const area = getVisibleAreas(access).find((item) => item.id === areaId);
-    if (!area) {
-      return;
-    }
-
-    const [config, tags] = await Promise.all([getUsageRightsConfig(), getLibraryTags()]);
-    const value = `${config.tags.area}/${area.name}`;
-    const tagId = tags.find((tag) => tag.value === value)?.id;
-    return { id: area.id, name: area.name, libraryUserId: access.libraryUserId, tagId };
+    return area ? { id: area.id, name: area.name, userId: area.userId } : undefined;
   } catch {
     return;
   }

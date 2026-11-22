@@ -3,7 +3,7 @@ import { sql, type Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { OnEvent } from 'src/decorators.js';
 import { AssetStatus, ImmichWorker, SystemMetadataKey } from 'src/enum.js';
-import { ACCESS_SETTINGS_KEY, parseAccessSettings } from 'src/imagepier/access-rules.js';
+import { ACCESS_SETTINGS_KEY, getAreaAccounts, parseAccessSettings } from 'src/imagepier/access-rules.js';
 import {
   AUDIT_SETTINGS_KEY,
   AuditAction,
@@ -20,6 +20,7 @@ import { SystemMetadataRepository } from 'src/repositories/system-metadata.repos
 import { UserRepository } from 'src/repositories/user.repository.js';
 import type { DB } from 'src/schema/index.js';
 import type { SystemMetadata } from 'src/types.js';
+import { anyUuid } from 'src/utils/database.js';
 import { handlePromiseError } from 'src/utils/misc.js';
 
 const settingsKey = AUDIT_SETTINGS_KEY as SystemMetadataKey;
@@ -283,10 +284,11 @@ export class ImagePierAuditService {
 
   /** Media library assets in the trash, newest first, with the person who moved them there. */
   async getLibraryTrash(): Promise<LibraryTrashItem[]> {
-    const { libraryUserId } = parseAccessSettings(
+    const settings = parseAccessSettings(
       await this.systemMetadataRepository.get(ACCESS_SETTINGS_KEY as SystemMetadataKey),
     );
-    if (!libraryUserId) {
+    const accountIds = getAreaAccounts(settings).keys().toArray();
+    if (!settings.libraryUserId || accountIds.length === 0) {
       return [];
     }
 
@@ -304,7 +306,7 @@ export class ImagePierAuditService {
           LIMIT 1
         ) AS "deletedBy"
       FROM asset a
-      WHERE a."ownerId" = ${libraryUserId} AND a."deletedAt" IS NOT NULL AND a."status" = ${AssetStatus.Trashed}
+      WHERE a."ownerId" = ${anyUuid(accountIds)} AND a."deletedAt" IS NOT NULL AND a."status" = ${AssetStatus.Trashed}
       ORDER BY a."deletedAt" DESC
       LIMIT 1000
     `.execute(this.db);

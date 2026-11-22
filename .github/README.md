@@ -70,9 +70,10 @@ albums, face and object search, mobile apps – and adds what teams need to work
 
 ### 🗂️ Roles and shared media library
 
-- **Media library account** – a technical account owns the official media. Every media library asset belongs to an
-  area (department). Below *Photos* in the sidebar, everybody switches between *My photos*, *All photos* (own and
-  media library) and one entry per area they have access to.
+- **Areas (departments) with their own accounts** – the official media belong to technical accounts, one per area.
+  Each area is only shared with the people who have a level in it, so timeline, search, map and the mobile apps
+  only show the areas someone has access to. Below *Photos* in the sidebar, everybody switches between *My photos*,
+  *All photos* (own photos and all accessible areas) and one entry per area.
 - **Roles per account** (*Administration → Users → user → Role and permissions*): *Administrator* (everything),
   *Staff* and *External*. Access to the media library is granted **per area** with a level:
 
@@ -87,8 +88,9 @@ albums, face and object search, mobile apps – and adds what teams need to work
   them.
 - **User list with roles** – *Administration → Users* shows the role of every account and can be searched, filtered
   by role and sorted by name, e-mail or role.
-- **Areas (departments)** – administrators create areas under *Administration → Media library*; areas without a
-  media manager are marked. Each media library asset shows its area and can be found by area in the search dialog.
+- **Managing areas** – administrators create, rename and remove areas under *Administration → Media library*; areas
+  without a media manager are marked, and areas that still contain images cannot be removed. Each media library
+  asset shows its area, and the usage rights search works per area.
 - **Add to media library** – own assets can be moved into an area with the level *Editor* or higher (selection menu).
 
 ### 🌐 Website galleries

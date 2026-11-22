@@ -1,6 +1,6 @@
 <script lang="ts">
   import UsageRightsModal from '#lib/imagepier/UsageRightsModal.svelte';
-  import { canEditAreaOf, getAreaName, getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
+  import { canEditAreaOf, getAreaOfOwner, getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { isExpired, loadAssetDetails, saveUsageRights, type UsageRights } from '#lib/imagepier/usage-rights.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -27,21 +27,18 @@
   let { asset, isOwner }: Props = $props();
 
   let rights = $state<UsageRights | undefined>();
-  let areaId = $state<string | undefined>();
   let loadedAssetId = $state<string | undefined>();
   let access = $state<MyAccess>();
 
   $effect(() => {
     const assetId = asset.id;
     rights = undefined;
-    areaId = undefined;
     loadedAssetId = undefined;
 
     loadAssetDetails(assetId)
       .then((result) => {
         if (asset.id === assetId) {
           rights = result.rights;
-          areaId = result.areaId;
           loadedAssetId = assetId;
         }
       })
@@ -63,9 +60,11 @@
     }
   });
 
-  const isLibraryAsset = $derived(!!access?.libraryUserId && asset.ownerId === access.libraryUserId);
-  const canEdit = $derived(isOwner || (isLibraryAsset && !!access && canEditAreaOf(access, areaId)));
-  const areaName = $derived(access ? getAreaName(access, areaId) : undefined);
+  // Media library assets belong to the account of their area.
+  const area = $derived(access ? getAreaOfOwner(access, asset.ownerId) : undefined);
+  const isLibraryAsset = $derived(!!area);
+  const canEdit = $derived(isOwner || (!!access && !!area && canEditAreaOf(access, area.id)));
+  const areaName = $derived(area?.name);
 
   const expired = $derived(isExpired(rights));
 

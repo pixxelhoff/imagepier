@@ -4,6 +4,8 @@ import {
   canDownloadArea,
   canEditArea,
   canManageArea,
+  getAreaAccounts,
+  getAreaOfOwner,
   getUserAccess,
   isAtLeast,
   parseAccessSettings,
@@ -31,7 +33,8 @@ describe('access rules', () => {
         }),
       ).toEqual({
         libraryUserId,
-        areas: [{ id: SHARED_AREA_ID, name: 'Shared' }],
+        areaAssetsMigrated: false,
+        areas: [{ id: SHARED_AREA_ID, name: 'Shared', userId: libraryUserId }],
         users: {
           a: { role: undefined, areas: undefined },
           b: { role: 'staff', areas: { press: 'editor' } },
@@ -51,9 +54,27 @@ describe('access rules', () => {
       ]);
     });
 
+    it('should keep the area accounts and use the media library account for the shared area', () => {
+      const result = parseAccessSettings({
+        libraryUserId,
+        areaAssetsMigrated: true,
+        areas: [
+          { id: SHARED_AREA_ID, name: 'General', userId: 'other' },
+          { id: 'press', name: 'Press', userId: 'press-account' },
+        ],
+      });
+
+      expect(result.areaAssetsMigrated).toBe(true);
+      expect(result.areas).toEqual([
+        { id: SHARED_AREA_ID, name: 'General', userId: libraryUserId },
+        { id: 'press', name: 'Press', userId: 'press-account' },
+      ]);
+    });
+
     it('should handle empty values', () => {
       expect(parseAccessSettings(null)).toEqual({
         libraryUserId: undefined,
+        areaAssetsMigrated: false,
         areas: [{ id: SHARED_AREA_ID, name: 'Shared' }],
         users: {},
       });
@@ -85,6 +106,32 @@ describe('access rules', () => {
       expect(parseAssetArea({ areaId: 'press' })).toBe('press');
       expect(parseAssetArea(undefined)).toBeUndefined();
       expect(parseAssetArea({ areaId: '' })).toBeUndefined();
+    });
+  });
+
+  describe('area accounts', () => {
+    const withAccounts: AccessSettings = {
+      libraryUserId,
+      areas: [
+        { id: SHARED_AREA_ID, name: 'General', userId: libraryUserId },
+        { id: 'press', name: 'Press', userId: 'press-account' },
+        { id: 'marketing', name: 'Marketing' },
+      ],
+      users: {},
+    };
+
+    it('should map accounts to their areas', () => {
+      expect(getAreaAccounts(withAccounts)).toEqual(
+        new Map([
+          [libraryUserId, SHARED_AREA_ID],
+          ['press-account', 'press'],
+        ]),
+      );
+    });
+
+    it('should find the area of an owner', () => {
+      expect(getAreaOfOwner(withAccounts, 'press-account')?.id).toBe('press');
+      expect(getAreaOfOwner(withAccounts, 'user')).toBeUndefined();
     });
   });
 

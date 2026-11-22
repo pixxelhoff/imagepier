@@ -2,6 +2,8 @@
   import AreaModal from '#lib/imagepier/AreaModal.svelte';
   import UsageRightsModal from '#lib/imagepier/UsageRightsModal.svelte';
   import {
+    canEditAreaOf,
+    getAreaOfOwner,
     getAssignableAreas,
     getMediaLibraryAccess,
     moveToMediaLibrary,
@@ -17,7 +19,7 @@
   import { mdiCopyright, mdiDeleteOutline, mdiFolderMultipleImage } from '@mdi/js';
 
   /**
-  Actions for media managers in the media library view (the partner page of the media library account).
+  Actions for editors and media managers in the view of an area (the timeline of the area account).
   The server checks the areas; assets outside the user's areas are rejected.
   */
   type Props = {
@@ -40,7 +42,8 @@
     void loadAccess(authManager.user.id);
   });
 
-  const canEdit = $derived(!!access?.canEditLibrary && access.libraryUserId === ownerId);
+  const area = $derived(access ? getAreaOfOwner(access, ownerId) : undefined);
+  const canEdit = $derived(!!access && !!area && canEditAreaOf(access, area.id));
 
   const getSelectedIds = () => assetMultiSelectManager.assets.map((asset) => asset.id);
 

@@ -377,7 +377,7 @@ export class AssetService extends BaseService {
 
     // ImagePier: media library assets can only be deleted permanently by media managers of their areas
     if (force) {
-      await requirePermanentDeleteAccess(this.accessRepository, auth, ids);
+      await requirePermanentDeleteAccess(auth, ids);
     }
 
     await this.requireAccess({ auth, permission: Permission.AssetDelete, ids });
