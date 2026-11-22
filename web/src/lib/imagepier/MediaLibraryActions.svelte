@@ -11,7 +11,12 @@
     type MyAccess,
   } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
-  import { applyUsageRightsToAssets, confirmUsageRights, toUsageRightsPatch } from '#lib/imagepier/usage-rights.ts';
+  import {
+    applyUsageRightsToAssets,
+    confirmUsageRights,
+    loadAssetDetails,
+    toUsageRightsPatch,
+  } from '#lib/imagepier/usage-rights.ts';
   import { assetMultiSelectManager } from '#lib/managers/asset-multi-select-manager.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
@@ -51,8 +56,27 @@
 
   const getSelectedIds = () => assetMultiSelectManager.assets.map((asset) => asset.id);
 
-  const handleUsageRights = async () => {
+  /** Selected assets the user may edit: externals only the assets they delivered, the others are skipped. */
+  const getEditableIds = async () => {
     const ids = getSelectedIds();
+    if (access?.role !== 'external') {
+      return ids;
+    }
+
+    const details = await Promise.all(ids.map((id) => loadAssetDetails(id)));
+    const own = ids.filter((_, index) => details[index].uploadedBy === authManager.user.id);
+    if (own.length < ids.length) {
+      toastManager.warning($ipt('only_own_deliveries', { count: ids.length - own.length }));
+    }
+    return own;
+  };
+
+  const handleUsageRights = async () => {
+    const ids = await getEditableIds();
+    if (ids.length === 0) {
+      return;
+    }
+
     const result = await modalManager.show(UsageRightsModal, {
       title: $ipt('usage_rights_bulk_title', { count: ids.length }),
       hint: $ipt('usage_rights_bulk_hint'),
@@ -104,7 +128,11 @@
   };
 
   const handleTrash = async () => {
-    const ids = getSelectedIds();
+    const ids = await getEditableIds();
+    if (ids.length === 0) {
+      return;
+    }
+
     try {
       await deleteAssets({ assetBulkDeleteDto: { ids } });
       toastManager.primary($ipt('moved_to_trash', { count: ids.length }));

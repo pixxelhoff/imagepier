@@ -1,3 +1,4 @@
+import { assignUploadsToArea } from '#lib/imagepier/upload-access.svelte.ts';
 import { authManager } from '#lib/managers/auth-manager.svelte.ts';
 import { uploadManager } from '#lib/managers/upload-manager.svelte.ts';
 import { addAssetsToAlbumsMutation } from '#lib/queries/album.query.ts';
@@ -107,7 +108,14 @@ export const fileUploadHandler = async ({
   }
 
   const results = await Promise.all(promises);
-  return results.filter((result): result is string => !!result);
+  const assetIds = results.filter((result): result is string => !!result);
+
+  // ImagePier: uploads in the view of an area are assigned to that area
+  if (!albumId && !isLockedAssets) {
+    await assignUploadsToArea(assetIds);
+  }
+
+  return assetIds;
 };
 
 function getDeviceAssetId(asset: File) {
