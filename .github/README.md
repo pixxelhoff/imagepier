@@ -49,7 +49,8 @@ for every image, and soon shared libraries with roles and an embeddable website 
 
 - **Media library account** – a technical account owns the official media. It is shared automatically with all
   users except externals (Immich partner sharing), so everybody sees it in the timeline, in search and in the mobile
-  apps. A "Media library" entry in the sidebar shows only the media library.
+  apps. A "Media library" entry in the sidebar shows only the media library. The switch "Show in Photos" below it
+  hides the media library from the own timeline; while it is off, search covers only the own assets.
 - **Roles per account** (*Administration → Users → user → Role and permissions*):
   - *Administrator* – full access (Immich administrators).
   - *Media manager* – upload, edit and move media library assets to the trash.
