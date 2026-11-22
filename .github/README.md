@@ -66,8 +66,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
 
 - **Media library account** – a technical account owns the official media. It is shared automatically with all
   users except externals (Immich partner sharing), so everybody sees it in the timeline, in search and in the mobile
-  apps. A "Media library" entry in the sidebar shows only the media library; the switch "Show in Photos" hides it
-  from the own timeline.
+  apps. Below *Photos* in the sidebar, everybody switches between *My photos*, *All photos* (own and media library)
+  and one entry per area.
 - **Roles per account** (*Administration → Users → user → Role and permissions*):
 
   | Role | Can do |

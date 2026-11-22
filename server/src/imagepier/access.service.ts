@@ -119,8 +119,10 @@ export class ImagePierAccessService extends BaseService {
     }
 
     const partners = await this.partnerRepository.getAll(libraryUserId);
-    const sharedWith = new Set(
-      partners.filter((partner) => partner.sharedById === libraryUserId).map((partner) => partner.sharedWithId),
+    const sharedWith = new Map(
+      partners
+        .filter((partner) => partner.sharedById === libraryUserId)
+        .map((partner) => [partner.sharedWithId, partner]),
     );
 
     for (const user of await this.userRepository.getList()) {
@@ -129,9 +131,14 @@ export class ImagePierAccessService extends BaseService {
       }
 
       const { canViewLibrary } = getUserAccess(this.settings, user);
-      if (canViewLibrary && !sharedWith.has(user.id)) {
+      const partner = sharedWith.get(user.id);
+      if (canViewLibrary && !partner) {
         await this.partnerRepository.create({ sharedById: libraryUserId, sharedWithId: user.id, inTimeline: true });
-      } else if (!canViewLibrary && sharedWith.has(user.id)) {
+      } else if (canViewLibrary && partner && !partner.inTimeline) {
+        // "All photos" always includes the media library; "My photos" hides it in the web app.
+        const ids = { sharedById: libraryUserId, sharedWithId: user.id };
+        await this.partnerRepository.update(ids, { inTimeline: true });
+      } else if (!canViewLibrary && partner) {
         await this.partnerRepository.remove({ sharedById: libraryUserId, sharedWithId: user.id });
       }
     }

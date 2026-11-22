@@ -27,8 +27,8 @@ describe(ImagePierAccessService.name, () => {
         users: { external: { role: 'external' }, shared: { role: 'staff' } },
       } as any);
       mocks.partner.getAll.mockResolvedValue([
-        { sharedById: libraryUserId, sharedWithId: 'external' },
-        { sharedById: libraryUserId, sharedWithId: 'shared' },
+        { sharedById: libraryUserId, sharedWithId: 'external', inTimeline: true },
+        { sharedById: libraryUserId, sharedWithId: 'shared', inTimeline: false },
       ] as any);
       mocks.user.getList.mockResolvedValue([
         { id: libraryUserId, isAdmin: false },
@@ -39,6 +39,7 @@ describe(ImagePierAccessService.name, () => {
       ] as any);
       mocks.partner.create.mockResolvedValue({} as any);
       mocks.partner.remove.mockResolvedValue({} as any);
+      mocks.partner.update.mockResolvedValue({} as any);
 
       await sut.loadSettings();
       await sut.syncLibrarySharing();
@@ -55,6 +56,10 @@ describe(ImagePierAccessService.name, () => {
         inTimeline: true,
       });
       expect(mocks.partner.remove).toHaveBeenCalledWith({ sharedById: libraryUserId, sharedWithId: 'external' });
+      expect(mocks.partner.update).toHaveBeenCalledWith(
+        { sharedById: libraryUserId, sharedWithId: 'shared' },
+        { inTimeline: true },
+      );
     });
 
     it('should do nothing without a media library account', async () => {

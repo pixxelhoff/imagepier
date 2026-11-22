@@ -1,26 +1,21 @@
 <script lang="ts">
   import { getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
+  import { photosScope, type PhotosScope } from '#lib/imagepier/photos-scope.svelte.ts';
   import { uploadAccess } from '#lib/imagepier/upload-access.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { Route } from '#lib/route.ts';
-  import { handleError } from '#lib/utils/handle-error.ts';
-  import { PartnerDirection, getPartners, updatePartner } from '@immich/sdk';
-  import { NavbarItem, Switch, Text } from '@immich/ui';
-  import { mdiFolderMultipleImage, mdiWeb } from '@mdi/js';
+  import { NavbarItem } from '@immich/ui';
+  import { mdiWeb } from '@mdi/js';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
 
   let access = $state<MyAccess>();
-  let inTimeline = $state<boolean>();
 
   const loadAccess = async (userId: string) => {
     try {
       access = await getMediaLibraryAccess(userId);
       uploadAccess.allowed = access?.canUpload ?? true;
-      const libraryId = access?.libraryUserId;
-      if (libraryId) {
-        const partners = await getPartners({ direction: PartnerDirection.SharedWith });
-        inTimeline = partners.find((partner) => partner.id === libraryId)?.inTimeline;
-      }
     } catch {
       access = undefined;
     }
@@ -30,40 +25,51 @@
     void loadAccess(authManager.user.id);
   });
 
-  const libraryUserId = $derived(
-    access?.canViewLibrary && access.libraryUserId !== authManager.user.id ? access.libraryUserId : null,
+  const showLibrary = $derived(
+    !!access?.canViewLibrary && !!access.libraryUserId && access.libraryUserId !== authManager.user.id,
   );
 
-  // The media library is a partner; "in timeline" decides whether its assets are shown under Photos.
-  const setInTimeline = async (value: boolean) => {
-    if (!libraryUserId) {
-      return;
-    }
+  const areas = $derived(showLibrary ? (access?.allAreas ?? []) : []);
 
-    try {
-      await updatePartner({ id: libraryUserId, partnerUpdateDto: { inTimeline: value } });
-      inTimeline = value;
-      if (location.pathname.startsWith(Route.photos())) {
-        location.reload();
-      }
-    } catch (error) {
-      handleError(error, $ipt('media_library_in_photos_failed'));
+  const isPhotosPage = $derived(page.url.pathname.startsWith(Route.photos()));
+
+  const isAreaPage = (areaId: string) => page.url.pathname.startsWith(`/media-library/${encodeURIComponent(areaId)}`);
+
+  const showPhotos = async (scope: PhotosScope) => {
+    photosScope.set(scope);
+    if (!isPhotosPage) {
+      await goto(Route.photos());
     }
   };
+
+  const itemClass = (active: boolean) => [
+    'block w-full truncate rounded-full px-4 py-1.5 text-start text-sm hover:bg-gray-200/60 dark:hover:bg-gray-700/60',
+    active && 'font-medium text-primary',
+  ];
 </script>
 
-{#if libraryUserId}
-  <NavbarItem
-    title={$ipt('media_library')}
-    href={Route.viewPartner({ id: libraryUserId })}
-    icon={mdiFolderMultipleImage}
-  />
-  {#if inTimeline !== undefined}
-    <div class="flex items-center justify-between gap-2 py-1 ps-12 pe-4" data-testid="imagepier-library-in-photos">
-      <Text size="small" color="muted">{$ipt('media_library_in_photos')}</Text>
-      <Switch bind:checked={() => inTimeline ?? false, (value) => void setInTimeline(value)} />
-    </div>
-  {/if}
+{#if showLibrary}
+  <div class="flex flex-col gap-0.5 ps-10 pe-2 pb-1" data-testid="imagepier-photos-nav">
+    <button
+      type="button"
+      class={itemClass(isPhotosPage && photosScope.value === 'own')}
+      onclick={() => void showPhotos('own')}
+    >
+      {$ipt('photos_own')}
+    </button>
+    <button
+      type="button"
+      class={itemClass(isPhotosPage && photosScope.value === 'all')}
+      onclick={() => void showPhotos('all')}
+    >
+      {$ipt('photos_all')}
+    </button>
+    {#each areas as area (area.id)}
+      <a href={`/media-library/${encodeURIComponent(area.id)}`} class={itemClass(isAreaPage(area.id))}>
+        {$ipt('photos_area', { name: area.name })}
+      </a>
+    {/each}
+  </div>
   {#if access?.canEditLibrary}
     <NavbarItem title={$ipt('website_galleries')} href="/galleries" icon={mdiWeb} />
   {/if}

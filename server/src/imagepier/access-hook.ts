@@ -59,6 +59,16 @@ export const applyImagePierAccess = async (
       return allowed.union(new Set(editable));
     }
 
+    // Area tags of the media library are used for the area views in the sidebar.
+    case Permission.TagRead: {
+      const { libraryUserId } = getCachedAccessSettings();
+      const missing = ids.difference(allowed);
+      if (!userAccess.canViewLibrary || !libraryUserId || missing.size === 0) {
+        return allowed;
+      }
+      return allowed.union(await access.tag.checkOwnerAccess(libraryUserId, missing));
+    }
+
     // Admins see media library assets in the trash (partner sharing hides trashed assets).
     case Permission.AssetRead:
     case Permission.AssetView: {

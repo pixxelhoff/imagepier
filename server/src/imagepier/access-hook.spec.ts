@@ -122,6 +122,36 @@ describe('ImagePier access hook', () => {
     expect(result).toEqual(new Set(['asset-1']));
   });
 
+  it('should let users read the area tags of the media library', async () => {
+    useSettings({ libraryUserId, areas: [], users: {} });
+    const checkOwnerAccess = vitest.fn((_: string, ids: Set<string>) =>
+      Promise.resolve(new Set([...ids].filter((id) => id === 'area-tag'))),
+    );
+    const access = { tag: { checkOwnerAccess } } as unknown as AccessRepository;
+    const result = await applyImagePierAccess(
+      access,
+      { auth: authFor('user'), permission: Permission.TagRead, ids: new Set(['area-tag', 'other-tag']) },
+      Promise.resolve(new Set<string>()),
+    );
+
+    expect(result).toEqual(new Set(['area-tag']));
+    expect(checkOwnerAccess).toHaveBeenCalledWith(libraryUserId, new Set(['area-tag', 'other-tag']));
+  });
+
+  it('should not let externals read tags of the media library', async () => {
+    useSettings({ libraryUserId, areas: [], users: { user: { role: 'external' } } });
+    const checkOwnerAccess = vitest.fn();
+    const access = { tag: { checkOwnerAccess } } as unknown as AccessRepository;
+    const result = await applyImagePierAccess(
+      access,
+      { auth: authFor('user'), permission: Permission.TagRead, ids: new Set(['area-tag']) },
+      Promise.resolve(new Set<string>()),
+    );
+
+    expect(result).toEqual(new Set());
+    expect(checkOwnerAccess).not.toHaveBeenCalled();
+  });
+
   it('should not extend viewing for other users', async () => {
     useSettings({ libraryUserId, areas: [], users: {} });
     const { access, checkOwnerAccess } = createAccess(['asset-1']);

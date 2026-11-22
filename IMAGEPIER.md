@@ -42,7 +42,8 @@ conflicts can occur during updates.
 | `server/src/utils/access.ts` | `checkAccess` passes Immich's result through `applyImagePierAccess` (roles) |
 | `server/src/services/asset.service.ts` | `deleteAll` with `force`: only administrators |
 | `server/src/services/trash.service.ts` | `empty`: only administrators |
-| `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds the "Media library" entry |
+| `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds `MediaLibraryNavItem` (My photos, All photos, areas, website galleries) |
+| `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` | `withPartners` follows `photosScope` ("My photos" / "All photos") |
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
 | `web/src/routes/admin/users/(list)/+layout.svelte` | user list replaced by `UserListAdmin` (role, search, role filter, sorting) |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
@@ -99,6 +100,10 @@ conflicts can occur during updates.
 - The in-memory copy of the settings exists only in the API worker. Code that runs in the microservices worker
   (event handlers after jobs, e.g. the tag sync after the metadata extraction) reads the settings from
   `system_metadata` instead.
+- Sidebar below *Photos*: *My photos* (timeline without partners), *All photos* (with the media library, which is
+  always shared with `inTimeline`; `syncLibrarySharing` turns it on again) and one entry per area. An area page
+  (`web/src/routes/(user)/media-library/[areaId]/`) shows the media library timeline filtered by the area tag; users
+  who can view the media library get `TagRead` on its tags for this.
 - Admins additionally get `AssetRead`/`AssetView` on media library assets, so they can see them in the trash
   (Immich's partner sharing hides trashed assets).
 

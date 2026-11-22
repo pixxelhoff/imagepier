@@ -232,14 +232,18 @@
 </div>
 
 {#if gallery && selected}
-  <div class="fixed inset-0 z-50 flex flex-col bg-black/90 text-white lg:flex-row" role="dialog" aria-modal="true">
-    <div class="relative flex min-h-0 grow items-center justify-center p-4">
+  <div
+    class="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-black/90 text-white lg:flex-row lg:overflow-hidden"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="relative flex h-[65dvh] shrink-0 items-center justify-center p-4 lg:h-auto lg:shrink lg:grow">
       <img
         src={getGalleryImageUrl(galleryKey, selected.id, 'preview')}
         alt={selected.fileName}
         class="max-h-full max-w-full object-contain"
       />
-      <div class="absolute top-4 left-4">
+      <div class="fixed top-4 left-4 z-10">
         <IconButton
           icon={mdiClose}
           aria-label={$ipt('gallery_close')}
@@ -270,7 +274,7 @@
       {/if}
     </div>
 
-    <aside class="w-full shrink-0 overflow-y-auto bg-white p-6 text-gray-900 lg:w-96">
+    <aside class="w-full shrink-0 bg-white p-6 text-gray-900 lg:w-96 lg:overflow-y-auto">
       <dl class="flex flex-col gap-3 text-sm">
         <div>
           <dt class="text-gray-500">{$ipt('gallery_credit')}</dt>
