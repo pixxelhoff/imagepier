@@ -1,5 +1,5 @@
 import { ASSET_AREA_KEY, SHARED_AREA_ID, setCachedAccessSettings } from 'src/imagepier/access-rules.js';
-import { getTagLabels } from 'src/imagepier/usage-rights-tags.js';
+import { getTagLabels, getTagPaths } from 'src/imagepier/usage-rights-tags.js';
 import { USAGE_RIGHTS_KEY } from 'src/imagepier/usage-rights.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { AssetFactory } from 'test/factories/asset.factory.js';
@@ -113,6 +113,27 @@ describe(ImagePierUsageRightsService.name, () => {
         { assetId: asset.id, tagId: 'tag-Usage rights/Missing/License' },
       ]);
       expect(result).toEqual({ ownerId: asset.ownerId, previous: 'valid', current: undefined });
+    });
+  });
+
+  describe('syncTags with areas', () => {
+    it('should read the area from the stored settings outside of the API worker', async () => {
+      mocks.systemMetadata.get.mockResolvedValue({
+        libraryUserId: 'library-id',
+        areas: [{ id: 'press', name: 'Press' }],
+        users: {},
+      } as any);
+      mocks.asset.getById.mockResolvedValue({ id: 'asset-1', ownerId: 'library-id', tags: [] } as any);
+      mocks.asset.getMetadataByKey.mockImplementation(((_: string, key: string) =>
+        Promise.resolve(key === ASSET_AREA_KEY ? { key, value: { areaId: 'press' } } : undefined)) as any);
+      mocks.tag.upsertValue.mockImplementation(({ value }) => Promise.resolve({ id: `tag-${value}`, value } as any));
+
+      await sut.syncTags('asset-1');
+
+      const areaPath = getTagPaths(getTagLabels()).area;
+      expect(mocks.tag.upsertValue).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'library-id', value: `${areaPath}/Press` }),
+      );
     });
   });
 

@@ -149,6 +149,10 @@ export const canEditArea = (access: UserAccess, areaId: string | undefined) => {
 /** In-memory copy of the settings, kept up to date by the ImagePier access service. */
 let cachedSettings: AccessSettings = { areas: [], users: {} };
 
+/** Name of the shared area until an administrator renames it. */
+export const getSharedAreaName = () =>
+  (process.env.IMAGEPIER_LANGUAGE ?? 'en').toLowerCase().startsWith('de') ? 'Übergreifend' : 'Shared';
+
 export const getCachedAccessSettings = () => cachedSettings;
 
 export const setCachedAccessSettings = (settings: AccessSettings) => {

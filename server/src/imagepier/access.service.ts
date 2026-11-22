@@ -10,6 +10,7 @@ import {
   Area,
   SHARED_AREA_ID,
   StoredUserAccess,
+  getSharedAreaName,
   getUserAccess,
   parseAccessSettings,
   parseAssetArea,
@@ -31,8 +32,6 @@ const getLibraryAccount = () => ({
   email: process.env.IMAGEPIER_LIBRARY_EMAIL ?? 'media-library@imagepier.local',
   name: process.env.IMAGEPIER_LIBRARY_NAME ?? (isGerman() ? 'Mediathek' : 'Media library'),
 });
-
-const getSharedAreaName = () => (isGerman() ? 'Übergreifend' : 'Shared');
 
 /**
 Roles and the shared media library.

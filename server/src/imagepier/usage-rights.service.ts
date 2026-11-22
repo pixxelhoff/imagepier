@@ -2,13 +2,16 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { mapNotification } from 'src/dtos/notification.dto.js';
-import { ImmichWorker, NotificationLevel, NotificationType, Permission } from 'src/enum.js';
+import { ImmichWorker, NotificationLevel, NotificationType, Permission, SystemMetadataKey } from 'src/enum.js';
 import { getAccessForAuth } from 'src/imagepier/access-hook.js';
 import {
+  ACCESS_SETTINGS_KEY,
   ASSET_AREA_KEY,
   SHARED_AREA_ID,
   canEditArea,
   getCachedAccessSettings,
+  getSharedAreaName,
+  parseAccessSettings,
   parseAssetArea,
 } from 'src/imagepier/access-rules.js';
 import {
@@ -136,9 +139,18 @@ export class ImagePierUsageRightsService extends BaseService {
     };
   }
 
+  /**
+  Access settings read from the database. The in-memory cache exists only in the API worker, but tags are also
+  synchronized by the microservices worker after the metadata extraction.
+  */
+  private async loadAccessSettings() {
+    const value = await this.systemMetadataRepository.get(ACCESS_SETTINGS_KEY as SystemMetadataKey);
+    return parseAccessSettings(value, getSharedAreaName());
+  }
+
   /** Name of the area of a media library asset; assets without area belong to the shared area. */
   private async getAreaName(assetId: string, ownerId: string) {
-    const { libraryUserId, areas } = getCachedAccessSettings();
+    const { libraryUserId, areas } = await this.loadAccessSettings();
     if (!libraryUserId || ownerId !== libraryUserId) {
       return;
     }
