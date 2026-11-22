@@ -109,4 +109,29 @@ describe('ImagePier access hook', () => {
     expect(() => requirePermanentDeleteAccess(authFor('user'))).toThrow(ForbiddenException);
     expect(() => requirePermanentDeleteAccess(authFor('admin', true))).not.toThrow();
   });
+
+  it('should let admins view media library assets in the trash', async () => {
+    useSettings({ libraryUserId, areas: [], users: {} });
+    const { access } = createAccess(['asset-1']);
+    const result = await applyImagePierAccess(
+      access,
+      { auth: authFor('admin', true), permission: Permission.AssetView, ids: new Set(['asset-1', 'asset-2']) },
+      Promise.resolve(new Set<string>()),
+    );
+
+    expect(result).toEqual(new Set(['asset-1']));
+  });
+
+  it('should not extend viewing for other users', async () => {
+    useSettings({ libraryUserId, areas: [], users: {} });
+    const { access, checkOwnerAccess } = createAccess(['asset-1']);
+    const result = await applyImagePierAccess(
+      access,
+      { auth: authFor('user'), permission: Permission.AssetView, ids: new Set(['asset-1']) },
+      Promise.resolve(new Set<string>()),
+    );
+
+    expect(result).toEqual(new Set());
+    expect(checkOwnerAccess).not.toHaveBeenCalled();
+  });
 });

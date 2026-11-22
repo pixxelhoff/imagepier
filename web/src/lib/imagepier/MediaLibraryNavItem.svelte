@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
+  import { uploadAccess } from '#lib/imagepier/upload-access.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { Route } from '#lib/route.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
@@ -14,6 +15,7 @@
   const loadAccess = async (userId: string) => {
     try {
       access = await getMediaLibraryAccess(userId);
+      uploadAccess.allowed = access?.canUpload ?? true;
       const libraryId = access?.libraryUserId;
       if (libraryId) {
         const partners = await getPartners({ direction: PartnerDirection.SharedWith });

@@ -5,6 +5,7 @@
 <script lang="ts">
   import NavigationBar from '#lib/components/shared-components/navigation-bar/NavigationBar.svelte';
   import UserSidebar from '#lib/components/shared-components/side-bar/UserSidebar.svelte';
+  import { uploadAccess } from '#lib/imagepier/upload-access.svelte.ts';
   import type { HeaderButtonActionItem } from '#lib/types.ts';
   import { openFileUploadDialog } from '#lib/utils/file-uploader.ts';
   import { Button, ContextMenuButton, HStack, isMenuItemType, type MenuItemType } from '@immich/ui';
@@ -46,7 +47,8 @@
 
 <header>
   {#if !hideNavbar}
-    <NavigationBar onUploadClick={() => openFileUploadDialog()} />
+    <!-- ImagePier: no upload button without upload permission -->
+    <NavigationBar onUploadClick={uploadAccess.allowed ? () => openFileUploadDialog() : undefined} />
   {/if}
 </header>
 <div

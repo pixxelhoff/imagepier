@@ -1,4 +1,5 @@
 import { ImagePierAccessService } from 'src/imagepier/access.service.js';
+import { ImagePierAuditService } from 'src/imagepier/audit.service.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { ActivityService } from 'src/services/activity.service.js';
 import { AlbumService } from 'src/services/album.service.js';
@@ -114,5 +115,6 @@ export const services = [
   WorkflowService,
   // ImagePier
   ImagePierAccessService,
+  ImagePierAuditService,
   ImagePierUsageRightsService,
 ];

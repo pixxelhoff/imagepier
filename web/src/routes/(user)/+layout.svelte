@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { uploadAccess } from '#lib/imagepier/upload-access.svelte.ts';
   import { assetViewerManager } from '#lib/managers/asset-viewer-manager.svelte.ts';
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
@@ -26,7 +27,10 @@
 <div class:display-none={assetViewerManager.isViewing}>
   {@render children?.()}
 </div>
-<UploadCover />
+<!-- ImagePier: no drag-and-drop upload without upload permission -->
+{#if uploadAccess.allowed}
+  <UploadCover />
+{/if}
 
 <style>
   :root {

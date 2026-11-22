@@ -9,6 +9,7 @@ import {
   DownloadResponseDto,
 } from 'src/dtos/download.dto.js';
 import { Permission } from 'src/enum.js';
+import { recordDownload } from 'src/imagepier/audit.js';
 import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import { ImmichReadStream } from 'src/repositories/storage.repository.js';
 import { BaseService } from 'src/services/base.service.js';
@@ -90,6 +91,8 @@ export class DownloadService extends BaseService {
 
   async downloadArchive(auth: AuthDto, dto: DownloadArchiveDto): Promise<ImmichReadStream> {
     await this.requireAccess({ auth, permission: Permission.AssetDownload, ids: dto.assetIds });
+    // ImagePier: audit log
+    recordDownload(auth, dto.assetIds, 'archive');
 
     const edited = isEditedOnly(auth, dto.edited);
     const zip = this.storageRepository.createZipStream();

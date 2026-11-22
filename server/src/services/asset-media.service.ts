@@ -27,6 +27,7 @@ import {
   Permission,
   StorageFolder,
 } from 'src/enum.js';
+import { recordDownload } from 'src/imagepier/audit.js';
 import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import { AuthRequest } from 'src/middleware/auth.guard.js';
 import { BaseService } from 'src/services/base.service.js';
@@ -244,6 +245,8 @@ export class AssetMediaService extends BaseService {
 
   async downloadOriginal(auth: AuthDto, id: string, dto: AssetDownloadOriginalDto): Promise<ImmichFileResponse> {
     await this.requireAccess({ auth, permission: Permission.AssetDownload, ids: [id] });
+    // ImagePier: audit log
+    recordDownload(auth, [id], 'original');
 
     const { originalPath, originalFileName, editedPath } = await this.assetRepository.getForOriginal(
       id,

@@ -59,6 +59,17 @@ export const applyImagePierAccess = async (
       return allowed.union(new Set(editable));
     }
 
+    // Admins see media library assets in the trash (partner sharing hides trashed assets).
+    case Permission.AssetRead:
+    case Permission.AssetView: {
+      const { libraryUserId } = getCachedAccessSettings();
+      const missing = ids.difference(allowed);
+      if (userAccess.role !== 'admin' || !libraryUserId || missing.size === 0) {
+        return allowed;
+      }
+      return allowed.union(await access.asset.checkOwnerAccess(libraryUserId, missing, false));
+    }
+
     default: {
       return allowed;
     }

@@ -63,11 +63,24 @@ for every image, and soon shared libraries with roles and an embeddable website 
   shows its area and can be found by area in the search dialog.
 - **Add to media library** – own assets can be moved into the media library with an area (selection menu). In the
   media library view, media managers can edit usage rights, change the area or move assets to the trash.
+- **Media library trash** – administrators restore or permanently delete media library assets under
+  *Administration → Media library*. Accounts without upload permission do not see the upload button.
+
+### Audit log
+
+Under *Administration → Media library → Audit log* administrators see uploads, downloads, usage rights changes,
+moves into the media library, trash, restore and permanent deletion, role and area changes, and created or deleted
+accounts – filterable by action, person and period, with CSV export.
+
+- **Retention** – 365 days by default, adjustable; older entries are removed every night.
+- **Downloads** – only counted by default. Storing who downloaded can be enabled; this records employee behaviour,
+  so agree on it with your works council and data protection officer first.
+- **Logins** – optional, off by default.
+- Downloads include originals opened in full resolution (for example when zooming), because Immich uses the same
+  endpoint for both.
 
 ### Planned
 
-- **Media library trash** for administrators.
-- **Audit log** – uploads, changes, deletions and downloads.
 - **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
 - **Website gallery** – embeddable albums for websites and content management systems with a download dialog that
   shows license terms and the credit line before the download starts.

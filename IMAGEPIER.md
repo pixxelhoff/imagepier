@@ -36,8 +36,9 @@ conflicts can occur during updates.
 
 | File | Change |
 |---|---|
-| `server/src/services/index.ts` | registers `ImagePierAccessService`, `ImagePierUsageRightsService` |
-| `server/src/controllers/index.ts` | registers the ImagePier access and usage rights controllers |
+| `server/src/services/index.ts` | registers `ImagePierAccessService`, `ImagePierAuditService`, `ImagePierUsageRightsService` |
+| `server/src/controllers/index.ts` | registers the ImagePier access, audit and usage rights controllers |
+| `server/src/services/base.service.ts` | `createLoginResponse` reports logins to the audit log (`recordLogin`) |
 | `server/src/utils/access.ts` | `checkAccess` passes Immich's result through `applyImagePierAccess` (roles) |
 | `server/src/services/asset.service.ts` | `deleteAll` with `force`: only administrators |
 | `server/src/services/trash.service.ts` | `empty`: only administrators |
@@ -45,12 +46,14 @@ conflicts can occur during updates.
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
 | `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Media library" admin entry |
-| `web/src/routes/admin/media-library/` | new admin page (areas); no Immich file changed |
+| `web/src/routes/admin/media-library/` | new admin page (areas, media library trash, audit log); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
-| `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits |
-| `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits |
+| `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits; audit log |
+| `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log |
+| `web/src/lib/components/layouts/UserPageLayout.svelte` | hides the upload button without upload permission |
+| `web/src/routes/(user)/+layout.svelte` | no drag-and-drop upload without upload permission |
 | `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
 | `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
@@ -90,6 +93,25 @@ conflicts can occur during updates.
   area. Faces of moved assets stay linked to the people of the previous owner.
 - Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`,
   `GET|PUT /api/admin/imagepier/access/users/:id`, `GET|PUT /api/admin/imagepier/access/areas`.
+- The in-memory copy of the settings exists only in the API worker. Code that runs in the microservices worker
+  (event handlers after jobs, e.g. the tag sync after the metadata extraction) reads the settings from
+  `system_metadata` instead.
+- Admins additionally get `AssetRead`/`AssetView` on media library assets, so they can see them in the trash
+  (Immich's partner sharing hides trashed assets).
+
+## Audit log – technical overview
+
+- Table `imagepier_audit`, created by `ImagePierAuditService` with `CREATE TABLE IF NOT EXISTS` (no Immich
+  migration: Immich runs migrations strictly by timestamp, and its schema check ignores additional tables). The table
+  is part of every database backup.
+- Code reports actions with `recordAudit()` / `recordAuditFor()` / `recordDownload()` / `recordLogin()` from
+  `server/src/imagepier/audit.ts`; the service registers itself as sink. Without a sink (unit tests) nothing happens.
+- Events: `AssetCreate` (uploads), `AssetTrashAll`, `AssetRestoreAll`, `AssetDeleteAll`, `UserCreate`, `UserTrash`.
+  Controllers record usage rights syncs, moves into the media library, role and area changes.
+- Settings in `system_metadata` (`imagepier.audit`): `retentionDays` (365), `downloadsWithUser` (false), `logins`
+  (false); re-read every minute by every worker. A cron job removes old entries at 03:41.
+- Endpoints: `GET /api/admin/imagepier/audit`, `GET /api/admin/imagepier/audit/users`,
+  `GET|PUT /api/admin/imagepier/audit/settings`, `GET /api/admin/imagepier/library/trash`.
 
 ## Branding – technical overview
 

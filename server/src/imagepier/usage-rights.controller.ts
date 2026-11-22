@@ -4,6 +4,7 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
+import { recordAuditFor } from 'src/imagepier/audit.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
 
@@ -41,14 +42,17 @@ export class ImagePierUsageRightsController {
   @Post('sync')
   @Authenticated({ permission: Permission.AssetUpdate })
   @HttpCode(HttpStatus.NO_CONTENT)
-  syncTags(@Auth() auth: AuthDto, @Body() dto: UsageRightsSyncDto): Promise<void> {
-    return this.service.syncTagsForAssets(auth, dto.assetIds);
+  async syncTags(@Auth() auth: AuthDto, @Body() dto: UsageRightsSyncDto): Promise<void> {
+    await this.service.syncTagsForAssets(auth, dto.assetIds);
+    recordAuditFor(auth, { action: 'usage_rights', assetIds: dto.assetIds });
   }
 
   @Post('library')
   @Authenticated({ permission: Permission.AssetUpdate })
   @HttpCode(HttpStatus.OK)
-  moveToLibrary(@Auth() auth: AuthDto, @Body() dto: MoveToLibraryDto) {
-    return this.service.moveToLibrary(auth, dto.assetIds, dto.areaId);
+  async moveToLibrary(@Auth() auth: AuthDto, @Body() dto: MoveToLibraryDto) {
+    const result = await this.service.moveToLibrary(auth, dto.assetIds, dto.areaId);
+    recordAuditFor(auth, { action: 'library_move', assetIds: dto.assetIds, details: { areaId: dto.areaId } });
+    return result;
   }
 }

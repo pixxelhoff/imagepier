@@ -6,6 +6,7 @@ import { StorageCore } from 'src/cores/storage.core.js';
 import { UserAdmin } from 'src/database.js';
 import { mapLoginResponse } from 'src/dtos/auth.dto.js';
 import { SystemConfig } from 'src/dtos/config.dto.js';
+import { recordLogin } from 'src/imagepier/audit.js';
 import { AccessRepository } from 'src/repositories/access.repository.js';
 import { ActivityRepository } from 'src/repositories/activity.repository.js';
 import { AlbumUserRepository } from 'src/repositories/album-user.repository.js';
@@ -381,6 +382,8 @@ export class BaseService {
       oauthSid: oauthSid ?? null,
       oauthBearerToken: oauthBearerToken ?? null,
     });
+    // ImagePier: audit log (only if enabled by an administrator)
+    recordLogin(user, loginDetails);
 
     return mapLoginResponse(user, token);
   }

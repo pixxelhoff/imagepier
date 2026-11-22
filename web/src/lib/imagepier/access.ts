@@ -106,3 +106,73 @@ export const getUserAccessAdmin = (userId: string) =>
 
 export const updateUserAccessAdmin = (userId: string, dto: StoredUserAccess) =>
   request<UserAccessAdmin>(`/admin/imagepier/access/users/${userId}`, { method: 'PUT', body: JSON.stringify(dto) });
+
+export const AUDIT_ACTIONS = [
+  'upload',
+  'download',
+  'usage_rights',
+  'library_move',
+  'trash',
+  'restore',
+  'delete',
+  'access',
+  'areas',
+  'user_create',
+  'user_delete',
+  'login',
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+export type AuditSettings = { retentionDays: number; downloadsWithUser: boolean; logins: boolean };
+
+export type AuditItem = {
+  id: string;
+  createdAt: string;
+  userId: string | null;
+  userName: string | null;
+  action: AuditAction;
+  assetIds: string[];
+  assetCount: number;
+  details: Record<string, unknown> | null;
+};
+
+export type AuditFilter = {
+  from?: string;
+  to?: string;
+  userId?: string;
+  action?: AuditAction;
+  limit: number;
+  offset: number;
+};
+
+export type LibraryTrashItem = {
+  id: string;
+  originalFileName: string;
+  type: string;
+  deletedAt: string;
+  deletedBy: string | null;
+};
+
+const toQuery = (filter: AuditFilter) => {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filter)) {
+    if (value !== undefined && value !== '') {
+      params.set(key, String(value));
+    }
+  }
+  return params.toString();
+};
+
+export const getAuditLog = (filter: AuditFilter) =>
+  request<{ items: AuditItem[]; total: number }>(`/admin/imagepier/audit?${toQuery(filter)}`);
+
+export const getAuditUsers = () =>
+  request<Array<{ userId: string; userName: string | null }>>('/admin/imagepier/audit/users');
+
+export const getAuditSettings = () => request<AuditSettings>('/admin/imagepier/audit/settings');
+
+export const updateAuditSettings = (dto: Partial<AuditSettings>) =>
+  request<AuditSettings>('/admin/imagepier/audit/settings', { method: 'PUT', body: JSON.stringify(dto) });
+
+/** Media library assets in the trash; only for administrators. */
+export const getLibraryTrash = () => request<LibraryTrashItem[]>('/admin/imagepier/library/trash');

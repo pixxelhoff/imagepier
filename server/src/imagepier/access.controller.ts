@@ -5,6 +5,7 @@ import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { ASSIGNABLE_ROLES } from 'src/imagepier/access-rules.js';
 import { ImagePierAccessService } from 'src/imagepier/access.service.js';
+import { recordAuditFor } from 'src/imagepier/audit.js';
 import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
 import { UUIDParamDto } from 'src/validation.js';
 
@@ -58,8 +59,10 @@ export class ImagePierAccessAdminController {
 
   @Put('areas')
   @Authenticated({ admin: true })
-  updateAreas(@Body() dto: AreasUpdateDto) {
-    return this.service.updateAreas(dto.areas);
+  async updateAreas(@Auth() auth: AuthDto, @Body() dto: AreasUpdateDto) {
+    const areas = await this.service.updateAreas(dto.areas);
+    recordAuditFor(auth, { action: 'areas', details: { areas: areas.map((area) => area.name) } });
+    return areas;
   }
 
   @Get('users/:id')
@@ -70,7 +73,9 @@ export class ImagePierAccessAdminController {
 
   @Put('users/:id')
   @Authenticated({ admin: true })
-  updateUserAccess(@Param() { id }: UUIDParamDto, @Body() dto: UserAccessUpdateDto) {
-    return this.service.updateUserAccessAdmin(id, dto);
+  async updateUserAccess(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto, @Body() dto: UserAccessUpdateDto) {
+    const result = await this.service.updateUserAccessAdmin(id, dto);
+    recordAuditFor(auth, { action: 'access', details: { userId: id, ...dto } });
+    return result;
   }
 }
