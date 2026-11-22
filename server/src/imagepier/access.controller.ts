@@ -65,6 +65,12 @@ export class ImagePierAccessAdminController {
     return areas;
   }
 
+  @Get('users')
+  @Authenticated({ admin: true })
+  getUserRoles() {
+    return this.service.getUserRolesAdmin();
+  }
+
   @Get('users/:id')
   @Authenticated({ admin: true })
   getUserAccess(@Param() { id }: UUIDParamDto) {

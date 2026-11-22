@@ -44,6 +44,7 @@ conflicts can occur during updates.
 | `server/src/services/trash.service.ts` | `empty`: only administrators |
 | `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds the "Media library" entry |
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
+| `web/src/routes/admin/users/(list)/+layout.svelte` | user list replaced by `UserListAdmin` (role, search, role filter, sorting) |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
 | `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Media library" admin entry |
 | `web/src/routes/admin/media-library/`, `web/src/routes/admin/audit/` | new admin pages (areas and media library trash; audit log); no Immich file changed |
@@ -92,8 +93,9 @@ conflicts can occur during updates.
   `AssetUpdate`/`AssetDelete` on media library assets to the manager's areas.
 - `POST /api/imagepier/usage-rights/library` moves own assets into the media library (owner change) and/or sets the
   area. Faces of moved assets stay linked to the people of the previous owner.
-- Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`,
-  `GET|PUT /api/admin/imagepier/access/users/:id`, `GET|PUT /api/admin/imagepier/access/areas`.
+- Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`, `GET /api/admin/imagepier/access/users`
+  (role of every account for the user list), `GET|PUT /api/admin/imagepier/access/users/:id`,
+  `GET|PUT /api/admin/imagepier/access/areas`.
 - The in-memory copy of the settings exists only in the API worker. Code that runs in the microservices worker
   (event handlers after jobs, e.g. the tag sync after the metadata extraction) reads the settings from
   `system_metadata` instead.

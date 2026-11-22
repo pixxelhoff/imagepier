@@ -101,6 +101,11 @@ export const getAreasAdmin = () => request<Area[]>('/admin/imagepier/access/area
 export const updateAreasAdmin = (areas: Array<{ id?: string; name: string }>) =>
   request<Area[]>('/admin/imagepier/access/areas', { method: 'PUT', body: JSON.stringify({ areas }) });
 
+/** Role of every account; the media library account is marked as `library`. */
+export type UserListRole = Role | 'library';
+
+export const getUserRolesAdmin = () => request<Record<string, UserListRole>>('/admin/imagepier/access/users');
+
 export const getUserAccessAdmin = (userId: string) =>
   request<UserAccessAdmin>(`/admin/imagepier/access/users/${userId}`);
 

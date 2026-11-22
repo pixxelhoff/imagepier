@@ -180,6 +180,17 @@ export class ImagePierAccessService extends BaseService {
     return this.settings.areas;
   }
 
+  /** Role of every account for the user list; the media library account is marked as `library`. */
+  async getUserRolesAdmin() {
+    const users = await this.userRepository.getList({ withDeleted: true });
+    return Object.fromEntries(
+      users.map((user) => [
+        user.id,
+        user.id === this.settings.libraryUserId ? 'library' : getUserAccess(this.settings, user).role,
+      ]),
+    );
+  }
+
   async getUserAccessAdmin(userId: string) {
     const user = await this.userRepository.get(userId, { withDeleted: true });
     if (!user) {

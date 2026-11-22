@@ -77,6 +77,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
   | **Staff** | view and download; uploading can be enabled per account |
   | **External** | only albums and links shared with them; downloading can be enabled per account |
 
+- **User list with roles** – *Administration → Users* shows the role of every account and can be searched, filtered
+  by role and sorted by name, e-mail or role.
 - **Areas (departments)** – administrators create areas under *Administration → Media library* and assign media
   managers to them. Each media library asset shows its area and can be found by area in the search dialog.
 - **Add to media library** – own assets can be moved into the media library with an area (selection menu).
