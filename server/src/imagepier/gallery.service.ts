@@ -98,8 +98,11 @@ export class ImagePierGalleryService {
 
   async createGallery(auth: AuthDto, dto: { albumId: string; title: string; allowDownload: boolean }) {
     const access = this.requireEditor(auth);
-    const { rows } = await sql<{ id: string; ownerId: string }>`
-      SELECT "id", "ownerId" FROM album WHERE "id" = ${dto.albumId} AND "deletedAt" IS NULL
+    const { rows } = await sql<{ id: string; ownerId: string | null }>`
+      SELECT al."id", au."userId" AS "ownerId"
+      FROM album al
+      LEFT JOIN album_user au ON au."albumId" = al."id" AND au."role" = 'owner'
+      WHERE al."id" = ${dto.albumId} AND al."deletedAt" IS NULL
     `.execute(this.db);
     const album = rows[0];
     if (!album) {
