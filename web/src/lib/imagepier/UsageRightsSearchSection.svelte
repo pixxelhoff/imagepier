@@ -13,6 +13,7 @@
   import { onMount } from 'svelte';
 
   const categoryLabels: Record<UsageRightsCategory, ImagePierMessageKey> = {
+    area: 'area',
     missing: 'missing_fields',
     status: 'status',
     photographer: 'photographer',

@@ -69,6 +69,7 @@ export type UsageRightsConfig = {
     creditLine: string;
     validUntil: string;
     missing: string;
+    area: string;
   };
   statuses: Record<'valid' | 'expiring' | 'expired' | 'unreviewed', string>;
   missing: Record<'copyrightHolder' | 'photographer' | 'license', string>;
@@ -114,6 +115,20 @@ export const loadUsageRights = async (assetId: string): Promise<UsageRights | un
   const items = await getAssetMetadata({ id: assetId });
   const item = items.find(({ key }) => key === USAGE_RIGHTS_KEY);
   return item ? normalizeUsageRights(item.value) : undefined;
+};
+
+/** Asset metadata key of the media library area; keep in sync with server/src/imagepier/access-rules.ts. */
+export const ASSET_AREA_KEY = 'imagepier.area';
+
+/** Usage rights and media library area of an asset, read with a single request. */
+export const loadAssetDetails = async (assetId: string) => {
+  const items = await getAssetMetadata({ id: assetId });
+  const rights = items.find(({ key }) => key === USAGE_RIGHTS_KEY);
+  const areaId = items.find(({ key }) => key === ASSET_AREA_KEY)?.value.areaId;
+  return {
+    rights: rights ? normalizeUsageRights(rights.value) : undefined,
+    areaId: typeof areaId === 'string' ? areaId : undefined,
+  };
 };
 
 export const saveUsageRights = async (assetId: string, rights: UsageRights): Promise<UsageRights> => {

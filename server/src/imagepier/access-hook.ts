@@ -1,10 +1,20 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
-import { getCachedAccessSettings, getUserAccess } from 'src/imagepier/access-rules.js';
+import { canEditArea, getCachedAccessSettings, getUserAccess } from 'src/imagepier/access-rules.js';
 import type { AccessRepository } from 'src/repositories/access.repository.js';
 
 type AccessCheck = { auth: AuthDto; permission: Permission; ids: Set<string> };
+
+/** Returns the area id of each given asset (undefined: no area). */
+export type AssetAreaResolver = (assetIds: string[]) => Promise<Map<string, string | undefined>>;
+
+let assetAreaResolver: AssetAreaResolver | undefined;
+
+/** Registered by the ImagePier access service, which can read the asset metadata. */
+export const setAssetAreaResolver = (resolver: AssetAreaResolver | undefined) => {
+  assetAreaResolver = resolver;
+};
 
 /** Access for the current user according to the ImagePier role settings. */
 export const getAccessForAuth = (auth: AuthDto) => getUserAccess(getCachedAccessSettings(), auth.user);
@@ -40,7 +50,13 @@ export const applyImagePierAccess = async (
       }
 
       const libraryAssets = await access.asset.checkOwnerAccess(libraryUserId, missing, false);
-      return allowed.union(libraryAssets);
+      if (libraryAssets.size === 0 || userAccess.role === 'admin' || !assetAreaResolver) {
+        return allowed.union(libraryAssets);
+      }
+
+      const areas = await assetAreaResolver([...libraryAssets]);
+      const editable = [...libraryAssets].filter((id) => canEditArea(userAccess, areas.get(id)));
+      return allowed.union(new Set(editable));
     }
 
     default: {

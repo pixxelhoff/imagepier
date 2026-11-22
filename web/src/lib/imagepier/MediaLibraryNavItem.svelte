@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { getMyAccess, type MyAccess } from '#lib/imagepier/access.ts';
+  import { getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { Route } from '#lib/route.ts';
-  import { PartnerDirection, getPartners } from '@immich/sdk';
   import { NavbarItem } from '@immich/ui';
   import { mdiFolderMultipleImage } from '@mdi/js';
 
@@ -11,9 +10,7 @@
 
   const loadAccess = async (userId: string) => {
     try {
-      // The media library is shared as partner; without partners there is nothing to show.
-      const partners = await getPartners({ direction: PartnerDirection.SharedWith });
-      access = partners.length > 0 ? await getMyAccess(userId) : undefined;
+      access = await getMediaLibraryAccess(userId);
     } catch {
       access = undefined;
     }

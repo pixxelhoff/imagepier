@@ -2,6 +2,7 @@
   import BreadcrumbActionPage from '#lib/components/BreadcrumbActionPage.svelte';
   import NavigationBar from '#lib/components/shared-components/navigation-bar/NavigationBar.svelte';
   import BottomInfo from '#lib/components/shared-components/side-bar/BottomInfo.svelte';
+  import MediaLibraryAdminNavItem from '#lib/imagepier/MediaLibraryAdminNavItem.svelte';
   import { featureFlagsManager } from '#lib/managers/feature-flags-manager.svelte.ts';
   import { Route } from '#lib/route.ts';
   import { sidebarStore } from '#lib/stores/sidebar.svelte.ts';
@@ -35,6 +36,8 @@
       {/if}
 
       <NavbarItem title={$t('users')} href={Route.users()} icon={mdiAccountMultipleOutline} />
+      <!-- ImagePier: media library areas -->
+      <MediaLibraryAdminNavItem />
       <NavbarItem title={$t('external_libraries')} href={Route.libraries()} icon={mdiBookshelf} />
       <NavbarItem title={$t('admin.queues')} href={Route.queues()} icon={mdiTrayFull} />
       <NavbarItem title={$t('settings')} href={Route.systemSettings()} icon={mdiCog} />

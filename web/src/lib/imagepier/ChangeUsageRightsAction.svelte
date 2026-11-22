@@ -1,5 +1,6 @@
 <script lang="ts">
   import MenuOption from '#lib/components/shared-components/context-menu/MenuOption.svelte';
+  import MoveToLibraryAction from '#lib/imagepier/MoveToLibraryAction.svelte';
   import UsageRightsModal from '#lib/imagepier/UsageRightsModal.svelte';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { applyUsageRightsToAssets, toUsageRightsPatch } from '#lib/imagepier/usage-rights.ts';
@@ -42,4 +43,5 @@
 
 {#if menuItem}
   <MenuOption text={$ipt('usage_rights_edit')} icon={mdiCopyright} onClick={() => handleChangeUsageRights()} />
+  <MoveToLibraryAction />
 {/if}

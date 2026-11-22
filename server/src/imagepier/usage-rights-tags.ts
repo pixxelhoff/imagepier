@@ -30,6 +30,7 @@ export type TagLabels = {
   creditLine: string;
   validUntil: string;
   missing: string;
+  area: string;
   missingFields: Record<MissingField, string>;
   licenses: Record<LicenseType, string>;
   statuses: Record<UsageRightsStatus, string>;
@@ -53,6 +54,7 @@ const labels: Record<string, TagLabels> = {
     creditLine: 'Credit line',
     validUntil: 'Valid until',
     missing: 'Missing',
+    area: 'Area',
     missingFields: { copyrightHolder: 'Copyright holder', photographer: 'Photographer', license: 'License' },
     licenses: {
       owned: 'Owned by the organization',
@@ -80,6 +82,7 @@ const labels: Record<string, TagLabels> = {
     creditLine: 'Bildnachweis',
     validUntil: 'Gültig bis',
     missing: 'Fehlende Angaben',
+    area: 'Bereich',
     missingFields: { copyrightHolder: 'Rechteinhaber', photographer: 'Fotograf', license: 'Lizenz' },
     licenses: {
       owned: 'Eigentum',
@@ -124,6 +127,7 @@ export const getTagPaths = (tagLabels = getTagLabels()) => {
     creditLine: `${root}/${tagLabels.creditLine}`,
     validUntil: `${root}/${tagLabels.validUntil}`,
     missing: `${root}/${tagLabels.missing}`,
+    area: `${root}/${tagLabels.area}`,
   };
 };
 
@@ -160,18 +164,20 @@ export const getMissingTagValues = (rights: UsageRights | undefined, tagLabels =
 
 /**
 Returns the full tag values an asset should carry.
-Assets without usage rights only get the tags for missing fields.
+Assets without usage rights only get the tags for missing fields (and their area).
 */
 export const getUsageRightsTagValues = (
   rights: UsageRights | undefined,
   today = new Date(),
   tagLabels = getTagLabels(),
+  areaName?: string,
 ) => {
+  const paths = getTagPaths(tagLabels);
+  const areaValues = areaName ? [`${paths.area}/${segment(areaName)}`] : [];
   if (!rights) {
-    return getMissingTagValues(rights, tagLabels);
+    return [...getMissingTagValues(rights, tagLabels), ...areaValues];
   }
 
-  const paths = getTagPaths(tagLabels);
   const values: string[] = [];
 
   const photographer = rights.photographer ? segment(rights.photographer) : '';
@@ -210,6 +216,7 @@ export const getUsageRightsTagValues = (
   values.push(
     `${paths.status}/${tagLabels.statuses[getUsageRightsStatus(rights, today)]}`,
     ...getMissingTagValues(rights, tagLabels),
+    ...areaValues,
   );
 
   return values;

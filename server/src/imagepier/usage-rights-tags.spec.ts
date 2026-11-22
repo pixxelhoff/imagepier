@@ -94,6 +94,15 @@ describe('usage rights tags', () => {
       ]);
     });
 
+    it('should add the area of media library assets', () => {
+      expect(getUsageRightsTagValues(undefined, today, getTagLabels('de'), 'Marketing / PR')).toEqual([
+        'Nutzungsrechte/Fehlende Angaben/Rechteinhaber',
+        'Nutzungsrechte/Fehlende Angaben/Fotograf',
+        'Nutzungsrechte/Fehlende Angaben/Lizenz',
+        'Nutzungsrechte/Bereich/Marketing - PR',
+      ]);
+    });
+
     it('should only add missing field tags without usage rights', () => {
       expect(getUsageRightsTagValues(undefined, today, getTagLabels('en'))).toEqual([
         'Usage rights/Missing/Copyright holder',

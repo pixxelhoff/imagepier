@@ -16,6 +16,7 @@ export type UsageRightsCategory = Exclude<keyof UsageRightsConfig['tags'], 'root
 
 /** Categories with a single selection. */
 export const USAGE_RIGHTS_SELECT_CATEGORIES: UsageRightsCategory[] = [
+  'area',
   'missing',
   'status',
   'photographer',

@@ -1,8 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { mapNotification } from 'src/dtos/notification.dto.js';
 import { ImmichWorker, NotificationLevel, NotificationType, Permission } from 'src/enum.js';
+import { getAccessForAuth } from 'src/imagepier/access-hook.js';
+import {
+  ASSET_AREA_KEY,
+  SHARED_AREA_ID,
+  canEditArea,
+  getCachedAccessSettings,
+  parseAssetArea,
+} from 'src/imagepier/access-rules.js';
 import {
   EXPIRING_SOON_DAYS,
   MISSING_FIELDS,
@@ -97,10 +105,11 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     const rights = await this.getUsageRights(assetId);
+    const areaName = await this.getAreaName(assetId, asset.ownerId);
     const tagLabels = getTagLabels();
     const rootPrefix = `${getTagPaths(tagLabels).root}/`;
     const currentTags = (asset.tags ?? []).filter((tag) => tag.value.startsWith(rootPrefix));
-    const desiredValues = getUsageRightsTagValues(rights, today, tagLabels);
+    const desiredValues = getUsageRightsTagValues(rights, today, tagLabels, areaName);
     const desiredTags = await upsertTags(this.tagRepository, { userId: asset.ownerId, tags: desiredValues });
 
     const desiredIds = new Set(desiredTags.map((tag) => tag.id));
@@ -125,6 +134,65 @@ export class ImagePierUsageRightsService extends BaseService {
       ),
       current: rights ? getUsageRightsStatus(rights, today) : undefined,
     };
+  }
+
+  /** Name of the area of a media library asset; assets without area belong to the shared area. */
+  private async getAreaName(assetId: string, ownerId: string) {
+    const { libraryUserId, areas } = getCachedAccessSettings();
+    if (!libraryUserId || ownerId !== libraryUserId) {
+      return;
+    }
+
+    const item = await this.assetRepository.getMetadataByKey(assetId, ASSET_AREA_KEY);
+    const areaId = parseAssetArea(item?.value) ?? SHARED_AREA_ID;
+    return (areas.find((area) => area.id === areaId) ?? areas.find((area) => area.id === SHARED_AREA_ID))?.name;
+  }
+
+  /**
+  Moves own assets into the media library and sets the area of the given assets.
+  Media library assets can be given another area if the user may edit them.
+  */
+  async moveToLibrary(auth: AuthDto, assetIds: string[], areaId: string) {
+    const { libraryUserId, areas } = getCachedAccessSettings();
+    if (!libraryUserId) {
+      throw new BadRequestException('The media library is not set up');
+    }
+
+    if (areas.every((area) => area.id !== areaId)) {
+      throw new BadRequestException('Unknown area');
+    }
+
+    const access = getAccessForAuth(auth);
+    if (!access.canViewLibrary || (access.role === 'manager' && !canEditArea(access, areaId))) {
+      throw new ForbiddenException('No access to this area');
+    }
+
+    const assets = await this.assetRepository.getByIds(assetIds);
+    const ownIds = assets.filter((asset) => asset.ownerId === auth.user.id).map((asset) => asset.id);
+    const libraryIds = assets
+      .filter((asset) => asset.ownerId === libraryUserId && asset.ownerId !== auth.user.id)
+      .map((asset) => asset.id);
+    if (ownIds.length + libraryIds.length !== new Set(assetIds).size) {
+      throw new BadRequestException('Not found or no access');
+    }
+
+    if (libraryIds.length > 0) {
+      await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: libraryIds });
+    }
+
+    if (ownIds.length > 0) {
+      if (!access.canUpload) {
+        throw new ForbiddenException('No permission to add assets to the media library');
+      }
+      await this.assetRepository.updateAll(ownIds, { ownerId: libraryUserId });
+    }
+
+    for (const assetId of [...ownIds, ...libraryIds]) {
+      await this.assetRepository.upsertMetadata(assetId, [{ key: ASSET_AREA_KEY, value: { areaId } }]);
+      await this.syncTags(assetId);
+    }
+
+    return { count: ownIds.length + libraryIds.length };
   }
 
   /** Called by the web app after usage rights were saved. */

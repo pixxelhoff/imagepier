@@ -8,6 +8,31 @@ Kept separate from Immich's i18n files so that Immich translation updates
 never conflict with ImagePier strings. English is the fallback language.
 */
 const en = {
+  area: 'Area',
+  areas: 'Areas',
+  responsible_areas: 'Responsible for',
+  move_to_library: 'Add to media library',
+  move_to_library_title: 'Add {count} items to the media library',
+  move_to_library_hint:
+    'The items then belong to the media library and are maintained by the media managers of the area.',
+  move_to_library_done: '{count} items added to the media library',
+  change_area: 'Change area',
+  change_area_title: 'Change the area of {count} items',
+  area_changed: 'Area changed for {count} items',
+  move_to_library_failed: 'Unable to change the items',
+  move_to_trash: 'Move to trash',
+  moved_to_trash: '{count} items moved to the trash',
+  move_to_trash_failed: 'Unable to move the items to the trash',
+  media_library_admin_description:
+    'Areas of the media library. Media managers are assigned to their areas on the page of each user.',
+  area_add: 'Add area',
+  area_name: 'Name of the area',
+  area_remove: 'Remove area',
+  area_shared_hint: 'Always available; all media managers can edit it.',
+  areas_rename_hint: 'Search tags of renamed areas are updated with the next metadata refresh.',
+  areas_saved: 'Areas saved',
+  areas_save_failed: 'Unable to save the areas',
+  save: 'Save',
   media_library: 'Media library',
   access_title: 'Role and permissions',
   role: 'Role',
@@ -70,6 +95,31 @@ const en = {
 export type ImagePierMessageKey = keyof typeof en;
 
 const de: Record<ImagePierMessageKey, string> = {
+  area: 'Bereich',
+  areas: 'Bereiche',
+  responsible_areas: 'Zuständig für',
+  move_to_library: 'In Mediathek übernehmen',
+  move_to_library_title: '{count} Elemente in die Mediathek übernehmen',
+  move_to_library_hint:
+    'Die Bilder gehören danach der Mediathek und werden von den Medienverantwortlichen des Bereichs gepflegt.',
+  move_to_library_done: '{count} Elemente in die Mediathek übernommen',
+  change_area: 'Bereich ändern',
+  change_area_title: 'Bereich für {count} Elemente ändern',
+  area_changed: 'Bereich für {count} Elemente geändert',
+  move_to_library_failed: 'Die Elemente konnten nicht geändert werden',
+  move_to_trash: 'In den Papierkorb',
+  moved_to_trash: '{count} Elemente in den Papierkorb gelegt',
+  move_to_trash_failed: 'Die Elemente konnten nicht in den Papierkorb gelegt werden',
+  media_library_admin_description:
+    'Bereiche der Mediathek. Medienverantwortliche werden ihren Bereichen auf der Seite der jeweiligen Person zugeordnet.',
+  area_add: 'Bereich hinzufügen',
+  area_name: 'Name des Bereichs',
+  area_remove: 'Bereich entfernen',
+  area_shared_hint: 'Immer vorhanden; alle Medienverantwortlichen können ihn bearbeiten.',
+  areas_rename_hint: 'Nach dem Umbenennen werden die Such-Tags beim nächsten Aktualisieren der Metadaten angepasst.',
+  areas_saved: 'Bereiche gespeichert',
+  areas_save_failed: 'Die Bereiche konnten nicht gespeichert werden',
+  save: 'Speichern',
   media_library: 'Mediathek',
   access_title: 'Rolle und Rechte',
   role: 'Rolle',

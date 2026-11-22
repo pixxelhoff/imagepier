@@ -57,10 +57,15 @@ for every image, and soon shared libraries with roles and an embeddable website 
   - *External* – no access to the media library, only to albums and links shared with them; downloading can be
     enabled per account.
 - **Permanent deletion only by administrators** – everybody else can only move assets to the trash.
+- **Areas (departments)** – administrators create areas under *Administration → Media library* and assign media
+  managers to them. A media manager edits only assets of their areas and of the shared area. Each media library asset
+  shows its area and can be found by area in the search dialog.
+- **Add to media library** – own assets can be moved into the media library with an area (selection menu). In the
+  media library view, media managers can edit usage rights, change the area or move assets to the trash.
 
 ### Planned
 
-- **Departments** – media managers per department, upload into a department, "move to media library".
+- **Media library trash** for administrators.
 - **Audit log** – uploads, changes, deletions and downloads.
 - **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
 - **Website gallery** – embeddable albums for websites and content management systems with a download dialog that
@@ -80,7 +85,7 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.6
+   IMAGEPIER_VERSION=v3.4.2-ip.7
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local

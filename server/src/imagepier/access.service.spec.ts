@@ -13,7 +13,7 @@ describe(ImagePierAccessService.name, () => {
   });
 
   afterEach(() => {
-    setCachedAccessSettings({ users: {} });
+    setCachedAccessSettings({ areas: [], users: {} });
   });
 
   it('should work', () => {

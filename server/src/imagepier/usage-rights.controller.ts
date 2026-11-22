@@ -13,6 +13,13 @@ const UsageRightsSyncSchema = z.object({
 
 class UsageRightsSyncDto extends createZodDto(UsageRightsSyncSchema) {}
 
+const MoveToLibrarySchema = z.object({
+  assetIds: z.array(z.uuidv4()).min(1).max(10_000).describe('Own assets or media library assets'),
+  areaId: z.string().min(1).describe('Area of the media library'),
+});
+
+class MoveToLibraryDto extends createZodDto(MoveToLibrarySchema) {}
+
 /** ImagePier endpoints. Not part of Immich's public API specification. */
 @ApiExcludeController()
 @Controller('imagepier/usage-rights')
@@ -30,5 +37,12 @@ export class ImagePierUsageRightsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   syncTags(@Auth() auth: AuthDto, @Body() dto: UsageRightsSyncDto): Promise<void> {
     return this.service.syncTagsForAssets(auth, dto.assetIds);
+  }
+
+  @Post('library')
+  @Authenticated({ permission: Permission.AssetUpdate })
+  @HttpCode(HttpStatus.OK)
+  moveToLibrary(@Auth() auth: AuthDto, @Body() dto: MoveToLibraryDto) {
+    return this.service.moveToLibrary(auth, dto.assetIds, dto.areaId);
   }
 }

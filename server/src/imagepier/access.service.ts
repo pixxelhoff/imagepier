@@ -2,13 +2,17 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { ImmichWorker, SystemMetadataKey } from 'src/enum.js';
-import { getAccessForAuth } from 'src/imagepier/access-hook.js';
+import { getAccessForAuth, setAssetAreaResolver } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
+  ASSET_AREA_KEY,
   AccessSettings,
+  Area,
+  SHARED_AREA_ID,
   StoredUserAccess,
   getUserAccess,
   parseAccessSettings,
+  parseAssetArea,
   setCachedAccessSettings,
 } from 'src/imagepier/access-rules.js';
 import { BaseService } from 'src/services/base.service.js';
@@ -21,13 +25,14 @@ const SYNC_CRON_EXPRESSION = '*/15 * * * *';
 
 const settingsKey = ACCESS_SETTINGS_KEY as SystemMetadataKey;
 
-const getLibraryAccount = () => {
-  const language = (process.env.IMAGEPIER_LANGUAGE ?? 'en').toLowerCase();
-  return {
-    email: process.env.IMAGEPIER_LIBRARY_EMAIL ?? 'media-library@imagepier.local',
-    name: process.env.IMAGEPIER_LIBRARY_NAME ?? (language.startsWith('de') ? 'Mediathek' : 'Media library'),
-  };
-};
+const isGerman = () => (process.env.IMAGEPIER_LANGUAGE ?? 'en').toLowerCase().startsWith('de');
+
+const getLibraryAccount = () => ({
+  email: process.env.IMAGEPIER_LIBRARY_EMAIL ?? 'media-library@imagepier.local',
+  name: process.env.IMAGEPIER_LIBRARY_NAME ?? (isGerman() ? 'Mediathek' : 'Media library'),
+});
+
+const getSharedAreaName = () => (isGerman() ? 'Übergreifend' : 'Shared');
 
 /**
 Roles and the shared media library.
@@ -38,10 +43,11 @@ Roles and the shared media library.
 */
 @Injectable()
 export class ImagePierAccessService extends BaseService {
-  private settings: AccessSettings = { users: {} };
+  private settings: AccessSettings = { areas: [], users: {} };
 
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   async onConfigInit() {
+    setAssetAreaResolver((assetIds) => this.getAssetAreas(assetIds));
     await this.loadSettings();
     this.cronRepository.create({
       name: SYNC_CRON_NAME,
@@ -63,7 +69,7 @@ export class ImagePierAccessService extends BaseService {
 
   async loadSettings() {
     const value = await this.systemMetadataRepository.get(settingsKey);
-    this.applySettings(parseAccessSettings(value));
+    this.applySettings(parseAccessSettings(value, getSharedAreaName()));
     return this.settings;
   }
 
@@ -132,8 +138,47 @@ export class ImagePierAccessService extends BaseService {
     }
   }
 
+  /** Area ids of the given assets; assets without an area are undefined. */
+  async getAssetAreas(assetIds: string[]) {
+    const areas = new Map<string, string | undefined>();
+    for (const assetId of assetIds) {
+      const item = await this.assetRepository.getMetadataByKey(assetId, ASSET_AREA_KEY);
+      areas.set(assetId, parseAssetArea(item?.value));
+    }
+    return areas;
+  }
+
   getMyAccess(auth: AuthDto) {
-    return { ...getAccessForAuth(auth), libraryUserId: this.settings.libraryUserId ?? null };
+    return {
+      ...getAccessForAuth(auth),
+      libraryUserId: this.settings.libraryUserId ?? null,
+      allAreas: this.settings.areas,
+    };
+  }
+
+  getAreas() {
+    return this.settings.areas;
+  }
+
+  /** Replaces the list of areas. Areas without id are created; the shared area always stays. */
+  async updateAreas(areas: Array<{ id?: string; name: string }>) {
+    await this.loadSettings();
+    const result: Area[] = [];
+    for (const area of areas) {
+      const name = area.name.trim();
+      const id = area.id ?? this.cryptoRepository.randomUUID();
+      if (name && result.every((item) => item.id !== id)) {
+        result.push({ id, name });
+      }
+    }
+
+    if (result.every((area) => area.id !== SHARED_AREA_ID)) {
+      const shared = this.settings.areas.find((area) => area.id === SHARED_AREA_ID);
+      result.unshift(shared ?? { id: SHARED_AREA_ID, name: getSharedAreaName() });
+    }
+
+    await this.saveSettings({ ...this.settings, areas: result });
+    return this.settings.areas;
   }
 
   async getUserAccessAdmin(userId: string) {
@@ -168,6 +213,7 @@ export class ImagePierAccessService extends BaseService {
       stored: this.settings.users[user.id] ?? {},
       effective: getUserAccess(this.settings, user),
       isLibrary: user.id === this.settings.libraryUserId,
+      allAreas: this.settings.areas,
     };
   }
 }

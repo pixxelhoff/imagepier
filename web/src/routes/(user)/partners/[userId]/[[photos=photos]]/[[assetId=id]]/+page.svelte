@@ -3,6 +3,7 @@
   import AssetSelectControlBar from '#lib/components/timeline/AssetSelectControlBar.svelte';
   import Timeline from '#lib/components/timeline/Timeline.svelte';
   import DownloadAction from '#lib/components/timeline/actions/DownloadAction.svelte';
+  import MediaLibraryActions from '#lib/imagepier/MediaLibraryActions.svelte';
   import { assetMultiSelectManager } from '#lib/managers/asset-multi-select-manager.svelte.ts';
   import { Route } from '#lib/route.ts';
   import { getAssetBulkActions } from '#lib/services/asset.service.ts';
@@ -47,6 +48,8 @@
     <ActionButton action={Actions.CreateSharedLink} />
     <ActionButton action={Actions.AddToAlbum} />
     <DownloadAction />
+    <!-- ImagePier: media library actions -->
+    <MediaLibraryActions ownerId={data.partner.id} />
   </AssetSelectControlBar>
 {:else}
   <ControlAppBar backIcon={mdiArrowLeft} onClose={() => goto(Route.sharing())}>

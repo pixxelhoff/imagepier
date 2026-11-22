@@ -1,13 +1,22 @@
 <script lang="ts">
   import UsageRightsModal from '#lib/imagepier/UsageRightsModal.svelte';
+  import { canEditAreaOf, getAreaName, getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
-  import { isExpired, loadUsageRights, saveUsageRights, type UsageRights } from '#lib/imagepier/usage-rights.ts';
+  import { isExpired, loadAssetDetails, saveUsageRights, type UsageRights } from '#lib/imagepier/usage-rights.ts';
+  import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { locale } from '#lib/stores/preferences.store.ts';
   import { copyToClipboard } from '#lib/utils.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
   import type { AssetResponseDto } from '@immich/sdk';
   import { Icon, IconButton, Text, modalManager, toastManager } from '@immich/ui';
-  import { mdiAlertCircleOutline, mdiContentCopy, mdiCopyright, mdiPencilOutline, mdiPlus } from '@mdi/js';
+  import {
+    mdiAlertCircleOutline,
+    mdiContentCopy,
+    mdiCopyright,
+    mdiFolderMultipleImage,
+    mdiPencilOutline,
+    mdiPlus,
+  } from '@mdi/js';
   import { DateTime } from 'luxon';
 
   interface Props {
@@ -18,22 +27,45 @@
   let { asset, isOwner }: Props = $props();
 
   let rights = $state<UsageRights | undefined>();
+  let areaId = $state<string | undefined>();
   let loadedAssetId = $state<string | undefined>();
+  let access = $state<MyAccess>();
 
   $effect(() => {
     const assetId = asset.id;
     rights = undefined;
+    areaId = undefined;
     loadedAssetId = undefined;
 
-    loadUsageRights(assetId)
+    loadAssetDetails(assetId)
       .then((result) => {
         if (asset.id === assetId) {
-          rights = result;
+          rights = result.rights;
+          areaId = result.areaId;
           loadedAssetId = assetId;
         }
       })
       .catch((error: unknown) => console.error($ipt('usage_rights_load_failed'), error));
   });
+
+  // Media library assets belong to another account; only then the access of the user is needed.
+  const loadAccess = async (userId: string) => {
+    try {
+      access = await getMediaLibraryAccess(userId);
+    } catch {
+      access = undefined;
+    }
+  };
+
+  $effect(() => {
+    if (!isOwner) {
+      void loadAccess(authManager.user.id);
+    }
+  });
+
+  const isLibraryAsset = $derived(!!access?.libraryUserId && asset.ownerId === access.libraryUserId);
+  const canEdit = $derived(isOwner || (isLibraryAsset && !!access && canEditAreaOf(access, areaId)));
+  const areaName = $derived(access ? getAreaName(access, areaId) : undefined);
 
   const expired = $derived(isExpired(rights));
 
@@ -59,11 +91,11 @@
   };
 </script>
 
-{#if loadedAssetId === asset.id && (rights || isOwner)}
+{#if loadedAssetId === asset.id && (rights || canEdit || isLibraryAsset)}
   <section class="px-4 pt-6" data-testid="imagepier-usage-rights">
     <div class="flex h-10 w-full items-center justify-between text-sm">
       <Text size="small" color="muted">{$ipt('usage_rights')}</Text>
-      {#if isOwner}
+      {#if canEdit}
         <IconButton
           icon={rights ? mdiPencilOutline : mdiPlus}
           aria-label={rights ? $ipt('usage_rights_edit') : $ipt('usage_rights_add')}
@@ -76,6 +108,13 @@
         />
       {/if}
     </div>
+
+    {#if isLibraryAsset && areaName}
+      <div class="flex items-center gap-4 py-2 text-sm">
+        <Icon icon={mdiFolderMultipleImage} size="24" />
+        <p><span class="opacity-60">{$ipt('area')}:</span> {areaName}</p>
+      </div>
+    {/if}
 
     {#if rights}
       <div class="flex gap-4 py-2">

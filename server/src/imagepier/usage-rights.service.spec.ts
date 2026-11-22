@@ -1,3 +1,4 @@
+import { ASSET_AREA_KEY, SHARED_AREA_ID, setCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import { USAGE_RIGHTS_KEY } from 'src/imagepier/usage-rights.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { AssetFactory } from 'test/factories/asset.factory.js';
@@ -111,6 +112,49 @@ describe(ImagePierUsageRightsService.name, () => {
         { assetId: asset.id, tagId: 'tag-Usage rights/Missing/License' },
       ]);
       expect(result).toEqual({ ownerId: asset.ownerId, previous: 'valid', current: undefined });
+    });
+  });
+
+  describe('moveToLibrary', () => {
+    const libraryUserId = 'library-id';
+    const areas = [
+      { id: SHARED_AREA_ID, name: 'Shared' },
+      { id: 'press', name: 'Press' },
+    ];
+
+    afterEach(() => {
+      setCachedAccessSettings({ areas: [], users: {} });
+    });
+
+    it('should move own assets into the media library', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({ libraryUserId, areas, users: { 'user-id': { role: 'manager', areas: ['press'] } } });
+      mocks.asset.getByIds.mockResolvedValue([{ id: 'asset-1', ownerId: 'user-id' }] as any);
+      mocks.asset.getById.mockResolvedValue(undefined);
+
+      await expect(sut.moveToLibrary(auth, ['asset-1'], 'press')).resolves.toEqual({ count: 1 });
+
+      expect(mocks.asset.updateAll).toHaveBeenCalledWith(['asset-1'], { ownerId: libraryUserId });
+      expect(mocks.asset.upsertMetadata).toHaveBeenCalledWith('asset-1', [
+        { key: ASSET_AREA_KEY, value: { areaId: 'press' } },
+      ]);
+    });
+
+    it('should not allow media managers to use other areas', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({ libraryUserId, areas, users: { 'user-id': { role: 'manager', areas: [] } } });
+
+      await expect(sut.moveToLibrary(auth, ['asset-1'], 'press')).rejects.toThrow();
+      expect(mocks.asset.updateAll).not.toHaveBeenCalled();
+    });
+
+    it('should reject assets of other users', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: true } } as any;
+      setCachedAccessSettings({ libraryUserId, areas, users: {} });
+      mocks.asset.getByIds.mockResolvedValue([{ id: 'asset-1', ownerId: 'someone-else' }] as any);
+
+      await expect(sut.moveToLibrary(auth, ['asset-1'], 'press')).rejects.toThrow();
+      expect(mocks.asset.updateAll).not.toHaveBeenCalled();
     });
   });
 

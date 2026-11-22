@@ -2,6 +2,7 @@
   import AdminCard from '#lib/components/AdminCard.svelte';
   import {
     ASSIGNABLE_ROLES,
+    SHARED_AREA_ID,
     getUserAccessAdmin,
     updateUserAccessAdmin,
     type AssignableRole,
@@ -10,7 +11,7 @@
   } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
-  import { Field, HelperText, Select, Stack, Switch, Text, toastManager } from '@immich/ui';
+  import { Checkbox, Field, HelperText, Label, Select, Stack, Switch, Text, toastManager } from '@immich/ui';
   import { mdiShieldAccountOutline } from '@mdi/js';
 
   type Props = {
@@ -51,6 +52,13 @@
   const getCanDownload = () => data?.effective.canDownload ?? false;
   const setCanDownload = (canDownload: boolean) => void save({ canDownload });
 
+  const managerAreas = $derived(data?.allAreas.filter((area) => area.id !== SHARED_AREA_ID) ?? []);
+  const hasArea = (areaId: string) => data?.effective.areas.includes(areaId) ?? false;
+  const toggleArea = (areaId: string, checked: boolean) => {
+    const current = (data?.effective.areas ?? []).filter((id) => id !== areaId);
+    void save({ areas: checked ? [...current, areaId] : current });
+  };
+
   const roleOptions = $derived(ASSIGNABLE_ROLES.map((role) => ({ label: $ipt(`role.${role}`), value: role })));
 </script>
 
@@ -69,6 +77,24 @@
       <Field label={$ipt('role')}>
         <Select options={roleOptions} bind:value={getRole, setRole} />
       </Field>
+      {#if data.effective.role === 'manager' && managerAreas.length > 0}
+        <div>
+          <Label label={$ipt('responsible_areas')} />
+          <div class="mt-2 flex flex-col gap-2">
+            {#each managerAreas as area (area.id)}
+              <div class="flex items-center gap-2">
+                <Checkbox
+                  id="imagepier-area-{area.id}"
+                  size="tiny"
+                  checked={hasArea(area.id)}
+                  onCheckedChange={(checked) => toggleArea(area.id, checked)}
+                />
+                <Label label={area.name} for="imagepier-area-{area.id}" />
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
       <Field label={$ipt('can_upload')}>
         <Switch bind:checked={getCanUpload, setCanUpload} />
       </Field>

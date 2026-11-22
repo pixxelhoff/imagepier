@@ -43,6 +43,9 @@ conflicts can occur during updates.
 | `server/src/services/trash.service.ts` | `empty`: only administrators |
 | `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds the "Media library" entry |
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
+| `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
+| `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Media library" admin entry |
+| `web/src/routes/admin/media-library/` | new admin page (areas); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
@@ -79,8 +82,14 @@ conflicts can occur during updates.
 - `access-hook.ts`: `AssetUpload` needs upload permission, `AssetDownload`/`AlbumDownload` need download permission,
   `AssetUpdate`/`AssetDelete` are extended to media library assets for media managers. Permanent deletion and
   emptying the trash are reserved for administrators.
+- Areas: stored in the same settings (`areas`, the shared area `shared` always exists); a media manager's areas in
+  `users[id].areas`. The area of an asset is stored in `asset_metadata` (`imagepier.area`) and mirrored as tag
+  `Usage rights/Area/<name>`. The access service registers a resolver so that `access-hook.ts` can limit
+  `AssetUpdate`/`AssetDelete` on media library assets to the manager's areas.
+- `POST /api/imagepier/usage-rights/library` moves own assets into the media library (owner change) and/or sets the
+  area. Faces of moved assets stay linked to the people of the previous owner.
 - Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`,
-  `GET|PUT /api/admin/imagepier/access/users/:id`.
+  `GET|PUT /api/admin/imagepier/access/users/:id`, `GET|PUT /api/admin/imagepier/access/areas`.
 
 ## Branding – technical overview
 
