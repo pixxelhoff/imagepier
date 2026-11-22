@@ -26,6 +26,7 @@
   let selectedIndex = $state<number>();
   let accepted = $state(false);
   let bulkAccepted = $state(false);
+  let selecting = $state(false);
   const selection = new SvelteSet<string>();
 
   const toggle = (id: string, checked: boolean) => {
@@ -34,6 +35,12 @@
     } else {
       selection.delete(id);
     }
+  };
+
+  const stopSelecting = () => {
+    selecting = false;
+    bulkAccepted = false;
+    selection.clear();
   };
 
   const selectAll = () => {
@@ -115,7 +122,19 @@
     {:else if gallery && gallery.assets.length === 0}
       <Text>{$ipt('gallery_empty')}</Text>
     {:else if gallery}
-      {#if gallery.allowDownload}
+      {#if gallery.allowDownload && !selecting}
+        <div class="mb-6">
+          <button
+            type="button"
+            class={downloadClass}
+            style:background-color={accent}
+            onclick={() => (selecting = true)}
+          >
+            <Icon icon={mdiDownload} size="20" />
+            {$ipt('gallery_download')}
+          </button>
+        </div>
+      {:else if gallery.allowDownload}
         <div class="mb-6 flex flex-col gap-3 rounded-lg border p-4 text-sm">
           <div class="flex flex-wrap items-center gap-4">
             <span>{$ipt('gallery_selected', { count: selection.size, total: gallery.assets.length })}</span>
@@ -159,6 +178,7 @@
               <Icon icon={mdiDownload} size="20" />
               {$ipt('gallery_download_all', { count: gallery.assets.length })}
             </a>
+            <button type="button" class="px-2 underline" onclick={stopSelecting}>{$ipt('gallery_cancel')}</button>
           </div>
         </div>
       {/if}
@@ -173,7 +193,7 @@
                 loading="lazy"
               />
             </button>
-            {#if gallery.allowDownload}
+            {#if gallery.allowDownload && selecting}
               <input
                 type="checkbox"
                 class="absolute top-2 left-2 size-5 cursor-pointer"
@@ -296,17 +316,17 @@
             />
             <Label for="imagepier-gallery-accept" label={$ipt('gallery_terms_accept')} />
           </div>
-          {#if accepted}
-            <a
-              href={getGalleryDownloadUrl(galleryKey, selected.id)}
-              download={selected.fileName}
-              class="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium text-white"
-              style:background-color={accent}
-            >
-              <Icon icon={mdiDownload} size="20" />
-              {$ipt('gallery_download')}
-            </a>
-          {/if}
+          <a
+            href={getGalleryDownloadUrl(galleryKey, selected.id)}
+            download={selected.fileName}
+            aria-disabled={!accepted}
+            tabindex={accepted ? undefined : -1}
+            class={[downloadClass, !accepted && 'pointer-events-none opacity-50']}
+            style:background-color={accent}
+          >
+            <Icon icon={mdiDownload} size="20" />
+            {$ipt('gallery_download')}
+          </a>
         </div>
       {/if}
     </aside>
