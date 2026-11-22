@@ -40,8 +40,7 @@ conflicts can occur during updates.
 | `server/src/controllers/index.ts` | registers the ImagePier access, audit and usage rights controllers |
 | `server/src/services/base.service.ts` | `createLoginResponse` reports logins to the audit log (`recordLogin`) |
 | `server/src/utils/access.ts` | `checkAccess` passes Immich's result through `applyImagePierAccess` (roles) |
-| `server/src/services/asset.service.ts` | `deleteAll` with `force`: only administrators |
-| `server/src/services/trash.service.ts` | `empty`: only administrators |
+| `server/src/services/asset.service.ts` | `deleteAll` with `force`: media library assets only by media managers of their areas (`requirePermanentDeleteAccess`) |
 | `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds `MediaLibraryNavItem` (My photos, All photos, areas, website galleries) |
 | `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` | `withPartners` follows `photosScope` ("My photos" / "All photos") |
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
@@ -78,20 +77,24 @@ conflicts can occur during updates.
 
 ## Roles and media library – technical overview
 
-- `server/src/imagepier/access-rules.ts`: roles, defaults and the in-memory copy of the settings. The settings are
-  stored in `system_metadata` under `imagepier.access` (`libraryUserId`, role/upload/download per user).
+- `server/src/imagepier/access-rules.ts`: roles (`admin`, `staff`, `external`), area levels (`viewer`, `standard`,
+  `editor`, `manager`) and the in-memory copy of the settings. The settings are stored in `system_metadata` under
+  `imagepier.access` (`libraryUserId`, `areas`, and per user `role` and `areas: { [areaId]: level }`). Settings of
+  earlier versions are converted when read: the former role `manager` becomes `staff` with the level `manager` in the
+  former areas. Externals cannot have the level `manager`.
 - **Without a media library account the rules are inactive** and Immich's behaviour applies. Immich's own unit
   tests therefore run unchanged.
 - `access.service.ts`: creates the media library account on startup (`IMAGEPIER_LIBRARY_EMAIL`,
-  `IMAGEPIER_LIBRARY_NAME`), shares it with all non-external users as partner (`inTimeline`), repairs the sharing
-  every 15 minutes and after a user is created.
-- `access-hook.ts`: `AssetUpload` needs upload permission, `AssetDownload`/`AlbumDownload` need download permission,
-  `AssetUpdate`/`AssetDelete` are extended to media library assets for media managers. Permanent deletion and
-  emptying the trash are reserved for administrators.
-- Areas: stored in the same settings (`areas`, the shared area `shared` always exists); a media manager's areas in
-  `users[id].areas`. The area of an asset is stored in `asset_metadata` (`imagepier.area`) and mirrored as tag
-  `Usage rights/Area/<name>`. The access service registers a resolver so that `access-hook.ts` can limit
-  `AssetUpdate`/`AssetDelete` on media library assets to the manager's areas.
+  `IMAGEPIER_LIBRARY_NAME`), shares it as partner (`inTimeline`) with every user who has at least one area, repairs
+  the sharing every 15 minutes and after a user is created.
+- `access-hook.ts` (per area, via the asset area resolver): `AssetDownload` of media library assets needs `standard`,
+  `AssetUpdate`/`AssetDelete` need `editor`; permanent deletion (`requirePermanentDeleteAccess`) needs `manager`.
+  Own assets are not restricted. Until the area accounts exist (next step of the area rights plan), the partner
+  sharing still shows the whole media library to users with at least one area.
+- Areas: stored in the same settings (`areas`, the area `shared` always exists and takes assets without an area).
+  The area of an asset is stored in `asset_metadata` (`imagepier.area`) and mirrored as tag
+  `Usage rights/Area/<name>`. `GET /api/admin/imagepier/access/areas` returns the number of media managers per
+  area, so the administration can warn about areas without one.
 - `POST /api/imagepier/usage-rights/library` moves own assets into the media library (owner change) and/or sets the
   area. Faces of moved assets stay linked to the people of the previous owner.
 - Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`, `GET /api/admin/imagepier/access/users`

@@ -174,7 +174,7 @@ export class ImagePierUsageRightsService extends BaseService {
 
   /**
   Moves own assets into the media library and sets the area of the given assets.
-  Media library assets can be given another area if the user may edit them.
+  Needs the level editor in the target area; media library assets also need it in their current area.
   */
   async moveToLibrary(auth: AuthDto, assetIds: string[], areaId: string) {
     const { libraryUserId, areas } = getCachedAccessSettings();
@@ -187,7 +187,7 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     const access = getAccessForAuth(auth);
-    if (!access.canViewLibrary || (access.role === 'manager' && !canEditArea(access, areaId))) {
+    if (!canEditArea(access, areaId)) {
       throw new ForbiddenException('No access to this area');
     }
 
@@ -205,9 +205,6 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     if (ownIds.length > 0) {
-      if (!access.canUpload) {
-        throw new ForbiddenException('No permission to add assets to the media library');
-      }
       await this.assetRepository.updateAll(ownIds, { ownerId: libraryUserId });
     }
 

@@ -3,7 +3,7 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
-import { ASSIGNABLE_ROLES, getCachedAccessSettings } from 'src/imagepier/access-rules.js';
+import { AREA_LEVELS, ASSIGNABLE_ROLES, getCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import { ImagePierAccessService } from 'src/imagepier/access.service.js';
 import { recordAuditFor } from 'src/imagepier/audit.js';
 import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
@@ -11,9 +11,7 @@ import { UUIDParamDto } from 'src/validation.js';
 
 const UserAccessUpdateSchema = z.object({
   role: z.enum(ASSIGNABLE_ROLES).optional().describe('ImagePier role'),
-  canUpload: z.boolean().optional().describe('Whether the user can upload assets'),
-  canDownload: z.boolean().optional().describe('Whether the user can download assets'),
-  areas: z.array(z.string().min(1)).max(100).optional().describe('Areas of a media manager'),
+  areas: z.record(z.string().min(1), z.enum(AREA_LEVELS)).optional().describe('Access level per area id'),
 });
 
 class UserAccessUpdateDto extends createZodDto(UserAccessUpdateSchema) {}
@@ -82,9 +80,15 @@ export class ImagePierAccessAdminController {
   async updateUserAccess(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto, @Body() dto: UserAccessUpdateDto) {
     const result = await this.service.updateUserAccessAdmin(id, dto);
     const { areas } = getCachedAccessSettings();
-    const areaNames = dto.areas?.map((areaId) => areas.find((area) => area.id === areaId)?.name ?? areaId);
-    const { role, canUpload, canDownload } = dto;
-    recordAuditFor(auth, { action: 'access', details: { userId: id, role, canUpload, canDownload, areaNames } });
+    const areaLevels = dto.areas
+      ? Object.fromEntries(
+          Object.entries(dto.areas).map(([areaId, level]) => [
+            areas.find((area) => area.id === areaId)?.name ?? areaId,
+            level,
+          ]),
+        )
+      : undefined;
+    recordAuditFor(auth, { action: 'access', details: { userId: id, role: dto.role, areaLevels } });
     return result;
   }
 }

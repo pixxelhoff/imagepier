@@ -3,10 +3,15 @@ import { vitest } from 'vitest';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
 import { applyImagePierAccess, requirePermanentDeleteAccess, setAssetAreaResolver } from 'src/imagepier/access-hook.js';
-import { AccessSettings, setCachedAccessSettings } from 'src/imagepier/access-rules.js';
+import { AccessSettings, SHARED_AREA_ID, setCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import type { AccessRepository } from 'src/repositories/access.repository.js';
 
 const libraryUserId = 'library-id';
+const areas = [
+  { id: SHARED_AREA_ID, name: 'General' },
+  { id: 'press', name: 'Press' },
+  { id: 'marketing', name: 'Marketing' },
+];
 
 const authFor = (id: string, isAdmin = false) => ({ user: { id, isAdmin } }) as AuthDto;
 
@@ -17,7 +22,16 @@ const createAccess = (libraryAssets: string[] = []) => {
   return { access: { asset: { checkOwnerAccess } } as unknown as AccessRepository, checkOwnerAccess };
 };
 
-const useSettings = (settings: AccessSettings) => setCachedAccessSettings(settings);
+/** asset-1: press, asset-2: marketing, asset-3: no area (shared) */
+const useAreas = () => {
+  const areasById: Record<string, string> = { 'asset-1': 'press', 'asset-2': 'marketing' };
+  setAssetAreaResolver((ids) =>
+    Promise.resolve(new Map<string, string | undefined>(ids.map((id) => [id, areasById[id]]))),
+  );
+};
+
+const useSettings = (users: AccessSettings['users'], withLibrary = true) =>
+  setCachedAccessSettings({ libraryUserId: withLibrary ? libraryUserId : undefined, areas, users });
 
 describe('ImagePier access hook', () => {
   afterEach(() => {
@@ -26,6 +40,7 @@ describe('ImagePier access hook', () => {
   });
 
   it('should not change anything without a media library account', async () => {
+    useSettings({}, false);
     const { access, checkOwnerAccess } = createAccess(['asset-1']);
     const result = await applyImagePierAccess(
       access,
@@ -37,8 +52,8 @@ describe('ImagePier access hook', () => {
     expect(checkOwnerAccess).not.toHaveBeenCalled();
   });
 
-  it('should block uploads for staff without upload permission', async () => {
-    useSettings({ libraryUserId, areas: [], users: {} });
+  it('should allow uploads of own assets for everybody', async () => {
+    useSettings({ user: { role: 'external' } });
     const { access } = createAccess();
     const result = await applyImagePierAccess(
       access,
@@ -46,52 +61,42 @@ describe('ImagePier access hook', () => {
       Promise.resolve(new Set(['user'])),
     );
 
-    expect(result).toEqual(new Set());
+    expect(result).toEqual(new Set(['user']));
   });
 
-  it('should block downloads for externals', async () => {
-    useSettings({ libraryUserId, areas: [], users: { user: { role: 'external' } } });
-    const { access } = createAccess();
-    const result = await applyImagePierAccess(
-      access,
-      { auth: authFor('user'), permission: Permission.AssetDownload, ids: new Set(['asset-1']) },
-      Promise.resolve(new Set(['asset-1'])),
-    );
-
-    expect(result).toEqual(new Set());
-  });
-
-  it('should let managers edit media library assets', async () => {
-    useSettings({ libraryUserId, areas: [], users: { user: { role: 'manager' } } });
-    const { access, checkOwnerAccess } = createAccess(['asset-2']);
-    const result = await applyImagePierAccess(
-      access,
-      { auth: authFor('user'), permission: Permission.AssetUpdate, ids: new Set(['asset-1', 'asset-2', 'asset-3']) },
-      Promise.resolve(new Set(['asset-1'])),
-    );
-
-    expect(result).toEqual(new Set(['asset-1', 'asset-2']));
-    expect(checkOwnerAccess).toHaveBeenCalledWith(libraryUserId, new Set(['asset-2', 'asset-3']), false);
-  });
-
-  it('should limit media managers to assets of their areas', async () => {
-    useSettings({ libraryUserId, areas: [], users: { user: { role: 'manager', areas: ['press'] } } });
-    const areasById: Record<string, string> = { 'asset-1': 'press', 'asset-2': 'marketing' };
-    setAssetAreaResolver((ids) =>
-      Promise.resolve(new Map<string, string | undefined>(ids.map((id) => [id, areasById[id]]))),
-    );
+  it('should allow downloads of media library assets from areas with the level standard', async () => {
+    useSettings({ user: { role: 'external', areas: { press: 'standard', marketing: 'viewer' } } });
+    useAreas();
     const { access } = createAccess(['asset-1', 'asset-2', 'asset-3']);
     const result = await applyImagePierAccess(
       access,
-      { auth: authFor('user'), permission: Permission.AssetUpdate, ids: new Set(['asset-1', 'asset-2', 'asset-3']) },
-      Promise.resolve(new Set<string>()),
+      { auth: authFor('user'), permission: Permission.AssetDownload, ids: new Set(['asset-1', 'asset-2', 'own']) },
+      Promise.resolve(new Set(['asset-1', 'asset-2', 'own'])),
     );
 
-    expect(result).toEqual(new Set(['asset-1', 'asset-3']));
+    expect(result).toEqual(new Set(['asset-1', 'own']));
   });
 
-  it('should not let staff edit media library assets', async () => {
-    useSettings({ libraryUserId, areas: [], users: {} });
+  it('should let editors edit media library assets of their areas', async () => {
+    useSettings({ user: { role: 'staff', areas: { press: 'editor', marketing: 'standard' } } });
+    useAreas();
+    const { access, checkOwnerAccess } = createAccess(['asset-1', 'asset-2', 'asset-3']);
+    const result = await applyImagePierAccess(
+      access,
+      {
+        auth: authFor('user'),
+        permission: Permission.AssetUpdate,
+        ids: new Set(['own', 'asset-1', 'asset-2', 'asset-3']),
+      },
+      Promise.resolve(new Set(['own'])),
+    );
+
+    expect(result).toEqual(new Set(['own', 'asset-1']));
+    expect(checkOwnerAccess).toHaveBeenCalledWith(libraryUserId, new Set(['asset-1', 'asset-2', 'asset-3']), false);
+  });
+
+  it('should not let users without editor level edit media library assets', async () => {
+    useSettings({ user: { role: 'staff', areas: { press: 'standard' } } });
     const { access, checkOwnerAccess } = createAccess(['asset-1']);
     const result = await applyImagePierAccess(
       access,
@@ -103,15 +108,35 @@ describe('ImagePier access hook', () => {
     expect(checkOwnerAccess).not.toHaveBeenCalled();
   });
 
-  it('should only allow admins to delete permanently', () => {
-    useSettings({ libraryUserId, areas: [], users: { user: { role: 'manager' } } });
+  describe('requirePermanentDeleteAccess', () => {
+    it('should allow everybody to delete own assets', async () => {
+      useSettings({});
+      const { access } = createAccess(['asset-1']);
 
-    expect(() => requirePermanentDeleteAccess(authFor('user'))).toThrow(ForbiddenException);
-    expect(() => requirePermanentDeleteAccess(authFor('admin', true))).not.toThrow();
+      await expect(requirePermanentDeleteAccess(access, authFor('user'), ['own'])).resolves.toBeUndefined();
+    });
+
+    it('should allow media managers to delete assets of their areas', async () => {
+      useSettings({ user: { role: 'staff', areas: { press: 'manager', marketing: 'editor' } } });
+      useAreas();
+      const { access } = createAccess(['asset-1', 'asset-2']);
+
+      await expect(requirePermanentDeleteAccess(access, authFor('user'), ['asset-1'])).resolves.toBeUndefined();
+      await expect(requirePermanentDeleteAccess(access, authFor('user'), ['asset-1', 'asset-2'])).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('should allow admins everything', async () => {
+      useSettings({});
+      const { access } = createAccess(['asset-1']);
+
+      await expect(requirePermanentDeleteAccess(access, authFor('admin', true), ['asset-1'])).resolves.toBeUndefined();
+    });
   });
 
   it('should let admins view media library assets in the trash', async () => {
-    useSettings({ libraryUserId, areas: [], users: {} });
+    useSettings({});
     const { access } = createAccess(['asset-1']);
     const result = await applyImagePierAccess(
       access,
@@ -122,8 +147,8 @@ describe('ImagePier access hook', () => {
     expect(result).toEqual(new Set(['asset-1']));
   });
 
-  it('should let users read the area tags of the media library', async () => {
-    useSettings({ libraryUserId, areas: [], users: {} });
+  it('should let users with an area read the tags of the media library', async () => {
+    useSettings({ user: { role: 'staff', areas: { press: 'viewer' } } });
     const checkOwnerAccess = vitest.fn((_: string, ids: Set<string>) =>
       Promise.resolve(new Set([...ids].filter((id) => id === 'area-tag'))),
     );
@@ -138,8 +163,8 @@ describe('ImagePier access hook', () => {
     expect(checkOwnerAccess).toHaveBeenCalledWith(libraryUserId, new Set(['area-tag', 'other-tag']));
   });
 
-  it('should not let externals read tags of the media library', async () => {
-    useSettings({ libraryUserId, areas: [], users: { user: { role: 'external' } } });
+  it('should not let users without areas read tags of the media library', async () => {
+    useSettings({ user: { role: 'external' } });
     const checkOwnerAccess = vitest.fn();
     const access = { tag: { checkOwnerAccess } } as unknown as AccessRepository;
     const result = await applyImagePierAccess(
@@ -153,7 +178,7 @@ describe('ImagePier access hook', () => {
   });
 
   it('should not extend viewing for other users', async () => {
-    useSettings({ libraryUserId, areas: [], users: {} });
+    useSettings({});
     const { access, checkOwnerAccess } = createAccess(['asset-1']);
     const result = await applyImagePierAccess(
       access,

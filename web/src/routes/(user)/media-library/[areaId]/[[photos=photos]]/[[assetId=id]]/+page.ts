@@ -1,4 +1,4 @@
-import { getAssignableAreas, getLibraryTags, getMediaLibraryAccess } from '#lib/imagepier/access.ts';
+import { getLibraryTags, getMediaLibraryAccess, getVisibleAreas } from '#lib/imagepier/access.ts';
 import { ipt } from '#lib/imagepier/i18n.ts';
 import { getUsageRightsConfig } from '#lib/imagepier/usage-rights.ts';
 import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -15,7 +15,7 @@ const loadArea = async (areaId: string): Promise<AreaView | undefined> => {
       return;
     }
 
-    const area = getAssignableAreas(access).find((item) => item.id === areaId);
+    const area = getVisibleAreas(access).find((item) => item.id === areaId);
     if (!area) {
       return;
     }

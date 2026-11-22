@@ -1,6 +1,6 @@
 <script lang="ts">
   import GalleryBrandingFields from '#lib/imagepier/GalleryBrandingFields.svelte';
-  import { getMyAccess, type MyAccess } from '#lib/imagepier/access.ts';
+  import { canPublishGalleries, getMyAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import {
     createGallery,
     deleteGallery,
@@ -165,7 +165,7 @@
 
   {#if failed}
     <HelperText color="danger">{$ipt('gallery_failed')}</HelperText>
-  {:else if access && access.role !== 'admin' && access.role !== 'manager'}
+  {:else if access && !canPublishGalleries(access)}
     <Text color="muted">{$ipt('galleries_no_permission')}</Text>
   {:else if access}
     <div class="flex flex-col gap-3">

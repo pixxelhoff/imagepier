@@ -32,10 +32,9 @@
 
   let { users, getActions }: Props = $props();
 
-  const ROLE_ORDER: UserListRole[] = ['admin', 'manager', 'staff', 'external', 'library'];
+  const ROLE_ORDER: UserListRole[] = ['admin', 'staff', 'external', 'library'];
   const ROLE_COLORS = {
     admin: 'danger',
-    manager: 'primary',
     staff: 'success',
     external: 'warning',
     library: 'info',

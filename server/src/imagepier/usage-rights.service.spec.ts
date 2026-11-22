@@ -150,7 +150,11 @@ describe(ImagePierUsageRightsService.name, () => {
 
     it('should move own assets into the media library', async () => {
       const auth = { user: { id: 'user-id', isAdmin: false } } as any;
-      setCachedAccessSettings({ libraryUserId, areas, users: { 'user-id': { role: 'manager', areas: ['press'] } } });
+      setCachedAccessSettings({
+        libraryUserId,
+        areas,
+        users: { 'user-id': { role: 'staff', areas: { press: 'editor' } } },
+      });
       mocks.asset.getByIds.mockResolvedValue([{ id: 'asset-1', ownerId: 'user-id' }] as any);
       mocks.asset.getById.mockResolvedValue(undefined);
 
@@ -162,9 +166,13 @@ describe(ImagePierUsageRightsService.name, () => {
       ]);
     });
 
-    it('should not allow media managers to use other areas', async () => {
+    it('should need the level editor in the target area', async () => {
       const auth = { user: { id: 'user-id', isAdmin: false } } as any;
-      setCachedAccessSettings({ libraryUserId, areas, users: { 'user-id': { role: 'manager', areas: [] } } });
+      setCachedAccessSettings({
+        libraryUserId,
+        areas,
+        users: { 'user-id': { role: 'staff', areas: { press: 'standard' } } },
+      });
 
       await expect(sut.moveToLibrary(auth, ['asset-1'], 'press')).rejects.toThrow();
       expect(mocks.asset.updateAll).not.toHaveBeenCalled();
@@ -188,7 +196,11 @@ describe(ImagePierUsageRightsService.name, () => {
     it('should return the usage rights tags of the media library', async () => {
       const auth = { user: { id: 'user-id', isAdmin: false } } as any;
       const root = getTagLabels().root;
-      setCachedAccessSettings({ libraryUserId: 'library-id', areas: [], users: {} });
+      setCachedAccessSettings({
+        libraryUserId: 'library-id',
+        areas: [{ id: 'press', name: 'Press' }],
+        users: { 'user-id': { role: 'staff', areas: { press: 'viewer' } } },
+      });
       mocks.tag.getAll.mockResolvedValue([
         { id: 'tag-1', value: `${root}/Area/Press` },
         { id: 'tag-2', value: 'Holiday' },
@@ -198,7 +210,7 @@ describe(ImagePierUsageRightsService.name, () => {
       expect(mocks.tag.getAll).toHaveBeenCalledWith('library-id');
     });
 
-    it('should return nothing for external users', async () => {
+    it('should return nothing for users without areas', async () => {
       const auth = { user: { id: 'user-id', isAdmin: false } } as any;
       setCachedAccessSettings({ libraryUserId: 'library-id', areas: [], users: { 'user-id': { role: 'external' } } });
 

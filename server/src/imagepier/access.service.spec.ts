@@ -21,10 +21,14 @@ describe(ImagePierAccessService.name, () => {
   });
 
   describe('syncLibrarySharing', () => {
-    it('should share the media library with staff and remove it from externals', async () => {
+    it('should share the media library with users who have an area', async () => {
       mocks.systemMetadata.get.mockResolvedValue({
         libraryUserId,
-        users: { external: { role: 'external' }, shared: { role: 'staff' } },
+        users: {
+          external: { role: 'external' },
+          shared: { role: 'staff', areas: { shared: 'viewer' } },
+          new: { role: 'external', areas: { shared: 'standard' } },
+        },
       } as any);
       mocks.partner.getAll.mockResolvedValue([
         { sharedById: libraryUserId, sharedWithId: 'external', inTimeline: true },
@@ -79,7 +83,7 @@ describe(ImagePierAccessService.name, () => {
 
       await sut.loadSettings();
 
-      await expect(sut.updateUserAccessAdmin(libraryUserId, { role: 'manager' })).rejects.toThrow();
+      await expect(sut.updateUserAccessAdmin(libraryUserId, { role: 'staff' })).rejects.toThrow();
     });
   });
 });

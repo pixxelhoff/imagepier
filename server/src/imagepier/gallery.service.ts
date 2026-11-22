@@ -84,7 +84,8 @@ export class ImagePierGalleryService {
 
   private requireEditor(auth: AuthDto) {
     const access = getAccessForAuth(auth);
-    if (access.role !== 'admin' && access.role !== 'manager') {
+    // Editors and media managers of at least one area; galleries are not available for externals.
+    if (access.role !== 'admin' && (access.role === 'external' || !access.canEditLibrary)) {
       throw new ForbiddenException('Only administrators and media managers can manage galleries');
     }
     return access;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    AREA_LEVELS,
     ASSIGNABLE_ROLES,
     AUDIT_ACTIONS,
     getAuditLog,
@@ -141,10 +142,19 @@
 
   const toText = (value: unknown) => (Array.isArray(value) ? value.join(', ') : String(value));
   const yesNo = (value: unknown) => $ipt(value ? 'audit_yes' : 'audit_no');
+  // Includes the former role "manager" for older entries.
+  const LOGGED_ROLES = ['admin', 'manager', ...ASSIGNABLE_ROLES] as const;
   const formatRole = (value: unknown) => {
-    const role = ASSIGNABLE_ROLES.find((item) => item === value);
+    const role = LOGGED_ROLES.find((item) => item === value);
     return role ? $ipt(`role.${role}`) : toText(value);
   };
+  const formatAreaLevels = (value: unknown) =>
+    Object.entries((value ?? {}) as Record<string, unknown>)
+      .map(([name, level]) => {
+        const known = AREA_LEVELS.find((item) => item === level);
+        return `${name}: ${known ? $ipt(`level.${known}`) : toText(level)}`;
+      })
+      .join(', ') || $ipt('level.none');
 
   /** Readable details; technical ids are left out. */
   const formatDetail = (key: string, value: unknown) => {
@@ -188,6 +198,9 @@
       }
       case 'areaNames': {
         return `${$ipt('responsible_areas')}: ${toText(value)}`;
+      }
+      case 'areaLevels': {
+        return `${$ipt('areas')}: ${formatAreaLevels(value)}`;
       }
       default: {
         return;

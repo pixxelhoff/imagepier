@@ -6,7 +6,7 @@
   import { mdiDeleteOutline, mdiPlus } from '@mdi/js';
   import { onMount } from 'svelte';
 
-  type EditableArea = { id?: string; name: string };
+  type EditableArea = { id?: string; name: string; managers?: number };
 
   let areas = $state<EditableArea[]>([]);
   let failed = $state(false);
@@ -56,6 +56,9 @@
       <div class="flex items-center gap-2">
         <div class="grow">
           <Input bind:value={area.name} aria-label={$ipt('area_name')} placeholder={$ipt('area_name')} />
+          {#if area.id && area.managers === 0}
+            <HelperText color="warning">{$ipt('area_no_manager')}</HelperText>
+          {/if}
         </div>
         {#if area.id === SHARED_AREA_ID}
           <Text size="small" color="muted" class="w-64">{$ipt('area_shared_hint')}</Text>

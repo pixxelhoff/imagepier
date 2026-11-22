@@ -30,7 +30,8 @@
   });
 
   const isLibraryShared = $derived(!!access?.libraryUserId && access.libraryUserId !== authManager.user.id);
-  const canMove = $derived(isLibraryShared && !!access?.canUpload && !!access.canViewLibrary);
+  // Needs the level editor in at least one area.
+  const canMove = $derived(isLibraryShared && !!access && getAssignableAreas(access).length > 0);
 
   const handleMove = async () => {
     if (!access) {

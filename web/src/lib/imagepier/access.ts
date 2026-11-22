@@ -1,35 +1,38 @@
 import { PartnerDirection, defaults, getPartners } from '@immich/sdk';
 
 /**
-ImagePier roles and the shared media library.
+ImagePier roles, areas and access levels.
 Keep in sync with server/src/imagepier/access-rules.ts.
 */
-export const ASSIGNABLE_ROLES = ['manager', 'staff', 'external'] as const;
+export const ASSIGNABLE_ROLES = ['staff', 'external'] as const;
 export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
 export type Role = 'admin' | AssignableRole;
 
+/** Access levels per area, from lowest to highest. */
+export const AREA_LEVELS = ['viewer', 'standard', 'editor', 'manager'] as const;
+export type AreaLevel = (typeof AREA_LEVELS)[number];
+
+/** Area that existed before areas were introduced; assets without an area belong to it. */
 export const SHARED_AREA_ID = 'shared';
 
 export type Area = { id: string; name: string };
 
+/** Area in the administration, with the number of media managers. */
+export type AreaAdmin = Area & { managers?: number };
+
 export type UserAccess = {
   role: Role;
-  canUpload: boolean;
-  canDownload: boolean;
+  /** Level per area id; areas without access are missing. */
+  areas: Record<string, AreaLevel>;
   canViewLibrary: boolean;
   canEditLibrary: boolean;
-  canDeletePermanently: boolean;
-  /** Areas the user is responsible for (media managers) */
-  areas: string[];
 };
 
 export type MyAccess = UserAccess & { libraryUserId: string | null; allAreas: Area[] };
 
 export type StoredUserAccess = {
   role?: AssignableRole;
-  canUpload?: boolean;
-  canDownload?: boolean;
-  areas?: string[];
+  areas?: Record<string, AreaLevel>;
 };
 
 export type UserAccessAdmin = { stored: StoredUserAccess; effective: UserAccess; isLibrary: boolean; allAreas: Area[] };
@@ -68,16 +71,25 @@ export const getMediaLibraryAccess = async (userId: string) => {
   return partners.length > 0 ? await getMyAccess(userId) : undefined;
 };
 
-/** Areas a user may assign: media managers their own areas and the shared area, everybody else all areas. */
+/** Whether a level includes the rights of another level. */
+export const isAtLeast = (level: AreaLevel | undefined, minimum: AreaLevel) =>
+  !!level && AREA_LEVELS.indexOf(level) >= AREA_LEVELS.indexOf(minimum);
+
+/** Areas the user can see. */
+export const getVisibleAreas = (access: MyAccess) =>
+  access.allAreas.filter((area) => isAtLeast(access.areas[area.id], 'viewer'));
+
+/** Areas the user can upload into and assign to assets (level editor or higher). */
 export const getAssignableAreas = (access: MyAccess) =>
-  access.role === 'manager'
-    ? access.allAreas.filter((area) => area.id === SHARED_AREA_ID || access.areas.includes(area.id))
-    : access.allAreas;
+  access.allAreas.filter((area) => isAtLeast(access.areas[area.id], 'editor'));
 
 /** Whether the user may edit media library assets of the given area; keep in sync with the server rules. */
 export const canEditAreaOf = (access: UserAccess, areaId: string | undefined) =>
-  access.role === 'admin' ||
-  (access.canEditLibrary && (!areaId || areaId === SHARED_AREA_ID || access.areas.includes(areaId)));
+  isAtLeast(access.areas[areaId ?? SHARED_AREA_ID], 'editor');
+
+/** Whether the user may publish website galleries (editors and media managers, not externals). */
+export const canPublishGalleries = (access: UserAccess) =>
+  access.role === 'admin' || (access.role === 'staff' && access.canEditLibrary);
 
 /** Name of an area; assets without area belong to the shared area. */
 export const getAreaName = (access: MyAccess, areaId: string | undefined) => {
@@ -96,10 +108,10 @@ export type LibraryTag = { id: string; value: string };
 /** Usage rights tags of the media library account; tags belong to the account that owns the assets. */
 export const getLibraryTags = () => request<LibraryTag[]>('/imagepier/usage-rights/library-tags');
 
-export const getAreasAdmin = () => request<Area[]>('/admin/imagepier/access/areas');
+export const getAreasAdmin = () => request<AreaAdmin[]>('/admin/imagepier/access/areas');
 
 export const updateAreasAdmin = (areas: Array<{ id?: string; name: string }>) =>
-  request<Area[]>('/admin/imagepier/access/areas', { method: 'PUT', body: JSON.stringify({ areas }) });
+  request<AreaAdmin[]>('/admin/imagepier/access/areas', { method: 'PUT', body: JSON.stringify({ areas }) });
 
 /** Role of every account; the media library account is marked as `library`. */
 export type UserListRole = Role | 'library';

@@ -64,26 +64,26 @@ albums, face and object search, mobile apps – and adds what teams need to work
 
 ### 🗂️ Roles and shared media library
 
-- **Media library account** – a technical account owns the official media. It is shared automatically with all
-  users except externals (Immich partner sharing), so everybody sees it in the timeline, in search and in the mobile
-  apps. Below *Photos* in the sidebar, everybody switches between *My photos*, *All photos* (own and media library)
-  and one entry per area.
-- **Roles per account** (*Administration → Users → user → Role and permissions*):
+- **Media library account** – a technical account owns the official media. Every media library asset belongs to an
+  area (department). Below *Photos* in the sidebar, everybody switches between *My photos*, *All photos* (own and
+  media library) and one entry per area they have access to.
+- **Roles per account** (*Administration → Users → user → Role and permissions*): *Administrator* (everything),
+  *Staff* and *External*. Access to the media library is granted **per area** with a level:
 
-  | Role | Can do |
+  | Level | Can do in the area |
   |---|---|
-  | **Administrator** | everything, including permanent deletion |
-  | **Media manager** | upload, edit and move media library assets of their areas to the trash |
-  | **Staff** | view and download; uploading can be enabled per account |
-  | **External** | only albums and links shared with them; downloading can be enabled per account |
+  | **View only** | view, add to own albums |
+  | **Standard** | + download |
+  | **Editor** | + upload, maintain usage rights, move to the trash and restore, share links and galleries |
+  | **Media manager** | + permanent deletion (staff only; every area should have at least one) |
 
+  Without a level the area is not accessible. Own photos are not restricted – everybody can upload, share and delete
+  them.
 - **User list with roles** – *Administration → Users* shows the role of every account and can be searched, filtered
   by role and sorted by name, e-mail or role.
-- **Areas (departments)** – administrators create areas under *Administration → Media library* and assign media
-  managers to them. Each media library asset shows its area and can be found by area in the search dialog.
-- **Add to media library** – own assets can be moved into the media library with an area (selection menu).
-- **Media library trash** – administrators restore or permanently delete media library assets. Everybody else can
-  only move assets to the trash. Accounts without upload permission do not see the upload button.
+- **Areas (departments)** – administrators create areas under *Administration → Media library*; areas without a
+  media manager are marked. Each media library asset shows its area and can be found by area in the search dialog.
+- **Add to media library** – own assets can be moved into an area with the level *Editor* or higher (selection menu).
 
 ### 🌐 Website galleries
 

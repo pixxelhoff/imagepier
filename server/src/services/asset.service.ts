@@ -375,9 +375,9 @@ export class AssetService extends BaseService {
   async deleteAll(auth: AuthDto, dto: AssetBulkDeleteDto): Promise<void> {
     const { ids, force } = dto;
 
-    // ImagePier: only admins can delete permanently
+    // ImagePier: media library assets can only be deleted permanently by media managers of their areas
     if (force) {
-      requirePermanentDeleteAccess(auth);
+      await requirePermanentDeleteAccess(this.accessRepository, auth, ids);
     }
 
     await this.requireAccess({ auth, permission: Permission.AssetDelete, ids });

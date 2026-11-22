@@ -1,17 +1,18 @@
 <script lang="ts">
   import AdminCard from '#lib/components/AdminCard.svelte';
   import {
+    AREA_LEVELS,
     ASSIGNABLE_ROLES,
-    SHARED_AREA_ID,
     getUserAccessAdmin,
     updateUserAccessAdmin,
+    type AreaLevel,
     type AssignableRole,
     type StoredUserAccess,
     type UserAccessAdmin,
   } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
-  import { Checkbox, Field, HelperText, Label, Select, Stack, Switch, Text, toastManager } from '@immich/ui';
+  import { Field, HelperText, Label, Select, Stack, Text, toastManager } from '@immich/ui';
   import { mdiShieldAccountOutline } from '@mdi/js';
 
   type Props = {
@@ -47,19 +48,30 @@
 
   const getRole = () => (data?.effective.role ?? 'staff') as AssignableRole;
   const setRole = (role: string) => void save({ role: role as AssignableRole });
-  const getCanUpload = () => data?.effective.canUpload ?? false;
-  const setCanUpload = (canUpload: boolean) => void save({ canUpload });
-  const getCanDownload = () => data?.effective.canDownload ?? false;
-  const setCanDownload = (canDownload: boolean) => void save({ canDownload });
-
-  const managerAreas = $derived(data?.allAreas.filter((area) => area.id !== SHARED_AREA_ID) ?? []);
-  const hasArea = (areaId: string) => data?.effective.areas.includes(areaId) ?? false;
-  const toggleArea = (areaId: string, checked: boolean) => {
-    const current = (data?.effective.areas ?? []).filter((id) => id !== areaId);
-    void save({ areas: checked ? [...current, areaId] : current });
-  };
 
   const roleOptions = $derived(ASSIGNABLE_ROLES.map((role) => ({ label: $ipt(`role.${role}`), value: role })));
+
+  // Externals cannot be media managers.
+  const levelOptions = $derived([
+    { label: $ipt('level.none'), value: '' },
+    ...AREA_LEVELS.filter((level) => level !== 'manager' || data?.effective.role !== 'external').map((level) => ({
+      label: $ipt(`level.${level}`),
+      value: level,
+    })),
+  ]);
+
+  const getLevel = (areaId: string) => data?.effective.areas[areaId] ?? '';
+
+  const setLevel = (areaId: string, value: string) => {
+    const level = AREA_LEVELS.find((item) => item === value);
+    const entries: Array<[string, AreaLevel]> = Object.entries(data?.effective.areas ?? {}).filter(
+      ([id]) => id !== areaId,
+    );
+    if (level) {
+      entries.push([areaId, level]);
+    }
+    void save({ areas: Object.fromEntries(entries) });
+  };
 </script>
 
 <AdminCard icon={mdiShieldAccountOutline} title={$ipt('access_title')}>
@@ -77,30 +89,23 @@
       <Field label={$ipt('role')}>
         <Select options={roleOptions} bind:value={getRole, setRole} />
       </Field>
-      {#if data.effective.role === 'manager' && managerAreas.length > 0}
-        <div>
-          <Label label={$ipt('responsible_areas')} />
-          <div class="mt-2 flex flex-col gap-2">
-            {#each managerAreas as area (area.id)}
-              <div class="flex items-center gap-2">
-                <Checkbox
-                  id="imagepier-area-{area.id}"
-                  size="tiny"
-                  checked={hasArea(area.id)}
-                  onCheckedChange={(checked) => toggleArea(area.id, checked)}
+      <div>
+        <Label label={$ipt('areas')} />
+        <Text size="small" color="muted">{$ipt('access_areas_hint')}</Text>
+        <div class="mt-3 flex flex-col gap-2">
+          {#each data.allAreas as area (area.id)}
+            <div class="flex items-center gap-3">
+              <Text class="min-w-0 grow truncate">{area.name}</Text>
+              <div class="w-56 shrink-0">
+                <Select
+                  options={levelOptions}
+                  bind:value={() => getLevel(area.id), (value) => setLevel(area.id, value)}
                 />
-                <Label label={area.name} for="imagepier-area-{area.id}" />
               </div>
-            {/each}
-          </div>
+            </div>
+          {/each}
         </div>
-      {/if}
-      <Field label={$ipt('can_upload')}>
-        <Switch bind:checked={getCanUpload, setCanUpload} />
-      </Field>
-      <Field label={$ipt('can_download')}>
-        <Switch bind:checked={getCanDownload, setCanDownload} />
-      </Field>
+      </div>
     </Stack>
   {/if}
 </AdminCard>

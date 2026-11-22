@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getAssignableAreas, getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
+  import { canPublishGalleries, getMediaLibraryAccess, getVisibleAreas, type MyAccess } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { photosScope, type PhotosScope } from '#lib/imagepier/photos-scope.svelte.ts';
   import { uploadAccess } from '#lib/imagepier/upload-access.svelte.ts';
@@ -15,7 +15,8 @@
   const loadAccess = async (userId: string) => {
     try {
       access = await getMediaLibraryAccess(userId);
-      uploadAccess.allowed = access?.canUpload ?? true;
+      // Everybody can upload own photos; uploads into areas need the level editor.
+      uploadAccess.allowed = true;
     } catch {
       access = undefined;
     }
@@ -29,8 +30,8 @@
     !!access?.canViewLibrary && !!access.libraryUserId && access.libraryUserId !== authManager.user.id,
   );
 
-  // Media managers see their own areas and the shared area, everybody else all areas.
-  const areas = $derived(showLibrary && access ? getAssignableAreas(access) : []);
+  // Only areas with a level are shown.
+  const areas = $derived(showLibrary && access ? getVisibleAreas(access) : []);
 
   const isPhotosPage = $derived(page.url.pathname.startsWith(Route.photos()));
 
@@ -71,7 +72,7 @@
       </a>
     {/each}
   </div>
-  {#if access?.canEditLibrary}
+  {#if access && canPublishGalleries(access)}
     <NavbarItem title={$ipt('website_galleries')} href="/galleries" icon={mdiWeb} />
   {/if}
 {/if}

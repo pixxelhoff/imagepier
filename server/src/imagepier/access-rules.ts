@@ -1,16 +1,17 @@
 /**
 ImagePier roles and access rules.
 
-- A technical "media library" account owns all official media. Its assets are shared with all
-  non-external users through Immich's partner sharing (read + download).
+- A technical "media library" account owns all official media. Each media library asset belongs to an area.
 - Roles extend Immich's admin flag:
   - admin: everything (Immich admins)
-  - manager: upload, edit and trash media library assets
-  - staff: read + download, upload only if enabled per account
-  - external: no media library access, only shared albums and links; download only if enabled
-- Permanently deleting assets is reserved for admins.
-- Media library assets belong to an area (department). Media managers can only edit assets of their own areas and
-  of the shared area; assets without an area count as shared.
+  - staff: employees
+  - external: e.g. photographers or agencies
+- Access to areas is granted per user and area with a level:
+  - viewer: view assets and add them to own albums
+  - standard: viewer + download
+  - editor: standard + upload into the area, maintain usage rights, trash and restore
+  - manager: editor + permanent deletion and confirming usage rights (staff only)
+- Without a level an area is not accessible. Own assets are not affected by these rules.
 
 The settings are stored in Immich's system metadata under `ACCESS_SETTINGS_KEY` and cached in memory,
 because they are needed for every access check.
@@ -18,14 +19,18 @@ because they are needed for every access check.
 
 export const ACCESS_SETTINGS_KEY = 'imagepier.access';
 
-export const ROLES = ['admin', 'manager', 'staff', 'external'] as const;
+export const ROLES = ['admin', 'staff', 'external'] as const;
 export type Role = (typeof ROLES)[number];
 
 /** Roles that can be stored per account; admin follows Immich's admin flag. */
-export const ASSIGNABLE_ROLES = ['manager', 'staff', 'external'] as const;
+export const ASSIGNABLE_ROLES = ['staff', 'external'] as const;
 export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
 
-/** Area for media used across departments; always exists. */
+/** Access levels per area, from lowest to highest. */
+export const AREA_LEVELS = ['viewer', 'standard', 'editor', 'manager'] as const;
+export type AreaLevel = (typeof AREA_LEVELS)[number];
+
+/** Area that existed before areas were introduced; assets without an area belong to it. */
 export const SHARED_AREA_ID = 'shared';
 
 /** Asset metadata key that stores the area of a media library asset. */
@@ -35,10 +40,8 @@ export type Area = { id: string; name: string };
 
 export type StoredUserAccess = {
   role?: AssignableRole;
-  canUpload?: boolean;
-  canDownload?: boolean;
-  /** Areas a media manager is responsible for */
-  areas?: string[];
+  /** Level per area id */
+  areas?: Record<string, AreaLevel>;
 };
 
 export type AccessSettings = {
@@ -49,19 +52,21 @@ export type AccessSettings = {
 
 export type UserAccess = {
   role: Role;
-  canUpload: boolean;
-  canDownload: boolean;
-  /** Whether the user can see the media library. */
+  /** Level per area id; areas without access are missing. */
+  areas: Record<string, AreaLevel>;
+  /** Whether the user can see at least one area. */
   canViewLibrary: boolean;
-  /** Whether the user can edit and trash media library assets. */
+  /** Whether the user is editor or media manager in at least one area. */
   canEditLibrary: boolean;
-  /** Whether the user can permanently delete assets. */
-  canDeletePermanently: boolean;
-  /** Areas the user is responsible for (media managers) */
-  areas: string[];
 };
 
 const asText = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined);
+
+const isAreaLevel = (value: unknown): value is AreaLevel => (AREA_LEVELS as readonly unknown[]).includes(value);
+
+/** Whether a level includes the rights of another level. */
+export const isAtLeast = (level: AreaLevel | undefined, minimum: AreaLevel) =>
+  !!level && AREA_LEVELS.indexOf(level) >= AREA_LEVELS.indexOf(minimum);
 
 export const parseAccessSettings = (value: unknown, sharedAreaName = 'Shared'): AccessSettings => {
   const record = (value ?? {}) as Partial<AccessSettings>;
@@ -91,67 +96,90 @@ export const parseAccessSettings = (value: unknown, sharedAreaName = 'Shared'): 
   };
 };
 
+/**
+Reads the stored access of one user.
+Settings of earlier versions are converted: the former role "manager" becomes staff with the level manager in the
+areas the user was responsible for.
+*/
 export const parseStoredUserAccess = (value: unknown): StoredUserAccess => {
   const record = (value ?? {}) as Record<string, unknown>;
-  return {
-    role: ASSIGNABLE_ROLES.find((role) => role === record.role),
-    canUpload: typeof record.canUpload === 'boolean' ? record.canUpload : undefined,
-    canDownload: typeof record.canDownload === 'boolean' ? record.canDownload : undefined,
-    areas: Array.isArray(record.areas) ? record.areas.filter((area) => typeof area === 'string') : undefined,
-  };
+  const role = record.role === 'manager' ? 'staff' : ASSIGNABLE_ROLES.find((item) => item === record.role);
+
+  const areas: Record<string, AreaLevel> = {};
+  if (Array.isArray(record.areas)) {
+    if (record.role === 'manager') {
+      for (const areaId of record.areas) {
+        if (typeof areaId === 'string') {
+          areas[areaId] = 'manager';
+        }
+      }
+    }
+  } else if (record.areas && typeof record.areas === 'object') {
+    for (const [areaId, level] of Object.entries(record.areas as Record<string, unknown>)) {
+      if (isAreaLevel(level)) {
+        // Externals cannot be media managers.
+        areas[areaId] = role === 'external' && level === 'manager' ? 'editor' : level;
+      }
+    }
+  }
+
+  return { role, areas: Object.keys(areas).length > 0 ? areas : undefined };
 };
 
 /** Reads the area id stored in the asset metadata. */
 export const parseAssetArea = (value: unknown) => asText((value as { areaId?: unknown } | undefined)?.areaId);
 
 export const getUserAccess = (settings: AccessSettings, user: { id: string; isAdmin: boolean }): UserAccess => {
-  // Without a media library account the rules are not active and Immich's behaviour applies.
+  // Admins have full access. Without a media library account the rules are not active and Immich's behaviour applies.
   if (user.isAdmin || !settings.libraryUserId) {
     return {
       role: user.isAdmin ? 'admin' : 'staff',
-      canUpload: true,
-      canDownload: true,
+      areas: Object.fromEntries(settings.areas.map((area) => [area.id, 'manager' as const])),
       canViewLibrary: true,
       canEditLibrary: user.isAdmin,
-      canDeletePermanently: true,
-      areas: settings.areas.map((area) => area.id),
     };
   }
 
   const stored = settings.users[user.id] ?? {};
-  const isLibrary = user.id === settings.libraryUserId;
   const role = stored.role ?? 'staff';
+  const areas: Record<string, AreaLevel> = {};
+  for (const area of settings.areas) {
+    const level = stored.areas?.[area.id];
+    if (level) {
+      areas[area.id] = level;
+    }
+  }
+  const levels = Object.values(areas);
 
   return {
     role,
-    canUpload: isLibrary || (stored.canUpload ?? role === 'manager'),
-    canDownload: stored.canDownload ?? role !== 'external',
-    canViewLibrary: role !== 'external',
-    canEditLibrary: role === 'manager',
-    canDeletePermanently: false,
-    areas: role === 'manager' ? (stored.areas ?? []) : [],
+    areas,
+    canViewLibrary: levels.length > 0,
+    canEditLibrary: levels.some((level) => isAtLeast(level, 'editor')),
   };
 };
 
-/** Whether a user may edit media library assets of the given area. */
-export const canEditArea = (access: UserAccess, areaId: string | undefined) => {
-  if (access.role === 'admin') {
-    return true;
-  }
+/** Level of a user in an area; assets without area belong to the shared area. */
+export const getAreaLevel = (access: UserAccess, areaId: string | undefined) => access.areas[areaId ?? SHARED_AREA_ID];
 
-  if (!access.canEditLibrary) {
-    return false;
-  }
+/** Whether a user may download assets of the given area. */
+export const canDownloadArea = (access: UserAccess, areaId: string | undefined) =>
+  isAtLeast(getAreaLevel(access, areaId), 'standard');
 
-  return !areaId || areaId === SHARED_AREA_ID || access.areas.includes(areaId);
-};
+/** Whether a user may upload into, edit and trash assets of the given area. */
+export const canEditArea = (access: UserAccess, areaId: string | undefined) =>
+  isAtLeast(getAreaLevel(access, areaId), 'editor');
+
+/** Whether a user may permanently delete assets of the given area and confirm usage rights. */
+export const canManageArea = (access: UserAccess, areaId: string | undefined) =>
+  isAtLeast(getAreaLevel(access, areaId), 'manager');
 
 /** In-memory copy of the settings, kept up to date by the ImagePier access service. */
 let cachedSettings: AccessSettings = { areas: [], users: {} };
 
 /** Name of the shared area until an administrator renames it. */
 export const getSharedAreaName = () =>
-  (process.env.IMAGEPIER_LANGUAGE ?? 'en').toLowerCase().startsWith('de') ? 'Übergreifend' : 'Shared';
+  (process.env.IMAGEPIER_LANGUAGE ?? 'en').toLowerCase().startsWith('de') ? 'Allgemein' : 'General';
 
 export const getCachedAccessSettings = () => cachedSettings;
 

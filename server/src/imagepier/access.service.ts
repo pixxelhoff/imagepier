@@ -14,6 +14,7 @@ import {
   getUserAccess,
   parseAccessSettings,
   parseAssetArea,
+  parseStoredUserAccess,
   setCachedAccessSettings,
 } from 'src/imagepier/access-rules.js';
 import { BaseService } from 'src/services/base.service.js';
@@ -162,8 +163,13 @@ export class ImagePierAccessService extends BaseService {
     };
   }
 
+  /** Areas with the number of media managers; every area should have at least one. */
   getAreas() {
-    return this.settings.areas;
+    const levels = Object.values(this.settings.users).map((user) => user.areas ?? {});
+    return this.settings.areas.map((area) => ({
+      ...area,
+      managers: levels.filter((areas) => areas[area.id] === 'manager').length,
+    }));
   }
 
   /** Replaces the list of areas. Areas without id are created; the shared area always stays. */
@@ -184,7 +190,7 @@ export class ImagePierAccessService extends BaseService {
     }
 
     await this.saveSettings({ ...this.settings, areas: result });
-    return this.settings.areas;
+    return this.getAreas();
   }
 
   /** Role of every account for the user list; the media library account is marked as `library`. */
@@ -218,7 +224,10 @@ export class ImagePierAccessService extends BaseService {
     }
 
     await this.loadSettings();
-    const users = { ...this.settings.users, [userId]: { ...this.settings.users[userId], ...dto } };
+    const users = {
+      ...this.settings.users,
+      [userId]: parseStoredUserAccess({ ...this.settings.users[userId], ...dto }),
+    };
     await this.saveSettings({ ...this.settings, users });
     await this.syncLibrarySharing();
 

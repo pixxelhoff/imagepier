@@ -1,35 +1,40 @@
 import {
   AccessSettings,
   SHARED_AREA_ID,
+  canDownloadArea,
   canEditArea,
+  canManageArea,
   getUserAccess,
+  isAtLeast,
   parseAccessSettings,
   parseAssetArea,
+  parseStoredUserAccess,
 } from 'src/imagepier/access-rules.js';
 
 const libraryUserId = 'library-id';
 const areas = [
-  { id: SHARED_AREA_ID, name: 'Shared' },
+  { id: SHARED_AREA_ID, name: 'General' },
   { id: 'marketing', name: 'Marketing' },
   { id: 'press', name: 'Press' },
 ];
 
 const settings = (users: AccessSettings['users']): AccessSettings => ({ libraryUserId, areas, users });
+const user = { id: 'user', isAdmin: false };
 
 describe('access rules', () => {
   describe('parseAccessSettings', () => {
-    it('should drop unknown roles and values', () => {
+    it('should drop unknown roles, levels and areas', () => {
       expect(
         parseAccessSettings({
           libraryUserId,
-          users: { a: { role: 'owner', canUpload: 'yes' }, b: { role: 'manager', canDownload: false, areas: ['x'] } },
+          users: { a: { role: 'owner' }, b: { role: 'staff', areas: { press: 'editor', marketing: 'boss' } } },
         }),
       ).toEqual({
         libraryUserId,
         areas: [{ id: SHARED_AREA_ID, name: 'Shared' }],
         users: {
-          a: { role: undefined, canUpload: undefined, canDownload: undefined, areas: undefined },
-          b: { role: 'manager', canUpload: undefined, canDownload: false, areas: ['x'] },
+          a: { role: undefined, areas: undefined },
+          b: { role: 'staff', areas: { press: 'editor' } },
         },
       });
     });
@@ -38,10 +43,10 @@ describe('access rules', () => {
       expect(
         parseAccessSettings(
           { areas: [{ id: 'press', name: 'Press' }, { id: 'press', name: 'Twice' }, { name: 'x' }] },
-          'Übergreifend',
+          'General',
         ).areas,
       ).toEqual([
-        { id: SHARED_AREA_ID, name: 'Übergreifend' },
+        { id: SHARED_AREA_ID, name: 'General' },
         { id: 'press', name: 'Press' },
       ]);
     });
@@ -55,6 +60,26 @@ describe('access rules', () => {
     });
   });
 
+  describe('parseStoredUserAccess', () => {
+    it('should convert former media managers', () => {
+      expect(parseStoredUserAccess({ role: 'manager', canUpload: true, areas: ['press', 'marketing'] })).toEqual({
+        role: 'staff',
+        areas: { press: 'manager', marketing: 'manager' },
+      });
+    });
+
+    it('should drop former area lists of other roles', () => {
+      expect(parseStoredUserAccess({ role: 'staff', areas: ['press'] })).toEqual({ role: 'staff', areas: undefined });
+    });
+
+    it('should not make externals media managers', () => {
+      expect(parseStoredUserAccess({ role: 'external', areas: { press: 'manager' } })).toEqual({
+        role: 'external',
+        areas: { press: 'editor' },
+      });
+    });
+  });
+
   describe('parseAssetArea', () => {
     it('should read the area id', () => {
       expect(parseAssetArea({ areaId: 'press' })).toBe('press');
@@ -63,102 +88,79 @@ describe('access rules', () => {
     });
   });
 
-  describe('getUserAccess', () => {
-    it('should keep Immich behaviour without a media library account', () => {
-      const access = getUserAccess({ areas, users: { user: { role: 'external' } } }, { id: 'user', isAdmin: false });
-
-      expect(access).toMatchObject({ canUpload: true, canDownload: true, canDeletePermanently: true });
-      expect(access.canEditLibrary).toBe(false);
-    });
-
-    it('should give admins full access', () => {
-      expect(getUserAccess(settings({}), { id: 'admin', isAdmin: true })).toEqual({
-        role: 'admin',
-        canUpload: true,
-        canDownload: true,
-        canViewLibrary: true,
-        canEditLibrary: true,
-        canDeletePermanently: true,
-        areas: [SHARED_AREA_ID, 'marketing', 'press'],
-      });
-    });
-
-    it('should treat users without settings as staff', () => {
-      expect(getUserAccess(settings({}), { id: 'user', isAdmin: false })).toEqual({
-        role: 'staff',
-        canUpload: false,
-        canDownload: true,
-        canViewLibrary: true,
-        canEditLibrary: false,
-        canDeletePermanently: false,
-        areas: [],
-      });
-    });
-
-    it('should allow managers to upload and edit the media library', () => {
-      const access = getUserAccess(settings({ user: { role: 'manager', areas: ['press'] } }), {
-        id: 'user',
-        isAdmin: false,
-      });
-
-      expect(access).toMatchObject({ canUpload: true, canEditLibrary: true, canDeletePermanently: false });
-      expect(access.areas).toEqual(['press']);
-    });
-
-    it('should ignore areas of users that are not media managers', () => {
-      const access = getUserAccess(settings({ user: { role: 'staff', areas: ['press'] } }), {
-        id: 'user',
-        isAdmin: false,
-      });
-
-      expect(access.areas).toEqual([]);
-    });
-
-    it('should allow uploads for staff when enabled', () => {
-      const access = getUserAccess(settings({ user: { role: 'staff', canUpload: true } }), {
-        id: 'user',
-        isAdmin: false,
-      });
-
-      expect(access.canUpload).toBe(true);
-    });
-
-    it('should hide the media library from externals and block downloads by default', () => {
-      const access = getUserAccess(settings({ user: { role: 'external' } }), { id: 'user', isAdmin: false });
-
-      expect(access).toMatchObject({ canViewLibrary: false, canDownload: false, canUpload: false });
-    });
-
-    it('should allow downloads for externals when enabled', () => {
-      const access = getUserAccess(settings({ user: { role: 'external', canDownload: true } }), {
-        id: 'user',
-        isAdmin: false,
-      });
-
-      expect(access.canDownload).toBe(true);
-    });
-
-    it('should allow uploads for the media library account', () => {
-      expect(getUserAccess(settings({}), { id: libraryUserId, isAdmin: false }).canUpload).toBe(true);
+  describe('isAtLeast', () => {
+    it('should compare levels', () => {
+      expect(isAtLeast('manager', 'editor')).toBe(true);
+      expect(isAtLeast('standard', 'editor')).toBe(false);
+      expect(isAtLeast(undefined, 'viewer')).toBe(false);
     });
   });
 
-  describe('canEditArea', () => {
-    it('should limit media managers to their areas and the shared area', () => {
-      const access = getUserAccess(settings({ user: { role: 'manager', areas: ['press'] } }), {
-        id: 'user',
-        isAdmin: false,
-      });
+  describe('getUserAccess', () => {
+    it('should keep Immich behaviour without a media library account', () => {
+      const access = getUserAccess({ areas, users: { user: { role: 'external' } } }, user);
 
-      expect(canEditArea(access, 'press')).toBe(true);
-      expect(canEditArea(access, SHARED_AREA_ID)).toBe(true);
-      expect(canEditArea(access, undefined)).toBe(true);
-      expect(canEditArea(access, 'marketing')).toBe(false);
+      expect(access.canViewLibrary).toBe(true);
+      expect(access.canEditLibrary).toBe(false);
     });
 
-    it('should allow admins everything and staff nothing', () => {
-      expect(canEditArea(getUserAccess(settings({}), { id: 'admin', isAdmin: true }), 'marketing')).toBe(true);
-      expect(canEditArea(getUserAccess(settings({}), { id: 'user', isAdmin: false }), SHARED_AREA_ID)).toBe(false);
+    it('should give admins every area', () => {
+      expect(getUserAccess(settings({}), { id: 'admin', isAdmin: true })).toEqual({
+        role: 'admin',
+        areas: { [SHARED_AREA_ID]: 'manager', marketing: 'manager', press: 'manager' },
+        canViewLibrary: true,
+        canEditLibrary: true,
+      });
+    });
+
+    it('should give users without settings no area', () => {
+      expect(getUserAccess(settings({}), user)).toEqual({
+        role: 'staff',
+        areas: {},
+        canViewLibrary: false,
+        canEditLibrary: false,
+      });
+    });
+
+    it('should use the levels of existing areas only', () => {
+      const access = getUserAccess(
+        settings({ user: { role: 'staff', areas: { press: 'editor', gone: 'manager' } } }),
+        user,
+      );
+
+      expect(access).toEqual({ role: 'staff', areas: { press: 'editor' }, canViewLibrary: true, canEditLibrary: true });
+    });
+
+    it('should not let viewers edit', () => {
+      const access = getUserAccess(settings({ user: { role: 'external', areas: { press: 'standard' } } }), user);
+
+      expect(access).toMatchObject({ role: 'external', canViewLibrary: true, canEditLibrary: false });
+    });
+  });
+
+  describe('area checks', () => {
+    const access = getUserAccess(
+      settings({
+        user: { role: 'staff', areas: { press: 'manager', marketing: 'editor', [SHARED_AREA_ID]: 'viewer' } },
+      }),
+      user,
+    );
+
+    it('should check downloads', () => {
+      expect(canDownloadArea(access, 'marketing')).toBe(true);
+      expect(canDownloadArea(access, SHARED_AREA_ID)).toBe(false);
+      expect(canDownloadArea(access, undefined)).toBe(false);
+    });
+
+    it('should check editing', () => {
+      expect(canEditArea(access, 'press')).toBe(true);
+      expect(canEditArea(access, 'marketing')).toBe(true);
+      expect(canEditArea(access, SHARED_AREA_ID)).toBe(false);
+    });
+
+    it('should check managing', () => {
+      expect(canManageArea(access, 'press')).toBe(true);
+      expect(canManageArea(access, 'marketing')).toBe(false);
     });
   });
 });
