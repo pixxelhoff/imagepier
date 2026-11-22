@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
+  import { getAssignableAreas, getMediaLibraryAccess, type MyAccess } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { photosScope, type PhotosScope } from '#lib/imagepier/photos-scope.svelte.ts';
   import { uploadAccess } from '#lib/imagepier/upload-access.svelte.ts';
@@ -29,7 +29,8 @@
     !!access?.canViewLibrary && !!access.libraryUserId && access.libraryUserId !== authManager.user.id,
   );
 
-  const areas = $derived(showLibrary ? (access?.allAreas ?? []) : []);
+  // Media managers see their own areas and the shared area, everybody else all areas.
+  const areas = $derived(showLibrary && access ? getAssignableAreas(access) : []);
 
   const isPhotosPage = $derived(page.url.pathname.startsWith(Route.photos()));
 
