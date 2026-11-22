@@ -1,9 +1,8 @@
 <script lang="ts">
   import AdminPageLayout from '#lib/components/layouts/AdminPageLayout.svelte';
   import MediaLibraryAdmin from '#lib/imagepier/MediaLibraryAdmin.svelte';
-  import MediaLibraryTrash from '#lib/imagepier/MediaLibraryTrash.svelte';
   import { ipt } from '#lib/imagepier/i18n.ts';
-  import { Container, Heading, Stack } from '@immich/ui';
+  import { Container, Heading } from '@immich/ui';
   import type { PageData } from './$types';
 
   type Props = {
@@ -15,16 +14,9 @@
 
 <AdminPageLayout breadcrumbs={[{ title: data.meta.title }]}>
   <Container size="medium" center>
-    <Stack gap={8}>
-      <section>
-        <Heading size="tiny" tag="h2" class="mb-4">{$ipt('areas')}</Heading>
-        <MediaLibraryAdmin />
-      </section>
-
-      <section>
-        <Heading size="tiny" tag="h2" class="mb-4">{$ipt('library_trash_title')}</Heading>
-        <MediaLibraryTrash />
-      </section>
-    </Stack>
+    <section>
+      <Heading size="tiny" tag="h2" class="mb-4">{$ipt('areas')}</Heading>
+      <MediaLibraryAdmin />
+    </section>
   </Container>
 </AdminPageLayout>

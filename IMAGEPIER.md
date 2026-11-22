@@ -47,7 +47,7 @@ conflicts can occur during updates.
 | `web/src/routes/admin/users/(list)/+layout.svelte` | user list replaced by `UserListAdmin` (role, search, role filter, sorting) |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
 | `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Media library" admin entry |
-| `web/src/routes/admin/media-library/`, `web/src/routes/admin/audit/` | new admin pages (areas and media library trash; audit log); no Immich file changed |
+| `web/src/routes/admin/media-library/`, `web/src/routes/admin/trash/`, `web/src/routes/admin/audit/` | new admin pages (areas; trash of all areas; audit log); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
@@ -56,6 +56,9 @@ conflicts can occur during updates.
 | `web/src/lib/components/layouts/UserPageLayout.svelte` | hides the upload button without upload permission |
 | `web/src/routes/(user)/+layout.svelte` | no drag-and-drop upload without upload permission |
 | `web/src/lib/components/asset-viewer/AssetViewerNavBar.svelte` | trash button for media library assets (`MediaLibraryDeleteAction`) |
+| `server/src/emails/components/immich.layout.tsx`, `footer.template.tsx` | ImagePier logo, color and footer instead of Immich's (see E-mails) |
+| `server/src/emails/welcome.email.tsx`, `test.email.tsx`, `album-invite.email.tsx`, `album-update.email.tsx` | German or English texts from `src/imagepier/mail.ts` |
+| `server/src/services/notification.service.ts`, `notification-admin.service.ts` | e-mail subjects from `src/imagepier/mail.ts` |
 | `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
 | `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
@@ -166,7 +169,9 @@ conflicts can occur during updates.
 - Settings in `system_metadata` (`imagepier.audit`): `retentionDays` (365), `downloadsWithUser` (false), `logins`
   (false); re-read every minute by every worker. A cron job removes old entries at 03:41.
 - Endpoints: `GET /api/admin/imagepier/audit`, `GET /api/admin/imagepier/audit/users`,
-  `GET|PUT /api/admin/imagepier/audit/settings`, `GET /api/admin/imagepier/library/trash`.
+  `GET|PUT /api/admin/imagepier/audit/settings`, `GET /api/imagepier/library/trash` (areas where the user is editor;
+  admins see all areas). The trash is shown in Administration → Trash (admins) and at `/media-library/trash`
+  (editors and media managers of their areas).
 
 ## Branding – technical overview
 
@@ -184,7 +189,21 @@ so Immich source files stay untouched. The plugin is disabled in unit tests (`mo
 After an Immich update, check the web build log for `ImagePier branding not applied` – it lists replacements that no
 longer match and need to be adjusted.
 
-Not branded yet: e-mails, passkey name and API documentation (server side).
+Not branded yet: passkey name and API documentation (server side).
+
+### E-mails
+
+Immich's React Email components in `server/src/emails` render ImagePier's frame instead of Immich's: a word mark
+(or logo), an accent color and a neutral footer without app store badges or links to immich.app. Texts and subjects
+come from `server/src/imagepier/mail.ts` (German with `IMAGEPIER_LANGUAGE=de`). Custom templates from
+Administration → Settings → Notifications still replace the text inside the frame. The license e-mails
+(`license.email.tsx`, `futo.layout.tsx`) are not used by ImagePier and stay unchanged.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `IMAGEPIER_MAIL_NAME` | `ImagePier` | name in the word mark, footer and subjects |
+| `IMAGEPIER_MAIL_COLOR` | `#6b46e5` | accent color of buttons and links (`#rrggbb`) |
+| `IMAGEPIER_MAIL_LOGO_URL` | – | https URL of a PNG or JPEG logo instead of the word mark (SVG is not shown by many mail clients) |
 
 ## Updating to a new Immich release
 

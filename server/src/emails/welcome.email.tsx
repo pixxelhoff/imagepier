@@ -2,10 +2,14 @@ import * as React from 'react';
 import { Link, Section, Text } from 'react-email';
 import { ImmichButton } from 'src/emails/components/button.component.js';
 import ImmichLayout from 'src/emails/components/immich.layout.js';
+import { getMailBranding, getMailTexts } from 'src/imagepier/mail.js';
 import { WelcomeEmailProps } from 'src/repositories/email.repository.js';
 import { replaceTemplateTags, templatePreview } from 'src/utils/replace-template-tags.js';
 
 export const WelcomeEmail = ({ baseUrl, displayName, username, password, customTemplate }: WelcomeEmailProps) => {
+  // ImagePier: German or English texts and own name
+  const texts = getMailTexts();
+  const { name } = getMailBranding();
   const usableTemplateVariables = {
     displayName,
     username,
@@ -18,17 +22,17 @@ export const WelcomeEmail = ({ baseUrl, displayName, username, password, customT
   ) : (
     <>
       <Text className="m-0">
-        Hey <strong>{displayName}</strong>!
+        {texts.greeting} <strong>{displayName}</strong>!
       </Text>
 
-      <Text>A new account has been created for you.</Text>
+      <Text>{texts.welcomeText}</Text>
 
       <Text>
-        <strong>Username</strong>: {username}
+        <strong>{texts.username}</strong>: {username}
         {password && (
           <>
             <br />
-            <strong>Password</strong>: {password}
+            <strong>{texts.password}</strong>: {password}
           </>
         )}
       </Text>
@@ -37,11 +41,7 @@ export const WelcomeEmail = ({ baseUrl, displayName, username, password, customT
 
   return (
     <ImmichLayout
-      preview={
-        customTemplate
-          ? templatePreview(customTemplate, usableTemplateVariables)
-          : 'You have been invited to a new Immich instance.'
-      }
+      preview={customTemplate ? templatePreview(customTemplate, usableTemplateVariables) : texts.welcomePreview(name)}
     >
       {customTemplate && (
         <Text className="m-0">
@@ -52,11 +52,11 @@ export const WelcomeEmail = ({ baseUrl, displayName, username, password, customT
       {!customTemplate && emailContent}
 
       <Section className="flex justify-center my-6">
-        <ImmichButton href={`${baseUrl}/auth/login`}>Login</ImmichButton>
+        <ImmichButton href={`${baseUrl}/auth/login`}>{texts.login}</ImmichButton>
       </Section>
 
       <Text className="text-xs">
-        If you cannot click the button use the link below to proceed with first login.
+        {texts.linkHint}
         <br />
         <Link href={baseUrl}>{baseUrl}</Link>
       </Text>
@@ -65,9 +65,9 @@ export const WelcomeEmail = ({ baseUrl, displayName, username, password, customT
 };
 
 WelcomeEmail.PreviewProps = {
-  baseUrl: 'https://demo.immich.app/auth/login',
+  baseUrl: 'https://photos.example.com',
   displayName: 'Alan Turing',
-  username: 'alanturing@immich.app',
+  username: 'alan.turing@example.com',
   password: 'mysuperpassword',
 } as WelcomeEmailProps;
 

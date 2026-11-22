@@ -21,7 +21,7 @@ describe(EmailRepository.name, () => {
       const result = await sut.renderEmail(request);
 
       expect(result.html).toContain('<!DOCTYPE html PUBLIC');
-      expect(result.text).toContain('test email');
+      expect(result.text).toContain('test e-mail');
     });
 
     it('should render the email correctly for WELCOME template', async () => {

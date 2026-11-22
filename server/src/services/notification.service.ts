@@ -21,6 +21,7 @@ import {
   Permission,
   QueueName,
 } from 'src/enum.js';
+import { getMailBranding, getMailTexts } from 'src/imagepier/mail.js';
 import { EmailTemplate } from 'src/repositories/email.repository.js';
 import type { ArgOf } from 'src/repositories/event.repository.js';
 import { BaseService } from 'src/services/base.service.js';
@@ -294,7 +295,7 @@ export class NotificationService extends BaseService {
     });
     const { messageId } = await this.emailRepository.sendEmail({
       to: user.email,
-      subject: 'Test email from Immich',
+      subject: getMailTexts().testSubject(getMailBranding().name),
       html,
       text,
       from: dto.from,
@@ -328,7 +329,7 @@ export class NotificationService extends BaseService {
       name: JobName.SendMail,
       data: {
         to: user.email,
-        subject: 'Welcome to Immich',
+        subject: getMailTexts().welcomeSubject(getMailBranding().name),
         html,
         text,
       },
@@ -377,7 +378,7 @@ export class NotificationService extends BaseService {
       name: JobName.SendMail,
       data: {
         to: recipient.email,
-        subject: `You have been added to a shared album - ${album.albumName}`,
+        subject: getMailTexts().albumInviteSubject(album.albumName),
         html,
         text,
         imageAttachments: attachment ? [attachment] : undefined,
@@ -433,7 +434,7 @@ export class NotificationService extends BaseService {
       name: JobName.SendMail,
       data: {
         to: user.email,
-        subject: `New media has been added to an album - ${album.albumName}`,
+        subject: getMailTexts().albumUpdateSubject(album.albumName),
         html,
         text,
         imageAttachments: attachment ? [attachment] : undefined,

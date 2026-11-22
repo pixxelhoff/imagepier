@@ -98,7 +98,9 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **External photographers** – externals with the level *Editor* deliver photos into an area and maintain the usage
   rights of their own deliveries; they cannot move other photos, share links or publish galleries.
 - **Trash per area** – editors and media managers find the trash of their areas below the areas in the sidebar;
-  editors restore, media managers delete permanently.
+  editors restore, media managers delete permanently. Admins see the trash of all areas in Administration → Trash.
+- **E-mails in ImagePier design** – welcome, test and album e-mails use ImagePier's name, color and footer and are
+  sent in German or English; name, color and logo can be changed in `.env`.
 - **Sharing** – shared links and website galleries only contain media library photos of areas where the person
   sharing is at least *Editor*.
 
@@ -157,6 +159,10 @@ official Immich images, and existing Immich data is used as it is.
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
    # IMAGEPIER_LIBRARY_NAME=Media library
+   # optional: look of the e-mails (logo as https URL of a PNG, not SVG)
+   # IMAGEPIER_MAIL_NAME=ImagePier
+   # IMAGEPIER_MAIL_COLOR=#6b46e5
+   # IMAGEPIER_MAIL_LOGO_URL=https://photos.example.com/mail-logo.png
    ```
 
 3. Copy [`imagepier/deploy/docker-compose.override.yml`](../imagepier/deploy/docker-compose.override.yml) next to

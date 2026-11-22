@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Img, Link, Section, Text } from 'react-email';
 import { ImmichButton } from 'src/emails/components/button.component.js';
 import ImmichLayout from 'src/emails/components/immich.layout.js';
+import { getMailTexts } from 'src/imagepier/mail.js';
 import { AlbumUpdateEmailProps } from 'src/repositories/email.repository.js';
 import { replaceTemplateTags, templatePreview } from 'src/utils/replace-template-tags.js';
 
@@ -13,6 +14,8 @@ export const AlbumUpdateEmail = ({
   cid,
   customTemplate,
 }: AlbumUpdateEmailProps) => {
+  // ImagePier: German or English texts
+  const texts = getMailTexts();
   const usableTemplateVariables = {
     albumName,
     recipientName,
@@ -25,23 +28,19 @@ export const AlbumUpdateEmail = ({
   ) : (
     <>
       <Text className="m-0">
-        Hey <strong>{recipientName}</strong>!
+        {texts.greeting} <strong>{recipientName}</strong>!
       </Text>
 
       <Text>
-        New media has been added to <strong>{albumName}</strong>.
-        <br /> Check it out!
+        {texts.albumUpdateText} <strong>{albumName}</strong>
+        {texts.albumUpdateSuffix}
       </Text>
     </>
   );
 
   return (
     <ImmichLayout
-      preview={
-        customTemplate
-          ? templatePreview(customTemplate, usableTemplateVariables)
-          : 'New media has been added to a shared album.'
-      }
+      preview={customTemplate ? templatePreview(customTemplate, usableTemplateVariables) : texts.albumUpdatePreview}
     >
       {customTemplate && (
         <Text className="m-0">
@@ -64,11 +63,11 @@ export const AlbumUpdateEmail = ({
       )}
 
       <Section className="flex justify-center my-6">
-        <ImmichButton href={`${baseUrl}/albums/${albumId}`}>View Album</ImmichButton>
+        <ImmichButton href={`${baseUrl}/albums/${albumId}`}>{texts.viewAlbum}</ImmichButton>
       </Section>
 
       <Text className="text-xs">
-        If you cannot click the button use the link below to view the album.
+        {texts.linkHint}
         <br />
         <Link href={`${baseUrl}/albums/${albumId}`}>{`${baseUrl}/albums/${albumId}`}</Link>
       </Text>
@@ -77,7 +76,7 @@ export const AlbumUpdateEmail = ({
 };
 
 AlbumUpdateEmail.PreviewProps = {
-  baseUrl: 'https://demo.immich.app',
+  baseUrl: 'https://photos.example.com',
   albumName: 'Trip to Europe',
   albumId: 'b63f6dae-e1c9-401b-9a85-9dbbf5612539',
   recipientName: 'Alan Turing',
