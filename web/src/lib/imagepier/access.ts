@@ -120,6 +120,7 @@ export const AUDIT_ACTIONS = [
   'user_create',
   'user_delete',
   'login',
+  'gallery',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

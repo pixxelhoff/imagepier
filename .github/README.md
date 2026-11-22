@@ -79,11 +79,23 @@ accounts – filterable by action, person and period, with CSV export.
 - Downloads include originals opened in full resolution (for example when zooming), because Immich uses the same
   endpoint for both.
 
-### Planned
+### Website galleries
+
+Administrators and media managers publish albums as public galleries under *Website galleries* in the sidebar
+(media managers only their own albums). Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
+website or embedded in an iframe.
+
+- Only images with **confirmed usage rights for website or press use** that have **not expired** are shown; the
+  filter is applied on the server, so the rest of the album stays private.
+- Every image shows its credit line. The download dialog lists credit line, license and permitted use; the download
+  starts after the visitor confirms the terms. Downloads are counted in the audit log (no personal data).
+- Downloads can be disabled per gallery. Heading, accent color, logo, footer text and links to imprint and privacy
+  policy are set by administrators (*Website galleries → Appearance*).
+
+### Possible later
 
 - **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
-- **Website gallery** – embeddable albums for websites and content management systems with a download dialog that
-  shows license terms and the credit line before the download starts.
+- **Registration before downloads** in galleries (name, organization, intended use), stored in the audit log.
 
 ## Installation
 

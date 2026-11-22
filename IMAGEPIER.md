@@ -100,6 +100,19 @@ conflicts can occur during updates.
 - Admins additionally get `AssetRead`/`AssetView` on media library assets, so they can see them in the trash
   (Immich's partner sharing hides trashed assets).
 
+## Website galleries – technical overview
+
+- Galleries and their branding are stored in `system_metadata` (`imagepier.galleries`); each gallery publishes one
+  album under a random key. `ImagePierGalleryService` reads the album assets with plain SQL and filters them with
+  `isPublishable()` (confirmed rights, website or press use, not expired); the result is cached for one minute.
+- Public endpoints (`@Authenticated({ public: true })`): `GET /api/imagepier/gallery/:key`,
+  `GET /api/imagepier/gallery/:key/assets/:id?size=thumbnail|preview`, `GET /api/imagepier/gallery/:key/assets/:id/download`
+  (original with usage rights credits, counted in the audit log). Every file request checks that the asset is published.
+- Management: `GET|POST /api/imagepier/galleries`, `DELETE /api/imagepier/galleries/:id`,
+  `GET|PUT /api/admin/imagepier/gallery/branding`.
+- Web: public page `web/src/routes/gallery/[key]/` (no login), management page `web/src/routes/(user)/galleries/`,
+  sidebar entry in `MediaLibraryNavItem.svelte`. No Immich file changed.
+
 ## Audit log – technical overview
 
 - Table `imagepier_audit`, created by `ImagePierAuditService` with `CREATE TABLE IF NOT EXISTS` (no Immich

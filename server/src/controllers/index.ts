@@ -47,6 +47,11 @@ import { ViewController } from 'src/controllers/view.controller.js';
 import { WorkflowController } from 'src/controllers/workflow.controller.js';
 import { ImagePierAccessAdminController, ImagePierAccessController } from 'src/imagepier/access.controller.js';
 import { ImagePierAuditAdminController } from 'src/imagepier/audit.controller.js';
+import {
+  ImagePierGalleryAdminController,
+  ImagePierGalleryController,
+  ImagePierGalleryPublicController,
+} from 'src/imagepier/gallery.controller.js';
 import { ImagePierUsageRightsController } from 'src/imagepier/usage-rights.controller.js';
 
 export const controllers = [
@@ -101,5 +106,8 @@ export const controllers = [
   ImagePierAccessAdminController,
   ImagePierAccessController,
   ImagePierAuditAdminController,
+  ImagePierGalleryAdminController,
+  ImagePierGalleryController,
+  ImagePierGalleryPublicController,
   ImagePierUsageRightsController,
 ];

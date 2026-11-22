@@ -7,7 +7,7 @@
   import { handleError } from '#lib/utils/handle-error.ts';
   import { PartnerDirection, getPartners, updatePartner } from '@immich/sdk';
   import { NavbarItem, Switch, Text } from '@immich/ui';
-  import { mdiFolderMultipleImage } from '@mdi/js';
+  import { mdiFolderMultipleImage, mdiWeb } from '@mdi/js';
 
   let access = $state<MyAccess>();
   let inTimeline = $state<boolean>();
@@ -63,5 +63,8 @@
       <Text size="small" color="muted">{$ipt('media_library_in_photos')}</Text>
       <Switch bind:checked={() => inTimeline ?? false, (value) => void setInTimeline(value)} />
     </div>
+  {/if}
+  {#if access?.canEditLibrary}
+    <NavbarItem title={$ipt('website_galleries')} href="/galleries" icon={mdiWeb} />
   {/if}
 {/if}

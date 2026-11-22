@@ -150,7 +150,16 @@
   const formatDetail = (key: string, value: unknown) => {
     switch (key) {
       case 'kind': {
+        if (value === 'gallery') {
+          return $ipt('audit_kind_gallery');
+        }
         return value === 'archive' ? $ipt('audit_kind_archive') : $ipt('audit_kind_original');
+      }
+      case 'gallery': {
+        return `${$ipt('audit_gallery')}: ${toText(value)}`;
+      }
+      case 'published': {
+        return value ? $ipt('audit_published') : $ipt('audit_unpublished');
       }
       case 'sharedLink': {
         return value ? $ipt('audit_shared_link') : undefined;
