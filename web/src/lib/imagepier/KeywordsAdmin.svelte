@@ -5,6 +5,7 @@
     addKeywordAdmin,
     deleteKeywordAdmin,
     editKeywordAdmin,
+    getKeywordInUseCount,
     getKeywordValue,
     getKeywords,
     groupKeywords,
@@ -90,7 +91,12 @@
       keywords = await action();
       toastManager.primary($ipt('keywords_saved'));
     } catch (error) {
-      handleError(error, $ipt('keywords_save_failed'));
+      const count = getKeywordInUseCount(error);
+      if (count === undefined) {
+        handleError(error, $ipt('keywords_save_failed'));
+      } else {
+        toastManager.danger(count === 1 ? $ipt('keyword_in_use_one') : $ipt('keyword_in_use', { count }));
+      }
     } finally {
       saving = false;
     }

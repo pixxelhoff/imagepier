@@ -80,11 +80,18 @@ export class ImagePierKeywordService extends BaseService {
     }
 
     const tags = await this.getTagsOfAllAccounts(value);
+    let count = 0;
     for (const tag of tags) {
       const assetIds = await this.tagRepository.getAssetIdsByTagId(tag.id);
-      if (assetIds.length > 0) {
-        throw new BadRequestException('The keyword is still assigned to assets; deactivate it instead');
-      }
+      count += assetIds.length;
+    }
+    if (count > 0) {
+      // `code` and `count` let the web app show a translated message.
+      throw new BadRequestException({
+        message: `The keyword is still assigned to ${count} assets; deactivate it instead`,
+        code: 'keyword_in_use',
+        count,
+      });
     }
     for (const tag of tags) {
       await this.tagRepository.delete(tag.id);

@@ -74,6 +74,10 @@ const en = {
   keyword_rename_hint: 'All photos with this keyword are renamed as well, in all areas.',
   keyword_delete: 'Delete keyword',
   keyword_delete_hint: 'Only keywords that are not assigned to any photo can be deleted. Otherwise deactivate them.',
+  keyword_in_use_one:
+    'The keyword cannot be deleted because 1 photo still has it. Remove it from the photo first or deactivate it.',
+  keyword_in_use:
+    'The keyword cannot be deleted because {count} photos still have it. Remove it from the photos first or deactivate it.',
   'audit.gallery': 'Website gallery changed',
   audit_kind_gallery: 'Website gallery',
   audit_gallery: 'Gallery',
@@ -353,6 +357,10 @@ const de: Record<ImagePierMessageKey, string> = {
   keyword_rename_hint: 'Alle Fotos mit diesem Schlagwort werden mit umbenannt, in allen Bereichen.',
   keyword_delete: 'Schlagwort löschen',
   keyword_delete_hint: 'Löschen geht nur, wenn das Schlagwort keinem Foto zugeordnet ist. Sonst bitte deaktivieren.',
+  keyword_in_use_one:
+    'Das Schlagwort kann nicht gelöscht werden, weil es noch an 1 Foto vergeben ist. Entferne es zuerst dort oder deaktiviere es.',
+  keyword_in_use:
+    'Das Schlagwort kann nicht gelöscht werden, weil es noch an {count} Fotos vergeben ist. Entferne es zuerst dort oder deaktiviere es.',
   'audit.gallery': 'Website-Galerie geändert',
   audit_kind_gallery: 'Website-Galerie',
   audit_gallery: 'Galerie',

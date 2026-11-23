@@ -1,4 +1,4 @@
-import { request } from '#lib/imagepier/access.ts';
+import { ImagePierRequestError, request } from '#lib/imagepier/access.ts';
 
 /**
 ImagePier keyword list (controlled vocabulary). Keep in sync with server/src/imagepier/keywords.ts.
@@ -82,6 +82,15 @@ export const addKeywordAdmin = (keyword: Omit<Keyword, 'active'>) => adminKeywor
 
 /** Changes a keyword; a new category or name renames the keyword on all assets. */
 export const editKeywordAdmin = (value: string, keyword: Keyword) => adminKeywordRequest('edit', { value, ...keyword });
+
+/** Number of assets that still have a keyword that could not be deleted. */
+export const getKeywordInUseCount = (error: unknown) => {
+  if (!(error instanceof ImagePierRequestError)) {
+    return;
+  }
+  const body = (error.body ?? {}) as { code?: unknown; count?: unknown };
+  return body.code === 'keyword_in_use' && typeof body.count === 'number' ? body.count : undefined;
+};
 
 /** Deletes a keyword that is not assigned to any asset. */
 export const deleteKeywordAdmin = (value: string) => adminKeywordRequest('delete', { value });
