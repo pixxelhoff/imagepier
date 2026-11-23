@@ -196,8 +196,12 @@ After an Immich update, check the web build log for `ImagePier branding not appl
 longer match and need to be adjusted.
 
 Intentionally unchanged: the API documentation (`/doc`, generated from the Immich OpenAPI spec), links to
-docs.immich.app in the administration, the official Immich resources in "Support & feedback" (ImagePier is listed
-first via `IMMICH_THIRD_PARTY_*` in the compose override), Immich in the "About" dialog and the official mobile apps.
+docs.immich.app in the administration, Immich in the "About" dialog and the official mobile apps.
+
+- The Logo component used inside `@immich/ui` (for example the title icon of every modal) is redirected to
+  `branding/Logo.svelte` in `resolveId`.
+- "Support & feedback" lists ImagePier (`IMMICH_THIRD_PARTY_*` in the compose override) and hides the official Immich
+  resources as long as third-party links are set.
 
 ### E-mails
 

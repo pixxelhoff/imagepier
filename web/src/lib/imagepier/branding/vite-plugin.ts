@@ -36,6 +36,16 @@ const TEXT_REPLACEMENTS: { file: string; search: string; replace: string }[] = [
     replace: `(${BRAND_NAME} server error)`,
   },
   {
+    file: '/src/lib/modals/HelpAndFeedbackModal.svelte',
+    search: `    <Heading size="tiny">{$t('official_immich_resources')}</Heading>`,
+    replace: `    {#if !isThirdParty}\n    <Heading size="tiny">{$t('official_immich_resources')}</Heading>`,
+  },
+  {
+    file: '/src/lib/modals/HelpAndFeedbackModal.svelte',
+    search: '    </Stack>\n  </ModalBody>',
+    replace: '    </Stack>\n    {/if}\n  </ModalBody>',
+  },
+  {
     file: '/src/lib/components/pages/SharedLinkErrorPage.svelte',
     search: '} - Immich</title>',
     replace: `} - ${BRAND_NAME}</title>`,
@@ -70,6 +80,11 @@ const TRANSLATION_OVERRIDES: Record<string, Record<string, string>> = {
       'ImagePier is based on Immich. For questions or issues, please contact ImagePier first using the links below.',
   },
 };
+
+// Logo used inside @immich/ui components (for example the title icon of every modal).
+const LIBRARY_LOGO = '@immich/ui: Logo';
+const isLibraryLogo = (source: string, importer: string) =>
+  importer.includes('/@immich/ui/dist/') && source.endsWith('/Logo/Logo.svelte');
 
 const normalizeId = (id: string) => id.split('?', 1)[0].replaceAll('\\', '/');
 
@@ -141,6 +156,11 @@ export const imagePierBranding = (): Plugin => {
     },
 
     resolveId(source, importer) {
+      if (importer && isLibraryLogo(source, normalizeId(importer))) {
+        applied.add(LIBRARY_LOGO);
+        return `${brandingDir}Logo.svelte`;
+      }
+
       if (source !== '@immich/ui' || !importer || normalizeId(importer).startsWith(brandingDir)) {
         return;
       }
@@ -185,7 +205,11 @@ export const imagePierBranding = (): Plugin => {
         return;
       }
 
-      const expected = [...HIDDEN_COMPONENTS, ...TEXT_REPLACEMENTS.map(({ file, search }) => `${file}: ${search}`)];
+      const expected = [
+        LIBRARY_LOGO,
+        ...HIDDEN_COMPONENTS,
+        ...TEXT_REPLACEMENTS.map(({ file, search }) => `${file}: ${search}`),
+      ];
       const missing = expected.filter((item) => !applied.has(item));
       if (missing.length > 0) {
         logger?.warn(`ImagePier branding not applied (check after an Immich update): ${missing.join('; ')}`);
