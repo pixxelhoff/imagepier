@@ -60,6 +60,8 @@ conflicts can occur during updates.
 | `server/src/emails/welcome.email.tsx`, `test.email.tsx`, `album-invite.email.tsx`, `album-update.email.tsx` | German or English texts from `src/imagepier/mail.ts` |
 | `server/src/services/notification.service.ts`, `notification-admin.service.ts` | e-mail subjects from `src/imagepier/mail.ts`; logo in the template preview |
 | `server/src/repositories/email.repository.ts` | attaches the embedded logo (`getMailLogoAttachment`) |
+| `server/src/services/passkey.service.ts` | passkey name `ImagePier` (rp id unchanged, existing passkeys keep working) |
+| `server/src/services/shared-link.service.ts` | link preview image `/apple-icon-180.png` instead of Immich's promo image |
 | `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
 | `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
@@ -193,7 +195,9 @@ so Immich source files stay untouched. The plugin is disabled in unit tests (`mo
 After an Immich update, check the web build log for `ImagePier branding not applied` – it lists replacements that no
 longer match and need to be adjusted.
 
-Not branded yet: passkey name and API documentation (server side).
+Intentionally unchanged: the API documentation (`/doc`, generated from the Immich OpenAPI spec), links to
+docs.immich.app in the administration, the official Immich resources in "Support & feedback" (ImagePier is listed
+first via `IMMICH_THIRD_PARTY_*` in the compose override), Immich in the "About" dialog and the official mobile apps.
 
 ### E-mails
 

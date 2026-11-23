@@ -26,7 +26,8 @@ import type { LoginDetails } from 'src/services/auth.service.js';
 import { BaseService } from 'src/services/base.service.js';
 import { findOrFail } from 'src/utils/misc.js';
 
-const RP_NAME = 'Immich';
+// ImagePier: name shown by the browser when a passkey is created (the rp id stays unchanged)
+const RP_NAME = 'ImagePier';
 
 const CHALLENGE_TTL = Duration.fromObject({ minutes: 5 });
 

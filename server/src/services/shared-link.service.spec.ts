@@ -402,7 +402,7 @@ describe(SharedLinkService.name, () => {
       mocks.sharedLink.get.mockResolvedValue({ ...sharedLinkStub.individual, album: null, assets: [] });
       await expect(sut.getMetadataTags(authStub.adminSharedLink)).resolves.toEqual({
         description: '0 shared photos & videos',
-        imageUrl: `https://my.immich.app/feature-panel.png`,
+        imageUrl: `https://my.immich.app/apple-icon-180.png`,
         title: 'Public Share',
       });
 

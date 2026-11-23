@@ -15,6 +15,10 @@ services:
       IMMICH_REPOSITORY: pixxelhoff/imagepier
       IMMICH_REPOSITORY_URL: https://github.com/pixxelhoff/imagepier
       IMMICH_BUILD_IMAGE_URL: https://github.com/pixxelhoff/imagepier/pkgs/container/imagepier-server
+      # "Support & feedback" in the account menu lists ImagePier first, above the official Immich resources
+      IMMICH_THIRD_PARTY_SOURCE_URL: https://github.com/pixxelhoff/imagepier
+      IMMICH_THIRD_PARTY_BUG_FEATURE_URL: https://github.com/pixxelhoff/imagepier/issues
+      IMMICH_THIRD_PARTY_DOCUMENTATION_URL: https://github.com/pixxelhoff/imagepier#readme
     # Optional: own logo files (logo-icon.svg, logo-inline-light.svg, logo-inline-dark.svg)
     # volumes:
     #   - ./branding:/build/www/imagepier:ro

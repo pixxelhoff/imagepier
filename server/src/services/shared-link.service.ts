@@ -231,9 +231,10 @@ export class SharedLinkService extends BaseService {
     const assetId = sharedLink.album?.albumThumbnailAssetId || sharedLink.assets[0]?.id;
     const [albumMetadata] = sharedLink.album ? await this.albumRepository.getMetadataForIds([sharedLink.album.id]) : [];
     const assetCount = sharedLink.assets.length > 0 ? sharedLink.assets.length : albumMetadata?.assetCount || 0;
+    // ImagePier: own icon instead of the Immich promo image
     const imagePath = assetId
       ? `/api/assets/${assetId}/thumbnail?key=${sharedLink.key.toString('base64url')}`
-      : '/feature-panel.png';
+      : '/apple-icon-180.png';
 
     return {
       title: sharedLink.album ? sharedLink.album.albumName : 'Public Share',

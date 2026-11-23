@@ -26,6 +26,16 @@ const TEXT_REPLACEMENTS: { file: string; search: string; replace: string }[] = [
     replace: '<Logo variant="stacked" class="h-40" />',
   },
   {
+    file: '/src/lib/components/layouts/AuthPageLayout.svelte',
+    search: 'alt="Immich logo"',
+    replace: `alt="${BRAND_NAME}"`,
+  },
+  {
+    file: '/src/lib/utils/handle-error.ts',
+    search: '(Immich Server Error)',
+    replace: `(${BRAND_NAME} server error)`,
+  },
+  {
     file: '/src/lib/components/pages/SharedLinkErrorPage.svelte',
     search: '} - Immich</title>',
     replace: `} - ${BRAND_NAME}</title>`,
@@ -50,7 +60,15 @@ const KEEP_IMMICH_NAME = /buy|purchase|support|official|obtainium|my_immich|vers
 
 // Single translations that ImagePier words differently, by language file.
 const TRANSLATION_OVERRIDES: Record<string, Record<string, string>> = {
-  de: { administration: 'Administration' },
+  de: {
+    administration: 'Administration',
+    support_third_party_description:
+      'ImagePier basiert auf Immich. Wende dich bei Fragen oder Problemen bitte zuerst über die folgenden Links an ImagePier.',
+  },
+  en: {
+    support_third_party_description:
+      'ImagePier is based on Immich. For questions or issues, please contact ImagePier first using the links below.',
+  },
 };
 
 const normalizeId = (id: string) => id.split('?', 1)[0].replaceAll('\\', '/');
