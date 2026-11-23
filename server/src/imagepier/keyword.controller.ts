@@ -42,12 +42,6 @@ export class ImagePierKeywordController {
     return { keywords: await this.service.getKeywords() };
   }
 
-  @Put()
-  @Authenticated({ admin: true })
-  async updateKeywords(@Body() dto: KeywordListDto) {
-    return { keywords: await this.service.updateKeywords(dto.keywords) };
-  }
-
   @Get('tags')
   @Authenticated()
   async getKeywordTags(@Auth() auth: AuthDto) {
@@ -65,5 +59,18 @@ export class ImagePierKeywordController {
   @HttpCode(HttpStatus.OK)
   updateAssetKeywords(@Auth() auth: AuthDto, @Body() dto: AssetKeywordsDto) {
     return this.service.updateAssetKeywords(auth, dto);
+  }
+}
+
+/** Admin endpoints for the keyword list (kept under admin/ like all admin-only routes). */
+@ApiExcludeController()
+@Controller('admin/imagepier/keywords')
+export class ImagePierKeywordAdminController {
+  constructor(private service: ImagePierKeywordService) {}
+
+  @Put()
+  @Authenticated({ admin: true })
+  async updateKeywords(@Body() dto: KeywordListDto) {
+    return { keywords: await this.service.updateKeywords(dto.keywords) };
   }
 }

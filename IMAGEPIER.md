@@ -176,8 +176,8 @@ when access rules change.
   keywords also updates the locked `tags` column of the asset's EXIF data and queues `SidecarWrite`, like Immich's tag
   service, so a new metadata extraction keeps them. Usage rights tags are left out of the EXIF tags.
 - `moveToLibrary` moves all tags of an asset to the new owner (`moveTagsToOwner`).
-- Endpoints: `GET|PUT /api/imagepier/keywords` (PUT admin only), `GET /api/imagepier/keywords/assets/:id`,
-  `PUT /api/imagepier/keywords/assets` (`{ assetIds, add, remove }`, needs `AssetUpdate`; only active keywords can be
+- Endpoints: `GET /api/imagepier/keywords`, `PUT /api/admin/imagepier/keywords` (admin only),
+  `GET /api/imagepier/keywords/assets/:id`, `PUT /api/imagepier/keywords/assets` (`{ assetIds, add, remove }`, needs `AssetUpdate`; only active keywords can be
   added).
 - Search: tab *Keywords* in the search dialog. `GET /api/imagepier/keywords/tags` returns the keyword tags of the own
   account and of the accessible area accounts; the web app adds all tag IDs of a keyword to Immich's tag filter.

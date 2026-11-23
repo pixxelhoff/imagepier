@@ -60,7 +60,7 @@ export const getKeywords = async () => {
 };
 
 export const updateKeywordsAdmin = async (keywords: Keyword[]) => {
-  const result = await request<{ keywords: Keyword[] }>('/imagepier/keywords', {
+  const result = await request<{ keywords: Keyword[] }>('/admin/imagepier/keywords', {
     method: 'PUT',
     body: JSON.stringify({ keywords }),
   });
