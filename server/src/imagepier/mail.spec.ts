@@ -27,9 +27,9 @@ describe('ImagePier mails', () => {
     });
   });
 
-  it('should ignore invalid colors and insecure logo urls', () => {
+  it('should ignore invalid colors and non-https logo urls', () => {
     process.env.IMAGEPIER_MAIL_COLOR = 'red';
-    process.env.IMAGEPIER_MAIL_LOGO_URL = 'http://example.com/logo.png';
+    process.env.IMAGEPIER_MAIL_LOGO_URL = 'ftp://example.com/logo.png';
 
     expect(getMailBranding()).toEqual(expect.objectContaining({ color: '#6b46e5', logoUrl: undefined }));
   });
