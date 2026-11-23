@@ -75,8 +75,12 @@
       {$ipt('photos_all')}
     </button>
     {#each areas as area (area.id)}
-      <a href={`/media-library/${encodeURIComponent(area.id)}`} class={itemClass(isAreaPage(area.id))}>
-        {$ipt('photos_area', { name: area.name })}
+      <a
+        href={`/media-library/${encodeURIComponent(area.id)}`}
+        title={area.name}
+        class={itemClass(isAreaPage(area.id))}
+      >
+        {area.name}
       </a>
     {/each}
     {#if showTrash}
