@@ -50,7 +50,7 @@ Every area should have at least one media manager. *Administration → Areas* ma
 
 Administration (users, roles, areas, keyword list, settings, the trash of all areas and the audit log) is for
 administrators only. Everybody can assign keywords to their own photos. Once a keyword list exists, only
-administrators create new tags.
+administrators create new tags. Immich's own tag feature (tag page, tag panel) is available to administrators only.
 
 ## Details
 

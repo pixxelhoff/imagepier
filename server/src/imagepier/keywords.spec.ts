@@ -1,4 +1,10 @@
-import { canCreateTags, getKeywordValue, normalizeKeywords, parseKeywordSettings } from 'src/imagepier/keywords.js';
+import {
+  applyTagFeaturePolicy,
+  canCreateTags,
+  getKeywordValue,
+  normalizeKeywords,
+  parseKeywordSettings,
+} from 'src/imagepier/keywords.js';
 
 describe('ImagePier keywords', () => {
   it('should clean names and drop invalid and duplicate keywords', () => {
@@ -14,6 +20,12 @@ describe('ImagePier keywords', () => {
       { category: 'Place', name: 'Old Town', description: undefined, active: true },
       { category: 'Topic', name: 'Food-Drinks', description: 'Restaurants', active: false },
     ]);
+  });
+
+  it('should switch the tag feature off for everybody but administrators', () => {
+    const preferences = { tags: { enabled: true, sidebarWeb: true } };
+    expect(applyTagFeaturePolicy(preferences, true)).toEqual(preferences);
+    expect(applyTagFeaturePolicy(preferences, false)).toEqual({ tags: { enabled: false, sidebarWeb: false } });
   });
 
   it('should build the tag value from category and keyword', () => {

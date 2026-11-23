@@ -114,7 +114,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
   well and are written to the XMP sidecar like Immich tags.
 - **Keyword search** – the search tab *Keywords* finds photos with all selected keywords in the own photos and all
   accessible areas at once.
-- Once a keyword list exists, only administrators create new tags, so the vocabulary stays consistent.
+- Once a keyword list exists, only administrators create new tags, so the vocabulary stays consistent. Immich's own
+  tag feature is reserved for administrators; everybody else works with the keyword list.
 - Moving a photo into an area keeps its tags.
 
 ### 🌐 Website galleries

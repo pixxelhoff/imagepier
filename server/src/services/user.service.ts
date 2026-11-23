@@ -12,6 +12,7 @@ import { UserPreferencesResponseDto, UserPreferencesUpdateDto, mapPreferences } 
 import { CreateProfileImageResponseDto } from 'src/dtos/user-profile.dto.js';
 import { UserAdminResponseDto, UserResponseDto, UserUpdateMeDto, mapUser, mapUserAdmin } from 'src/dtos/user.dto.js';
 import { CacheControl, JobName, JobStatus, QueueName, StorageFolder, UserMetadataKey } from 'src/enum.js';
+import { applyTagFeaturePolicy } from 'src/imagepier/keywords.js';
 import type { ArgOf } from 'src/repositories/event.repository.js';
 import { UserFindOptions } from 'src/repositories/user.repository.js';
 import { UserTable } from 'src/schema/tables/user.table.js';
@@ -81,12 +82,14 @@ export class UserService extends BaseService {
 
   async getMyPreferences(auth: AuthDto): Promise<UserPreferencesResponseDto> {
     const metadata = await this.userRepository.getMetadata(auth.user.id);
-    return mapPreferences(getPreferences(metadata));
+    // ImagePier: Immich's tag feature is reserved for administrators (see imagepier/keywords.ts)
+    return mapPreferences(applyTagFeaturePolicy(getPreferences(metadata), auth.user.isAdmin));
   }
 
   async updateMyPreferences(auth: AuthDto, dto: UserPreferencesUpdateDto) {
     const metadata = await this.userRepository.getMetadata(auth.user.id);
-    const updated = mergePreferences(getPreferences(metadata), dto);
+    // ImagePier: Immich's tag feature is reserved for administrators (see imagepier/keywords.ts)
+    const updated = applyTagFeaturePolicy(mergePreferences(getPreferences(metadata), dto), auth.user.isAdmin);
 
     await this.userRepository.upsertMetadata(auth.user.id, {
       key: UserMetadataKey.Preferences,

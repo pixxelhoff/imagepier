@@ -180,19 +180,22 @@
           </div>
         </SettingAccordion>
 
-        <SettingAccordion key="tags" title={$t('tags')} subtitle={$t('tag_feature_description')}>
-          <div class="mt-4 flex flex-col gap-4 sm:ms-4">
-            <Field label={$t('enable')}>
-              <Switch bind:checked={tagsEnabled} />
-            </Field>
-
-            {#if tagsEnabled}
-              <Field label={$t('sidebar')} description={$t('sidebar_display_description')}>
-                <Switch bind:checked={tagsSidebar} />
+        <!-- ImagePier: Immich's tag feature is reserved for administrators; everybody else uses the keyword list -->
+        {#if authManager.user.isAdmin}
+          <SettingAccordion key="tags" title={$t('tags')} subtitle={$t('tag_feature_description')}>
+            <div class="mt-4 flex flex-col gap-4 sm:ms-4">
+              <Field label={$t('enable')}>
+                <Switch bind:checked={tagsEnabled} />
               </Field>
-            {/if}
-          </div>
-        </SettingAccordion>
+
+              {#if tagsEnabled}
+                <Field label={$t('sidebar')} description={$t('sidebar_display_description')}>
+                  <Switch bind:checked={tagsSidebar} />
+                </Field>
+              {/if}
+            </div>
+          </SettingAccordion>
+        {/if}
 
         <SettingAccordion key="cast" title={$t('cast')} subtitle={$t('cast_description')}>
           <div class="mt-4 flex flex-col gap-4 sm:ms-4">

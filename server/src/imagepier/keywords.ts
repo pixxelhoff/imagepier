@@ -54,3 +54,12 @@ export const parseKeywordSettings = (value: unknown): Keyword[] => {
 /** Once a keyword list exists, only administrators create tags; everybody else uses the keyword list. */
 export const canCreateTags = (isAdmin: boolean, storedKeywords: unknown) =>
   isAdmin || parseKeywordSettings(storedKeywords).length === 0;
+
+/**
+Immich's own tag feature duplicates the keyword list and only shows tags of the own account, not of the areas.
+Only administrators can use it; for everybody else it is always switched off.
+*/
+export const applyTagFeaturePolicy = <T extends { tags: { enabled: boolean; sidebarWeb: boolean } }>(
+  preferences: T,
+  isAdmin: boolean,
+): T => (isAdmin ? preferences : { ...preferences, tags: { enabled: false, sidebarWeb: false } });

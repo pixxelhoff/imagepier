@@ -53,6 +53,8 @@ conflicts can occur during updates.
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" and "Keywords" search tabs |
 | `server/src/utils/database.ts` | `hasTags`: tags with the same value count as one tag, so keywords of several accounts (areas) can be searched together; unchanged result for tags of one account |
 | `server/src/services/tag.service.ts` | `create` and `upsert`: only administrators create tags once a keyword list exists |
+| `server/src/services/user.service.ts` | `getMyPreferences` / `updateMyPreferences`: Immich's tag feature is always off for non-administrators |
+| `web/src/routes/(user)/user-settings/FeatureSettings.svelte` | the "Tags" switch is shown to administrators only |
 | `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits; audit log |
 | `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log |
 | `web/src/lib/components/layouts/UserPageLayout.svelte` | hides the upload button without upload permission |
