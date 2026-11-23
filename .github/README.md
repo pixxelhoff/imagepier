@@ -110,9 +110,9 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **One keyword list for everybody** – administrators paste the keyword list (category, keyword, description) from a
   spreadsheet under *Administration → Keywords*, or add and edit single keywords there. Renaming a keyword renames it
   on all photos; unused keywords can be deleted, keywords in use can be deactivated.
-- **Assigning keywords** – in the *Keywords* panel of a photo or for a selection, grouped by category. Keywords are
-  stored as Immich tags `Category/Keyword` of the account that owns the photo, so they work for photos of areas as
-  well and are written to the XMP sidecar like Immich tags.
+- **Assigning keywords** – in the *Keywords* panel of a photo or for a selection (in an area, in *All photos* or in
+  search results), grouped by category. Keywords are stored as Immich tags `Category/Keyword` of the account that
+  owns the photo, so they work for photos of areas as well and are written to the XMP sidecar like Immich tags.
 - **Keyword search** – the search tab *Keywords* finds photos with all selected keywords in the own photos and all
   accessible areas at once.
 - Once a keyword list exists, only administrators create new tags, so the vocabulary stays consistent. Immich's own

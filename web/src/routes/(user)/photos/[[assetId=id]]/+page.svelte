@@ -16,6 +16,7 @@
   import SelectAllAssets from '#lib/components/timeline/actions/SelectAllAction.svelte';
   import SetVisibilityAction from '#lib/components/timeline/actions/SetVisibilityAction.svelte';
   import { AssetAction } from '#lib/constants.ts';
+  import MediaLibraryActions from '#lib/imagepier/MediaLibraryActions.svelte';
   import { photosScope } from '#lib/imagepier/photos-scope.svelte.ts';
   import { assetMultiSelectManager } from '#lib/managers/asset-multi-select-manager.svelte.ts';
   import { assetViewerManager } from '#lib/managers/asset-viewer-manager.svelte.ts';
@@ -164,6 +165,8 @@
       </ButtonContextMenu>
     {:else}
       <DownloadAction />
+      <!-- ImagePier: usage rights, keywords and areas for assets of areas -->
+      <MediaLibraryActions fromSelection />
     {/if}
   </AssetSelectControlBar>
 {/if}

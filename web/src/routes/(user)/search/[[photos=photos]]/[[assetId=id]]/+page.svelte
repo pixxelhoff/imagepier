@@ -14,6 +14,7 @@
   import FavoriteAction from '#lib/components/timeline/actions/FavoriteAction.svelte';
   import SetVisibilityAction from '#lib/components/timeline/actions/SetVisibilityAction.svelte';
   import { QueryParameter } from '#lib/constants.ts';
+  import MediaLibraryActions from '#lib/imagepier/MediaLibraryActions.svelte';
   import { assetMultiSelectManager } from '#lib/managers/asset-multi-select-manager.svelte.ts';
   import { searchManager } from '#lib/managers/search-manager.svelte.ts';
   import type { TimelineAsset, Viewport } from '#lib/managers/timeline-manager/types.ts';
@@ -405,6 +406,8 @@
             </ButtonContextMenu>
           {:else}
             <DownloadAction />
+            <!-- ImagePier: usage rights, keywords and areas for search results from areas -->
+            <MediaLibraryActions fromSelection />
           {/if}
         </AssetSelectControlBar>
       </div>

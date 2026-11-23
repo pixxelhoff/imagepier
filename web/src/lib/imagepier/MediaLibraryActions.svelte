@@ -32,14 +32,18 @@
   } from '@mdi/js';
 
   /**
-  Actions for editors and media managers in the view of an area (the timeline of the area account).
+  Actions for editors and media managers for assets of areas (area accounts): in the view of an area, and in
+  views that mix areas (all photos, search). The actions are shown when the user can edit all areas involved.
   The server checks the areas; assets outside the user's areas are rejected.
   */
   type Props = {
-    ownerId: string;
+    /** Owner (area account) of the shown assets, e.g. in the view of one area. */
+    ownerId?: string;
+    /** Use the owners of the selected assets, e.g. in the search results. */
+    fromSelection?: boolean;
   };
 
-  const { ownerId }: Props = $props();
+  const { ownerId, fromSelection = false }: Props = $props();
 
   let access = $state<MyAccess>();
 
@@ -55,11 +59,28 @@
     void loadAccess(authManager.user.id);
   });
 
-  const area = $derived(access ? getAreaOfOwner(access, ownerId) : undefined);
-  const canEdit = $derived(!!access && !!area && canEditAreaOf(access, area.id));
+  const owners = $derived.by(() => {
+    if (!fromSelection) {
+      return ownerId ? [ownerId] : [];
+    }
+    const ids = assetMultiSelectManager.assets.map((asset) => asset.ownerId);
+    return ids.filter((id, index) => ids.indexOf(id) === index);
+  });
+  /** Whether the check applies to the areas of all owners (assets outside areas, e.g. own photos, never match). */
+  const allAreas = (check: (access: MyAccess, areaId: string) => boolean) => {
+    const current = access;
+    if (!current || owners.length === 0) {
+      return false;
+    }
+    return owners.every((owner) => {
+      const area = getAreaOfOwner(current, owner);
+      return !!area && check(current, area.id);
+    });
+  };
+  const canEdit = $derived(allAreas(canEditAreaOf));
   // Externals maintain the assets they added, but do not move media library assets between areas.
   const canMove = $derived(canEdit && access?.role !== 'external');
-  const canConfirm = $derived(!!access && !!area && canManageAreaOf(access, area.id));
+  const canConfirm = $derived(allAreas(canManageAreaOf));
 
   const getSelectedIds = () => assetMultiSelectManager.assets.map((asset) => asset.id);
 

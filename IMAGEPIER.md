@@ -42,10 +42,11 @@ conflicts can occur during updates.
 | `server/src/utils/access.ts` | `checkAccess` passes Immich's result through `applyImagePierAccess` (roles) |
 | `server/src/services/asset.service.ts` | `deleteAll` with `force`: media library assets only by media managers of their areas (`requirePermanentDeleteAccess`) |
 | `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds `MediaLibraryNavItem` (My photos, All photos, areas, website galleries) |
-| `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` | `withPartners` follows `photosScope` ("My photos" / "All photos") |
+| `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` | `withPartners` follows `photosScope` ("My photos" / "All photos"); media library actions in the selection bar for assets of areas |
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
 | `web/src/routes/admin/users/(list)/+layout.svelte` | user list replaced by `UserListAdmin` (role, search, role filter, sorting) |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
+| `web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar for search results from areas |
 | `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Areas", "Keywords", "Trash" and "Audit log" admin entries |
 | `web/src/routes/admin/media-library/`, `web/src/routes/admin/keywords/`, `web/src/routes/admin/trash/`, `web/src/routes/admin/audit/` | new admin pages (areas; keyword list; trash of all areas; audit log); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` and `KeywordsPanel` |
