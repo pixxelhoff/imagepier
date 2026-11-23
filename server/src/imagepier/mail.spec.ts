@@ -1,4 +1,4 @@
-import { getMailBranding, getMailLogoAttachment, getMailTexts, MAIL_LOGO_CID } from 'src/imagepier/mail.js';
+import { MAIL_LOGO_CID, getMailBranding, getMailLogoAttachment, getMailTexts } from 'src/imagepier/mail.js';
 
 describe('ImagePier mails', () => {
   const env = { ...process.env };

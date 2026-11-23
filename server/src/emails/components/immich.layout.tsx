@@ -3,7 +3,7 @@ import { Body, Container, Font, Head, Hr, Html, Img, Preview, Section, Tailwind,
 // @ts-expect-error
 import tailwindPresetEmail from 'tailwindcss-preset-email';
 import { ImmichFooter } from 'src/emails/components/footer.template.js';
-import { getMailBranding, hasEmbeddedMailLogo, MAIL_LOGO_CID } from 'src/imagepier/mail.js';
+import { MAIL_LOGO_CID, getMailBranding, hasEmbeddedMailLogo } from 'src/imagepier/mail.js';
 
 interface ImmichLayoutProps {
   children: React.ReactNode;
