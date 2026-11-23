@@ -39,7 +39,8 @@ export class ImagePierKeywordService extends BaseService {
 
   async getAssetKeywords(auth: AuthDto, assetId: string): Promise<string[]> {
     await this.requireAccess({ auth, permission: Permission.AssetRead, ids: [assetId] });
-    const known = new Set((await this.getKeywords()).map((keyword) => getKeywordValue(keyword)));
+    const keywords = await this.getKeywords();
+    const known = new Set(keywords.map((keyword) => getKeywordValue(keyword)));
     const asset = await this.assetRepository.getById(assetId, { tags: true });
     return (asset?.tags ?? []).map((tag) => tag.value).filter((value) => known.has(value));
   }
@@ -58,8 +59,8 @@ export class ImagePierKeywordService extends BaseService {
     const removed = new Set(remove.filter((value) => known.has(value)));
     const assets = await this.assetRepository.getByIds(assetIds);
     for (const { id, ownerId } of assets) {
-      const current = (await this.assetRepository.getById(id, { tags: true }))?.tags ?? [];
-      for (const tag of current) {
+      const asset = await this.assetRepository.getById(id, { tags: true });
+      for (const tag of asset?.tags ?? []) {
         if (removed.has(tag.value)) {
           await this.tagRepository.removeAssetIds(tag.id, [id]);
         }

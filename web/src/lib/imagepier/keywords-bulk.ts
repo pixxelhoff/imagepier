@@ -1,6 +1,6 @@
 import KeywordsModal from '#lib/imagepier/KeywordsModal.svelte';
 import { ipt } from '#lib/imagepier/i18n.ts';
-import { getKeywords, updateAssetKeywords } from '#lib/imagepier/keywords.ts';
+import { getKeywords, updateAssetKeywords, type KeywordChange } from '#lib/imagepier/keywords.ts';
 import { handleError } from '#lib/utils/handle-error.ts';
 import { modalManager, toastManager } from '@immich/ui';
 import { get } from 'svelte/store';
@@ -10,11 +10,12 @@ export const editKeywordsOfAssets = async (assetIds: string[]) => {
   const translate = get(ipt);
   try {
     const keywords = await getKeywords();
-    const change = await modalManager.show(KeywordsModal, {
+    // Svelte component types are not available to tsc in .ts files; the modal returns a KeywordChange.
+    const change = (await modalManager.show(KeywordsModal, {
       keywords,
       bulk: true,
       title: translate('keywords_bulk_title', { count: assetIds.length }),
-    });
+    })) as KeywordChange | undefined;
     if (!change || change.add.length + change.remove.length === 0) {
       return false;
     }

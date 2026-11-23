@@ -43,7 +43,7 @@ export const normalizeKeywords = (items: unknown[]): Keyword[] => {
       byValue.set(key, keyword);
     }
   }
-  return byValue.values().toArray().slice(0, MAX_KEYWORDS);
+  return byValue.values().take(MAX_KEYWORDS).toArray();
 };
 
 export const parseKeywordSettings = (value: unknown): Keyword[] => {

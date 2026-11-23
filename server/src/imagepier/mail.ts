@@ -78,7 +78,8 @@ export const inlineMailLogo = async (html: string) => {
     return html;
   }
   const png = await sharp(attachment.path).toBuffer();
-  return html.replaceAll(`cid:${MAIL_LOGO_CID}`, `data:image/png;base64,${png.toString('base64')}`);
+  const dataUri = `data:image/png;base64,${png.toString('base64')}`;
+  return html.replaceAll(`cid:${MAIL_LOGO_CID}`, () => dataUri);
 };
 
 const en = {

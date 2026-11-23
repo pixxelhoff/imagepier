@@ -257,7 +257,8 @@ export class ImagePierUsageRightsService extends BaseService {
 
   /** Tags belong to an account: after an owner change the asset gets the tags of the same name of its new owner. */
   private async moveTagsToOwner(assetId: string, ownerId: string) {
-    const tags = (await this.assetRepository.getById(assetId, { tags: true }))?.tags ?? [];
+    const asset = await this.assetRepository.getById(assetId, { tags: true });
+    const tags = asset?.tags ?? [];
     if (tags.length === 0) {
       return;
     }
