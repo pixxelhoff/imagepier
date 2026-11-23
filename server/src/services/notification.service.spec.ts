@@ -362,7 +362,7 @@ describe(NotificationService.name, () => {
       );
       expect(mocks.job.queue).toHaveBeenCalledWith({
         name: JobName.SendMail,
-        data: expect.objectContaining({ subject: expect.stringContaining('You have been added to a shared album') }),
+        data: expect.objectContaining({ subject: expect.stringContaining('You have been added to the album') }),
       });
     });
 
@@ -393,7 +393,7 @@ describe(NotificationService.name, () => {
       expect(mocks.job.queue).toHaveBeenCalledWith({
         name: JobName.SendMail,
         data: expect.objectContaining({
-          subject: expect.stringContaining('You have been added to a shared album'),
+          subject: expect.stringContaining('You have been added to the album'),
           imageAttachments: undefined,
         }),
       });
@@ -427,7 +427,7 @@ describe(NotificationService.name, () => {
       expect(mocks.job.queue).toHaveBeenCalledWith({
         name: JobName.SendMail,
         data: expect.objectContaining({
-          subject: expect.stringContaining('You have been added to a shared album'),
+          subject: expect.stringContaining('You have been added to the album'),
           imageAttachments: [{ filename: 'album-thumbnail.jpg', path: expect.anything(), cid: expect.anything() }],
         }),
       });
@@ -463,7 +463,7 @@ describe(NotificationService.name, () => {
       expect(mocks.job.queue).toHaveBeenCalledWith({
         name: JobName.SendMail,
         data: expect.objectContaining({
-          subject: expect.stringContaining('You have been added to a shared album'),
+          subject: expect.stringContaining('You have been added to the album'),
           imageAttachments: [{ filename: 'album-thumbnail.jpg', path: expect.anything(), cid: expect.anything() }],
         }),
       });
