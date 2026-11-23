@@ -36,6 +36,7 @@ Every area should have at least one media manager. *Administration → Areas* ma
 | Download (with credits written into the file) | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Upload into the area, assign own photos to it | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Enter usage rights | ❌ | ❌ | ❌ | 👤 | ✅ | ✅ | ✅ |
+| Assign keywords from the keyword list | ❌ | ❌ | ❌ | 👤 | ✅ | ✅ | ✅ |
 | Confirm usage rights | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Edit description and metadata | ❌ | ❌ | ❌ | 👤 | ✅ | ✅ | ✅ |
 | Move to another area ¹ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
@@ -47,7 +48,8 @@ Every area should have at least one media manager. *Administration → Areas* ma
 
 ¹ The person needs the level *Editor* or higher in both areas.
 
-Administration (users, roles, areas, settings, the trash of all areas and the audit log) is for administrators only.
+Administration (users, roles, areas, keyword list, settings, the trash of all areas and the audit log) is for
+administrators only. Everybody can assign keywords to their own photos.
 
 ## Details
 

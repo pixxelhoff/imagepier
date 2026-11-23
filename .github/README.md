@@ -86,7 +86,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
 
   Without a level the area is not accessible. Own photos are not restricted – everybody can upload, share and delete
   them. **The full permission matrix** (externals, trash, sharing, galleries) is in
-  [PERMISSIONS.md](../PERMISSIONS.md).
+  [PERMISSIONS.md](../PERMISSIONS.md). **Everything that behaves differently from Immich** is listed in
+  [DIFFERENCES.md](../DIFFERENCES.md).
 - **User list with roles** – *Administration → Users* shows the role of every account and can be searched, filtered
   by role and sorted by name, e-mail or role.
 - **Managing areas** – administrators create, rename and remove areas under *Administration → Areas*; areas
@@ -103,6 +104,15 @@ albums, face and object search, mobile apps – and adds what teams need to work
   under *Administration → Trash*.
 - **Sharing** – shared links and website galleries only contain media library photos of areas where the person
   sharing is at least *Editor*.
+
+### 🏷️ Keyword list
+
+- **One keyword list for everybody** – administrators paste the keyword list (category, keyword, description) from a
+  spreadsheet under *Administration → Keywords*. Keywords can be deactivated instead of deleted.
+- **Assigning keywords** – in the *Keywords* panel of a photo or for a selection, grouped by category. Keywords are
+  stored as Immich tags `Category/Keyword` of the account that owns the photo, so they work for photos of areas as
+  well and are written to the XMP sidecar like Immich tags.
+- Moving a photo into an area keeps its tags.
 
 ### 🌐 Website galleries
 
@@ -203,9 +213,10 @@ together with a matching ImagePier release. The override file already sets the W
 
 ### Switching back to Immich
 
-ImagePier does not change Immich's database schema. Remove `docker-compose.override.yml` and restart to return to
+ImagePier does not change Immich's database tables. Remove `docker-compose.override.yml` and restart to return to
 the official Immich server of the same version. Usage rights stay stored in Immich's asset metadata, and the
-`Usage rights/…` tags remain as regular tags.
+`Usage rights/…` tags and keywords remain as regular tags. Photos of areas stay in the area accounts – see
+[DIFFERENCES.md](../DIFFERENCES.md#switching-back-to-immich).
 
 ## Releases and versions
 

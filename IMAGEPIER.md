@@ -46,10 +46,10 @@ conflicts can occur during updates.
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
 | `web/src/routes/admin/users/(list)/+layout.svelte` | user list replaced by `UserListAdmin` (role, search, role filter, sorting) |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
-| `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Areas", "Trash" and "Audit log" admin entries |
-| `web/src/routes/admin/media-library/`, `web/src/routes/admin/trash/`, `web/src/routes/admin/audit/` | new admin pages (areas; trash of all areas; audit log); no Immich file changed |
-| `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
-| `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
+| `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Areas", "Keywords", "Trash" and "Audit log" admin entries |
+| `web/src/routes/admin/media-library/`, `web/src/routes/admin/keywords/`, `web/src/routes/admin/trash/`, `web/src/routes/admin/audit/` | new admin pages (areas; keyword list; trash of all areas; audit log); no Immich file changed |
+| `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` and `KeywordsPanel` |
+| `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entries (usage rights, keywords, area) |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
 | `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits; audit log |
 | `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log |
@@ -162,6 +162,21 @@ when access rules change.
   back to the default (`mergeBranding()`).
 - Web: public page `web/src/routes/gallery/[key]/` (no login), management page `web/src/routes/(user)/galleries/`,
   sidebar entry in `MediaLibraryNavItem.svelte`. No Immich file changed.
+
+## Keyword list – technical overview
+
+- List in `system_metadata` (`imagepier.keywords`): `{ keywords: [{ category, name, description?, active }] }`,
+  maintained under *Administration → Keywords* (`/admin/keywords`, rows pasted from a spreadsheet; keywords missing in
+  a new import are deactivated). Server: `src/imagepier/keywords.ts`, `keyword.service.ts`, `keyword.controller.ts`.
+- A keyword is the Immich tag `Category/Keyword` of the asset owner (own account or area account). Adding or removing
+  keywords also updates the locked `tags` column of the asset's EXIF data and queues `SidecarWrite`, like Immich's tag
+  service, so a new metadata extraction keeps them. Usage rights tags are left out of the EXIF tags.
+- `moveToLibrary` moves all tags of an asset to the new owner (`moveTagsToOwner`).
+- Endpoints: `GET|PUT /api/imagepier/keywords` (PUT admin only), `GET /api/imagepier/keywords/assets/:id`,
+  `PUT /api/imagepier/keywords/assets` (`{ assetIds, add, remove }`, needs `AssetUpdate`; only active keywords can be
+  added).
+- Planned: keyword search across areas, free tags only for administrators.
+- User-facing differences to Immich are listed in [DIFFERENCES.md](DIFFERENCES.md); keep it up to date.
 
 ## Audit log – technical overview
 

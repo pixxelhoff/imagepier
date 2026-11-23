@@ -11,6 +11,7 @@
     type MyAccess,
   } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
+  import { editKeywordsOfAssets } from '#lib/imagepier/keywords-bulk.ts';
   import {
     applyUsageRightsToAssets,
     confirmUsageRights,
@@ -22,7 +23,13 @@
   import { handleError } from '#lib/utils/handle-error.ts';
   import { deleteAssets } from '@immich/sdk';
   import { IconButton, modalManager, toastManager } from '@immich/ui';
-  import { mdiCheckDecagramOutline, mdiCopyright, mdiDeleteOutline, mdiFolderMultipleImage } from '@mdi/js';
+  import {
+    mdiCheckDecagramOutline,
+    mdiCopyright,
+    mdiDeleteOutline,
+    mdiFolderMultipleImage,
+    mdiTagMultipleOutline,
+  } from '@mdi/js';
 
   /**
   Actions for editors and media managers in the view of an area (the timeline of the area account).
@@ -94,6 +101,13 @@
     }
   };
 
+  const handleKeywords = async () => {
+    const ids = await getEditableIds();
+    if (ids.length > 0 && (await editKeywordsOfAssets(ids))) {
+      assetMultiSelectManager.clear();
+    }
+  };
+
   const handleArea = async () => {
     if (!access) {
       return;
@@ -152,6 +166,15 @@
     title={$ipt('usage_rights_edit')}
     icon={mdiCopyright}
     onclick={handleUsageRights}
+  />
+  <IconButton
+    shape="round"
+    color="secondary"
+    variant="ghost"
+    aria-label={$ipt('keywords_edit')}
+    title={$ipt('keywords_edit')}
+    icon={mdiTagMultipleOutline}
+    onclick={handleKeywords}
   />
   {#if canConfirm}
     <IconButton

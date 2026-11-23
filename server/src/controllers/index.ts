@@ -52,6 +52,7 @@ import {
   ImagePierGalleryController,
   ImagePierGalleryPublicController,
 } from 'src/imagepier/gallery.controller.js';
+import { ImagePierKeywordController } from 'src/imagepier/keyword.controller.js';
 import { ImagePierUsageRightsController } from 'src/imagepier/usage-rights.controller.js';
 
 export const controllers = [
@@ -109,6 +110,7 @@ export const controllers = [
   ImagePierGalleryAdminController,
   ImagePierGalleryController,
   ImagePierGalleryPublicController,
+  ImagePierKeywordController,
   ImagePierLibraryController,
   ImagePierUsageRightsController,
 ];

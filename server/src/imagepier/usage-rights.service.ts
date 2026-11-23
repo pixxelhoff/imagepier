@@ -238,6 +238,7 @@ export class ImagePierUsageRightsService extends BaseService {
       const users = await this.getFolderOwners();
       for (const assetId of moveIds) {
         await this.tryMoveFilesToOwner(assetId, users);
+        await this.moveTagsToOwner(assetId, target.userId);
       }
     }
 
@@ -252,6 +253,23 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     return { count: ownIds.length + libraryIds.length };
+  }
+
+  /** Tags belong to an account: after an owner change the asset gets the tags of the same name of its new owner. */
+  private async moveTagsToOwner(assetId: string, ownerId: string) {
+    const tags = (await this.assetRepository.getById(assetId, { tags: true }))?.tags ?? [];
+    if (tags.length === 0) {
+      return;
+    }
+
+    const owned = await upsertTags(this.tagRepository, { userId: ownerId, tags: tags.map((tag) => tag.value) });
+    const ownedIds = new Set(owned.map((tag) => tag.id));
+    for (const tag of tags) {
+      if (!ownedIds.has(tag.id)) {
+        await this.tagRepository.removeAssetIds(tag.id, [assetId]);
+      }
+    }
+    await this.tagRepository.upsertAssetIds(owned.map((tag) => ({ assetId, tagId: tag.id })));
   }
 
   /**

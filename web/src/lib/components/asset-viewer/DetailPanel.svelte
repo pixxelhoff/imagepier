@@ -6,6 +6,7 @@
   import DetailPanelRating from '#lib/components/asset-viewer/DetailPanelStarRating.svelte';
   import DetailPanelTags from '#lib/components/asset-viewer/DetailPanelTags.svelte';
   import { timeToLoadTheMap } from '#lib/constants.ts';
+  import KeywordsPanel from '#lib/imagepier/KeywordsPanel.svelte';
   import UsageRightsPanel from '#lib/imagepier/UsageRightsPanel.svelte';
   import { assetViewerManager } from '#lib/managers/asset-viewer-manager.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -270,6 +271,7 @@
 
   {#if authManager.authenticated && !authManager.isSharedLink}
     <UsageRightsPanel {asset} {isOwner} />
+    <KeywordsPanel {asset} {isOwner} />
   {/if}
 
   {#if latlng && publicConfig.map.enabled}

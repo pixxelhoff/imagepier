@@ -1,6 +1,7 @@
 import { ImagePierAccessService } from 'src/imagepier/access.service.js';
 import { ImagePierAuditService } from 'src/imagepier/audit.service.js';
 import { ImagePierGalleryService } from 'src/imagepier/gallery.service.js';
+import { ImagePierKeywordService } from 'src/imagepier/keyword.service.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { ActivityService } from 'src/services/activity.service.js';
 import { AlbumService } from 'src/services/album.service.js';
@@ -118,5 +119,6 @@ export const services = [
   ImagePierAccessService,
   ImagePierAuditService,
   ImagePierGalleryService,
+  ImagePierKeywordService,
   ImagePierUsageRightsService,
 ];

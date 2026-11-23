@@ -53,7 +53,7 @@ export class ImagePierRequestError extends Error {
   }
 }
 
-const request = async <T>(path: string, init?: RequestInit) => {
+export const request = async <T>(path: string, init?: RequestInit) => {
   const response = await fetch(`${defaults.baseUrl}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...defaults.headers },
