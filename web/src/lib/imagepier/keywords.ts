@@ -72,6 +72,12 @@ export const getAssetKeywords = async (assetId: string) => {
   return values;
 };
 
+/** Keyword tags of the own account and of the accessible areas (one keyword can have one tag per account). */
+export const getKeywordTags = async () => {
+  const { tags } = await request<{ tags: Array<{ id: string; value: string }> }>('/imagepier/keywords/tags');
+  return tags;
+};
+
 export const updateAssetKeywords = (assetIds: string[], add: string[], remove: string[]) =>
   request<{ count: number }>('/imagepier/keywords/assets', {
     method: 'PUT',

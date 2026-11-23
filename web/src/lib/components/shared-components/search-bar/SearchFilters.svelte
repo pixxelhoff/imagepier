@@ -1,5 +1,7 @@
 <script lang="ts">
+  import KeywordSearchSection from '#lib/imagepier/KeywordSearchSection.svelte';
   import UsageRightsSearchSection from '#lib/imagepier/UsageRightsSearchSection.svelte';
+  import { keywordSearchFilter } from '#lib/imagepier/keyword-search.svelte.ts';
   import { usageRightsSearchFilter } from '#lib/imagepier/usage-rights-search.svelte.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { searchManager } from '#lib/managers/search-manager.svelte.ts';
@@ -130,6 +132,7 @@
       title: $t('media'),
       activeTitle: () => mediaTitle,
     },
+    keywordSearchFilter,
     usageRightsSearchFilter,
   ];
 
@@ -235,6 +238,8 @@
             <SearchTagsSection bind:title={tagsTitle} parentPromise={tagsPromise} />
           {:else if activeFilter === 'media'}
             <SearchMediaSection />
+          {:else if activeFilter === keywordSearchFilter.name}
+            <KeywordSearchSection />
           {:else if activeFilter === usageRightsSearchFilter.name}
             <UsageRightsSearchSection />
           {/if}

@@ -330,9 +330,20 @@ export function hasTags<O>(qb: SelectQueryBuilder<DB, 'asset', O>, tagIds: strin
         .selectFrom('tag_asset')
         .select('assetId')
         .innerJoin('tag_closure', 'tag_asset.tagId', 'tag_closure.id_descendant')
+        // ImagePier: tags of different accounts with the same value count as one tag (keywords of areas)
+        .innerJoin('tag', 'tag.id', 'tag_closure.id_ancestor')
         .where('tag_closure.id_ancestor', '=', anyUuid(tagIds))
         .groupBy('assetId')
-        .having((eb) => eb.fn.count('tag_closure.id_ancestor').distinct(), '>=', tagIds.length)
+        .having((eb) =>
+          eb(
+            eb.fn.count('tag.value').distinct(),
+            '>=',
+            eb
+              .selectFrom('tag as requested_tag')
+              .select((eb) => eb.fn.count('requested_tag.value').distinct().as('count'))
+              .where('requested_tag.id', '=', anyUuid(tagIds)),
+          ),
+        )
         .as('has_tags'),
     (join) => join.onRef('has_tags.assetId', '=', 'asset.id'),
   );

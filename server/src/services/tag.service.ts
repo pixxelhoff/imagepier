@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { Insertable } from 'kysely';
 import { OnJob } from 'src/decorators.js';
 import { BulkIdResponseDto, BulkIdsDto } from 'src/dtos/asset-ids.response.dto.js';
@@ -12,7 +12,8 @@ import {
   TagUpsertDto,
   mapTag,
 } from 'src/dtos/tag.dto.js';
-import { JobName, JobStatus, Permission, QueueName } from 'src/enum.js';
+import { JobName, JobStatus, Permission, QueueName, SystemMetadataKey } from 'src/enum.js';
+import { KEYWORDS_KEY, canCreateTags } from 'src/imagepier/keywords.js';
 import { TagAssetTable } from 'src/schema/tables/tag-asset.table.js';
 import { BaseService } from 'src/services/base.service.js';
 import { addAssets, removeAssets } from 'src/utils/asset.util.js';
@@ -34,6 +35,7 @@ export class TagService extends BaseService {
   }
 
   async create(auth: AuthDto, dto: TagCreateDto) {
+    await this.requireTagCreation(auth);
     let parent;
     if (dto.parentId) {
       await this.requireAccess({ auth, permission: Permission.TagRead, ids: [dto.parentId] });
@@ -78,6 +80,7 @@ export class TagService extends BaseService {
   }
 
   async upsert(auth: AuthDto, dto: TagUpsertDto) {
+    await this.requireTagCreation(auth);
     const tags = await upsertTags(this.tagRepository, { userId: auth.user.id, tags: dto.tags });
     return tags.map((tag) => mapTag(tag));
   }
@@ -158,6 +161,14 @@ export class TagService extends BaseService {
   async handleTagCleanup() {
     await this.tagRepository.deleteEmptyTags();
     return JobStatus.Success;
+  }
+
+  /** ImagePier: once a keyword list exists, only administrators create tags (src/imagepier/keywords.ts). */
+  private async requireTagCreation(auth: AuthDto) {
+    const keywords = await this.systemMetadataRepository.get(KEYWORDS_KEY as SystemMetadataKey);
+    if (!canCreateTags(auth.user.isAdmin, keywords)) {
+      throw new ForbiddenException('Tags are created by administrators; please use the keyword list');
+    }
   }
 
   private findOrFail(id: string) {

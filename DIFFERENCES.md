@@ -26,6 +26,8 @@ two. Who may do what is described in [PERMISSIONS.md](PERMISSIONS.md); technical
 | Usage rights | – | Photographer, copyright holder, credit line, license, permitted usage, expiry date; suggested from IPTC/XMP/EXIF and file names; confirmed by media managers |
 | Tags | Free tags per account, everybody creates their own | Immich tags still exist. In addition ImagePier maintains tags itself: `Usage rights/…` (derived from the usage rights) and the **keyword list** (see below) |
 | Keywords | – | Administrators maintain a fixed keyword list (*Administration → Keywords*, pasted from a spreadsheet). Keywords are assigned in the panel *Keywords* of a photo or for a selection and stored as tags `Category/Keyword` of the account that owns the photo, so everybody with access finds the photo under the same keyword |
+| Creating tags | Everybody | Once a keyword list exists, only administrators create tags; everybody else assigns keywords from the list. Keywords embedded in uploaded files are still read |
+| Searching tags | Tags of the own account | Search tab *Keywords*: all selected keywords must apply, in own photos and all accessible areas at once. Immich's tag filter treats tags with the same name in different accounts as one tag |
 | Tags when moving to an area | – (owners never change) | Tags of the photo are moved to the area account (same names) |
 | Downloads | Original file | Copy with photographer, copyright and usage terms written into IPTC/XMP/EXIF; the original stays unchanged |
 

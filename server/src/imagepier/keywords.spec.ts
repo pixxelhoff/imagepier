@@ -1,4 +1,4 @@
-import { getKeywordValue, normalizeKeywords, parseKeywordSettings } from 'src/imagepier/keywords.js';
+import { canCreateTags, getKeywordValue, normalizeKeywords, parseKeywordSettings } from 'src/imagepier/keywords.js';
 
 describe('ImagePier keywords', () => {
   it('should clean names and drop invalid and duplicate keywords', () => {
@@ -18,6 +18,13 @@ describe('ImagePier keywords', () => {
 
   it('should build the tag value from category and keyword', () => {
     expect(getKeywordValue({ category: 'Place', name: 'Harbour' })).toBe('Place/Harbour');
+  });
+
+  it('should allow free tags only for administrators once a keyword list exists', () => {
+    const stored = { keywords: [{ category: 'Place', name: 'Harbour' }] };
+    expect(canCreateTags(false, undefined)).toBe(true);
+    expect(canCreateTags(false, stored)).toBe(false);
+    expect(canCreateTags(true, stored)).toBe(true);
   });
 
   it('should read stored settings', () => {

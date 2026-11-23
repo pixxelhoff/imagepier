@@ -48,6 +48,12 @@ export class ImagePierKeywordController {
     return { keywords: await this.service.updateKeywords(dto.keywords) };
   }
 
+  @Get('tags')
+  @Authenticated()
+  async getKeywordTags(@Auth() auth: AuthDto) {
+    return { tags: await this.service.getKeywordTags(auth) };
+  }
+
   @Get('assets/:id')
   @Authenticated({ permission: Permission.AssetRead })
   async getAssetKeywords(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto) {

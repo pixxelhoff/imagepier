@@ -50,3 +50,7 @@ export const parseKeywordSettings = (value: unknown): Keyword[] => {
   const items = value && typeof value === 'object' ? (value as { keywords?: unknown }).keywords : undefined;
   return Array.isArray(items) ? normalizeKeywords(items) : [];
 };
+
+/** Once a keyword list exists, only administrators create tags; everybody else uses the keyword list. */
+export const canCreateTags = (isAdmin: boolean, storedKeywords: unknown) =>
+  isAdmin || parseKeywordSettings(storedKeywords).length === 0;

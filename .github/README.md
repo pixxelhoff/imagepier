@@ -112,6 +112,9 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Assigning keywords** – in the *Keywords* panel of a photo or for a selection, grouped by category. Keywords are
   stored as Immich tags `Category/Keyword` of the account that owns the photo, so they work for photos of areas as
   well and are written to the XMP sidecar like Immich tags.
+- **Keyword search** – the search tab *Keywords* finds photos with all selected keywords in the own photos and all
+  accessible areas at once.
+- Once a keyword list exists, only administrators create new tags, so the vocabulary stays consistent.
 - Moving a photo into an area keeps its tags.
 
 ### 🌐 Website galleries

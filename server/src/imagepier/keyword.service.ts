@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { JobName, Permission, SystemMetadataKey } from 'src/enum.js';
+import { getAccessForAuth } from 'src/imagepier/access-hook.js';
+import { getAreaLevel, getCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import {
   KEYWORDS_KEY,
   Keyword,
@@ -43,6 +45,29 @@ export class ImagePierKeywordService extends BaseService {
     const known = new Set(keywords.map((keyword) => getKeywordValue(keyword)));
     const asset = await this.assetRepository.getById(assetId, { tags: true });
     return (asset?.tags ?? []).map((tag) => tag.value).filter((value) => known.has(value));
+  }
+
+  /**
+  Keyword tags of the own account and of the areas the user has a level in. The search sends the tags of all
+  accounts; tags with the same value count as one tag (see hasTags in src/utils/database.ts).
+  */
+  async getKeywordTags(auth: AuthDto) {
+    const keywords = await this.getKeywords();
+    const known = new Set(keywords.map((keyword) => getKeywordValue(keyword)));
+    const access = getAccessForAuth(auth);
+    const areaAccounts = getCachedAccessSettings().areas.flatMap((area) =>
+      area.userId && getAreaLevel(access, area.id) ? [area.userId] : [],
+    );
+
+    const result: Array<{ id: string; value: string }> = [];
+    for (const userId of new Set([auth.user.id, ...areaAccounts])) {
+      for (const tag of await this.tagRepository.getAll(userId)) {
+        if (known.has(tag.value)) {
+          result.push({ id: tag.id, value: tag.value });
+        }
+      }
+    }
+    return result;
   }
 
   /** Adds and removes keywords; only active keywords of the list can be added. */

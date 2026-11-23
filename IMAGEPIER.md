@@ -50,7 +50,9 @@ conflicts can occur during updates.
 | `web/src/routes/admin/media-library/`, `web/src/routes/admin/keywords/`, `web/src/routes/admin/trash/`, `web/src/routes/admin/audit/` | new admin pages (areas; keyword list; trash of all areas; audit log); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` and `KeywordsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entries (usage rights, keywords, area) |
-| `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" search tab |
+| `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" and "Keywords" search tabs |
+| `server/src/utils/database.ts` | `hasTags`: tags with the same value count as one tag, so keywords of several accounts (areas) can be searched together; unchanged result for tags of one account |
+| `server/src/services/tag.service.ts` | `create` and `upsert`: only administrators create tags once a keyword list exists |
 | `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits; audit log |
 | `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log |
 | `web/src/lib/components/layouts/UserPageLayout.svelte` | hides the upload button without upload permission |
@@ -175,7 +177,12 @@ when access rules change.
 - Endpoints: `GET|PUT /api/imagepier/keywords` (PUT admin only), `GET /api/imagepier/keywords/assets/:id`,
   `PUT /api/imagepier/keywords/assets` (`{ assetIds, add, remove }`, needs `AssetUpdate`; only active keywords can be
   added).
-- Planned: keyword search across areas, free tags only for administrators.
+- Search: tab *Keywords* in the search dialog. `GET /api/imagepier/keywords/tags` returns the keyword tags of the own
+  account and of the accessible area accounts; the web app adds all tag IDs of a keyword to Immich's tag filter.
+  `hasTags` compares tag values instead of IDs, so one keyword matches in every account and all selected keywords
+  must apply (AND), like Immich's tag filter.
+- Once a keyword list exists, `TagService.create` and `upsert` refuse non-administrators. Tags created by the
+  metadata extraction (keywords in uploaded files) are not affected.
 - User-facing differences to Immich are listed in [DIFFERENCES.md](DIFFERENCES.md); keep it up to date.
 
 ## Audit log – technical overview
