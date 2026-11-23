@@ -56,7 +56,7 @@ export class ImagePierKeywordService extends BaseService {
     const known = new Set(keywords.map((keyword) => getKeywordValue(keyword)));
     const access = getAccessForAuth(auth);
     const areaAccounts = getCachedAccessSettings().areas.flatMap((area) =>
-      area.userId && getAreaLevel(access, area.id) ? [area.userId] : [],
+      area.userId && getAreaLevel(access, area.id) ? area.userId : [],
     );
 
     const result: Array<{ id: string; value: string }> = [];

@@ -13,20 +13,22 @@ selected keywords must apply and the search covers all accessible areas at once.
 */
 class KeywordSearchData {
   keywords = $state<Keyword[]>([]);
-  tagIdsByValue = $state<Map<string, string[]>>(new Map());
+  tagIdsByValue = $state<Record<string, string[]>>({});
   private loading?: Promise<void>;
 
   /** Keywords that are assigned to at least one accessible asset. */
   get groups() {
-    return groupKeywords(this.keywords.filter((keyword) => this.tagIdsByValue.has(getKeywordValue(keyword))));
+    return groupKeywords(
+      this.keywords.filter((keyword) => Object.hasOwn(this.tagIdsByValue, getKeywordValue(keyword))),
+    );
   }
 
   load() {
     this.loading ??= Promise.all([getKeywords(), getKeywordTags()])
       .then(([keywords, tags]) => {
-        const byValue = new Map<string, string[]>();
+        const byValue: Record<string, string[]> = {};
         for (const tag of tags) {
-          byValue.set(tag.value, [...(byValue.get(tag.value) ?? []), tag.id]);
+          byValue[tag.value] = [...(byValue[tag.value] ?? []), tag.id];
         }
         this.keywords = keywords;
         this.tagIdsByValue = byValue;
@@ -43,8 +45,12 @@ class KeywordSearchData {
     this.loading = undefined;
   }
 
+  private getTagIds(value: string) {
+    return Object.hasOwn(this.tagIdsByValue, value) ? this.tagIdsByValue[value] : [];
+  }
+
   isSelected(value: string, tagIds: Set<string> | null | undefined) {
-    return !!tagIds && (this.tagIdsByValue.get(value) ?? []).some((id) => tagIds.has(id));
+    return !!tagIds && this.getTagIds(value).some((id) => tagIds.has(id));
   }
 
   toggle(value: string, checked: boolean) {
@@ -53,7 +59,7 @@ class KeywordSearchData {
       return;
     }
 
-    for (const id of this.tagIdsByValue.get(value) ?? []) {
+    for (const id of this.getTagIds(value)) {
       if (checked) {
         tagIds.add(id);
       } else {

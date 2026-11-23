@@ -71,12 +71,12 @@
   const hasKeywords = $derived(keywords.some((keyword) => keyword.active));
 
   const groups = $derived.by(() => {
-    const byCategory = new Map<string, string[]>();
+    const byCategory: Record<string, string[]> = {};
     for (const value of values) {
       const { category, name } = splitKeywordValue(value);
-      byCategory.set(category, [...(byCategory.get(category) ?? []), name]);
+      byCategory[category] = [...(byCategory[category] ?? []), name];
     }
-    return Array.from(byCategory, ([category, names]) => ({ category, names }));
+    return Object.entries(byCategory).map(([category, names]) => ({ category, names }));
   });
 
   const handleEdit = async () => {
