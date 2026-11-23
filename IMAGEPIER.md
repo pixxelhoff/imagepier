@@ -46,7 +46,7 @@ conflicts can occur during updates.
 | `web/src/routes/admin/users/[id]/+layout.svelte` | adds the "Role and permissions" card |
 | `web/src/routes/admin/users/(list)/+layout.svelte` | user list replaced by `UserListAdmin` (role, search, role filter, sorting) |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
-| `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Media library" admin entry |
+| `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Areas", "Trash" and "Audit log" admin entries |
 | `web/src/routes/admin/media-library/`, `web/src/routes/admin/trash/`, `web/src/routes/admin/audit/` | new admin pages (areas; trash of all areas; audit log); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entry |
@@ -58,7 +58,8 @@ conflicts can occur during updates.
 | `web/src/lib/components/asset-viewer/AssetViewerNavBar.svelte` | trash button for media library assets (`MediaLibraryDeleteAction`) |
 | `server/src/emails/components/immich.layout.tsx`, `footer.template.tsx` | ImagePier logo, color and footer instead of Immich's (see E-mails) |
 | `server/src/emails/welcome.email.tsx`, `test.email.tsx`, `album-invite.email.tsx`, `album-update.email.tsx` | German or English texts from `src/imagepier/mail.ts` |
-| `server/src/services/notification.service.ts`, `notification-admin.service.ts` | e-mail subjects from `src/imagepier/mail.ts` |
+| `server/src/services/notification.service.ts`, `notification-admin.service.ts` | e-mail subjects from `src/imagepier/mail.ts`; logo in the template preview |
+| `server/src/repositories/email.repository.ts` | attaches the embedded logo (`getMailLogoAttachment`) |
 | `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
 | `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
@@ -206,7 +207,12 @@ Administration → Settings → Notifications still replace the text inside the 
 |---|---|---|
 | `IMAGEPIER_MAIL_NAME` | `ImagePier` | name in the word mark, footer and subjects |
 | `IMAGEPIER_MAIL_COLOR` | `#6b46e5` | accent color of buttons and links (`#rrggbb`) |
-| `IMAGEPIER_MAIL_LOGO_URL` | – | https URL of a PNG or JPEG logo instead of the word mark (SVG is not shown by many mail clients) |
+| `IMAGEPIER_MAIL_LOGO_URL` | embedded logo | https URL of a PNG or JPEG logo instead of the embedded one |
+
+By default the layout references `cid:imagepier-logo`. `EmailRepository.sendEmail` then attaches the web app's word
+mark (`/build/www/imagepier/logo-inline-light.svg`, so a mounted custom logo is used too), rendered once as PNG
+with sharp into the temp folder. The template preview in the administration shows it as inline image. Without the
+SVG file (unit tests) the name is shown as text.
 
 ## Updating to a new Immich release
 

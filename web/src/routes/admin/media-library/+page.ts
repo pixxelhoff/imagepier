@@ -9,7 +9,7 @@ export const load = (async ({ url }) => {
 
   return {
     meta: {
-      title: get(ipt)('media_library'),
+      title: get(ipt)('areas'),
     },
   };
 }) satisfies PageLoad;

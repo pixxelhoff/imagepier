@@ -3,7 +3,7 @@ import { Body, Container, Font, Head, Hr, Html, Img, Preview, Section, Tailwind,
 // @ts-expect-error
 import tailwindPresetEmail from 'tailwindcss-preset-email';
 import { ImmichFooter } from 'src/emails/components/footer.template.js';
-import { getMailBranding } from 'src/imagepier/mail.js';
+import { getMailBranding, hasEmbeddedMailLogo, MAIL_LOGO_CID } from 'src/imagepier/mail.js';
 
 interface ImmichLayoutProps {
   children: React.ReactNode;
@@ -53,8 +53,13 @@ export const ImmichLayout = ({ children, preview }: ImmichLayoutProps) => {
           <Container className="my-[40px] mx-auto max-w-[465px]">
             <Section className="my-6 p-12 border border-gray-200 rounded-[24px] bg-white">
               <Section className="flex justify-center mb-10">
-                {branding.logoUrl ? (
-                  <Img src={branding.logoUrl} className="h-12 antialiased rounded-none mx-auto" alt={branding.name} />
+                {branding.logoUrl || hasEmbeddedMailLogo() ? (
+                  <Img
+                    src={branding.logoUrl ?? `cid:${MAIL_LOGO_CID}`}
+                    height="48"
+                    className="h-12 w-auto antialiased rounded-none mx-auto"
+                    alt={branding.name}
+                  />
                 ) : (
                   <Text className="m-0 text-center text-3xl font-bold text-[#0f1330]">{branding.name}</Text>
                 )}

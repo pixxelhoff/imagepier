@@ -23,7 +23,7 @@ This page explains who can do what in ImagePier. The short version is in the [RE
 | **Editor** | maintains the area: upload, usage rights, trash, sharing |
 | **Media manager** | responsible for the area: also confirms usage rights and deletes permanently (staff only) |
 
-Every area should have at least one media manager. *Administration → Media library* marks areas without one.
+Every area should have at least one media manager. *Administration → Areas* marks areas without one.
 
 ## Permission matrix (media library)
 

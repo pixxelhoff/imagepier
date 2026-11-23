@@ -6,6 +6,7 @@ import { AlbumInviteEmail } from 'src/emails/album-invite.email.js';
 import { AlbumUpdateEmail } from 'src/emails/album-update.email.js';
 import { TestEmail } from 'src/emails/test.email.js';
 import { WelcomeEmail } from 'src/emails/welcome.email.js';
+import { getMailLogoAttachment } from 'src/imagepier/mail.js';
 import { LoggingRepository } from 'src/repositories/logging.repository.js';
 import type { EmailImageAttachment } from 'src/types.js';
 
@@ -120,11 +121,21 @@ export class EmailRepository {
     return { html, text };
   }
 
-  sendEmail({ to, from, subject, html, text, smtp, imageAttachments }: SendEmailOptions): Promise<SendEmailResponse> {
+  async sendEmail({
+    to,
+    from,
+    subject,
+    html,
+    text,
+    smtp,
+    imageAttachments,
+  }: SendEmailOptions): Promise<SendEmailResponse> {
     this.logger.debug(`Sending email to ${to} with subject: ${subject}`);
+    // ImagePier: embed the logo referenced by the e-mail layout
+    const logo = await getMailLogoAttachment(html);
     const transport = this.createTransport(smtp);
 
-    const attachments = imageAttachments?.map((attachment) => ({
+    const attachments = [...(imageAttachments ?? []), ...(logo ? [logo] : [])].map((attachment) => ({
       filename: attachment.filename,
       path: attachment.path,
       cid: attachment.cid,

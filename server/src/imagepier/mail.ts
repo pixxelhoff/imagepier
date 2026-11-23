@@ -8,8 +8,18 @@ Administration → Settings → Notifications keep working; they replace the tex
 Optional environment variables:
 - `IMAGEPIER_MAIL_NAME`: name shown in e-mails (default "ImagePier")
 - `IMAGEPIER_MAIL_COLOR`: accent color of buttons and links, e.g. `#0060a8`
-- `IMAGEPIER_MAIL_LOGO_URL`: https URL of a PNG or JPEG logo; without it the name is shown as a word mark
+- `IMAGEPIER_MAIL_LOGO_URL`: https URL of a PNG or JPEG logo instead of the embedded default logo
+
+By default the e-mails embed the word mark of the web app (`/imagepier/logo-inline-light.svg`, replaceable by the
+logo mount) as PNG attachment (`cid:imagepier-logo`), so it is shown without loading remote images. Without the
+file (unit tests, development) the name is shown as text.
 */
+
+import { existsSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import sharp from 'sharp';
+import type { EmailImageAttachment } from 'src/types.js';
 
 const DEFAULT_COLOR = '#6b46e5';
 
@@ -28,6 +38,48 @@ export const getMailBranding = (): MailBranding => ({
   color: asColor(process.env.IMAGEPIER_MAIL_COLOR) ?? DEFAULT_COLOR,
   logoUrl: asHttpsUrl(process.env.IMAGEPIER_MAIL_LOGO_URL),
 });
+
+export const MAIL_LOGO_CID = 'imagepier-logo';
+
+const MAIL_LOGO_HEIGHT = 112;
+
+const getLogoSource = () =>
+  join(process.env.IMMICH_BUILD_DATA || '/build', 'www', 'imagepier', 'logo-inline-light.svg');
+
+/** Whether the e-mail layout can reference the embedded default logo. */
+export const hasEmbeddedMailLogo = () => existsSync(getLogoSource());
+
+/** Renders the word mark once as PNG into the temp folder (e-mail clients do not show SVG reliably). */
+const getMailLogoFile = async () => {
+  const source = getLogoSource();
+  if (!existsSync(source)) {
+    return;
+  }
+  const target = join(tmpdir(), `imagepier-mail-logo-${Math.trunc(statSync(source).mtimeMs)}.png`);
+  if (!existsSync(target)) {
+    await sharp(source, { density: 300 }).resize({ height: MAIL_LOGO_HEIGHT }).png().toFile(target);
+  }
+  return target;
+};
+
+/** Attachment for the embedded logo, if the rendered e-mail references it. */
+export const getMailLogoAttachment = async (html: string): Promise<EmailImageAttachment | undefined> => {
+  if (!html.includes(`cid:${MAIL_LOGO_CID}`)) {
+    return;
+  }
+  const path = await getMailLogoFile();
+  return path ? { filename: 'logo.png', path, cid: MAIL_LOGO_CID } : undefined;
+};
+
+/** Replaces the logo reference by an inline image, for the template preview in the browser. */
+export const inlineMailLogo = async (html: string) => {
+  const attachment = await getMailLogoAttachment(html);
+  if (!attachment) {
+    return html;
+  }
+  const png = await sharp(attachment.path).toBuffer();
+  return html.replaceAll(`cid:${MAIL_LOGO_CID}`, `data:image/png;base64,${png.toString('base64')}`);
+};
 
 const en = {
   greeting: 'Hello',

@@ -1,4 +1,4 @@
-import { getMailBranding, getMailTexts } from 'src/imagepier/mail.js';
+import { getMailBranding, getMailLogoAttachment, getMailTexts, MAIL_LOGO_CID } from 'src/imagepier/mail.js';
 
 describe('ImagePier mails', () => {
   const env = { ...process.env };
@@ -32,6 +32,16 @@ describe('ImagePier mails', () => {
     process.env.IMAGEPIER_MAIL_LOGO_URL = 'ftp://example.com/logo.png';
 
     expect(getMailBranding()).toEqual(expect.objectContaining({ color: '#6b46e5', logoUrl: undefined }));
+  });
+
+  it('should not attach a logo when the e-mail does not reference it', async () => {
+    await expect(getMailLogoAttachment('<p>Hello</p>')).resolves.toBeUndefined();
+  });
+
+  it('should not attach a logo without the logo file', async () => {
+    process.env.IMMICH_BUILD_DATA = '/nonexistent';
+
+    await expect(getMailLogoAttachment(`<img src="cid:${MAIL_LOGO_CID}">`)).resolves.toBeUndefined();
   });
 
   it('should use German texts for IMAGEPIER_LANGUAGE=de', () => {

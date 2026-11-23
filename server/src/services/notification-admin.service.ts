@@ -3,7 +3,7 @@ import { AuthDto } from 'src/dtos/auth.dto.js';
 import { SystemConfigSmtpDto } from 'src/dtos/config.dto.js';
 import { NotificationCreateDto, mapNotification } from 'src/dtos/notification.dto.js';
 import { NotificationLevel, NotificationType } from 'src/enum.js';
-import { getMailBranding, getMailTexts } from 'src/imagepier/mail.js';
+import { getMailBranding, getMailTexts, inlineMailLogo } from 'src/imagepier/mail.js';
 import { EmailTemplate } from 'src/repositories/email.repository.js';
 import { BaseService } from 'src/services/base.service.js';
 import { getExternalDomain } from 'src/utils/misc.js';
@@ -116,6 +116,7 @@ export class NotificationAdminService extends BaseService {
       }
     }
 
-    return { name, html: templateResponse };
+    // ImagePier: show the embedded logo in the preview
+    return { name, html: await inlineMailLogo(templateResponse) };
   }
 }

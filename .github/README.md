@@ -89,7 +89,7 @@ albums, face and object search, mobile apps – and adds what teams need to work
   [PERMISSIONS.md](../PERMISSIONS.md).
 - **User list with roles** – *Administration → Users* shows the role of every account and can be searched, filtered
   by role and sorted by name, e-mail or role.
-- **Managing areas** – administrators create, rename and remove areas under *Administration → Media library*; areas
+- **Managing areas** – administrators create, rename and remove areas under *Administration → Areas*; areas
   without a media manager are marked, and areas that still contain images cannot be removed. Each media library
   asset shows its area, and the usage rights search works per area.
 - **Assign to area** – own assets can be assigned to an area with the level *Editor* or higher (selection menu or
@@ -134,8 +134,9 @@ accounts – filterable by action, person and period, with CSV export.
 - **ImagePier name and logo** in the web app, browser tab and installed web app (PWA). Immich is still credited in
   the "About" dialog.
 - **Your own logo** without rebuilding: mount a folder with your logo files (see [Custom logo](#custom-logo)).
-- **E-mails in ImagePier design** – welcome, test and album e-mails use ImagePier's name, accent color and a neutral
-  footer instead of Immich's, in German or English. Name, color and logo can be set in `.env`.
+- **E-mails in ImagePier design** – welcome, test and album e-mails show the ImagePier logo (or your own logo from
+  the logo folder), an accent color and a neutral footer instead of Immich's, in German or English. Name, color and
+  logo can be changed in `.env`.
 
 ### 🧭 Possible later
 
@@ -162,7 +163,7 @@ official Immich images, and existing Immich data is used as it is.
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
    # IMAGEPIER_LIBRARY_NAME=Media library
-   # optional: look of the e-mails (logo as https URL of a PNG, not SVG)
+   # optional: look of the e-mails (default: embedded ImagePier logo; own logo as https URL of a PNG, not SVG)
    # IMAGEPIER_MAIL_NAME=ImagePier
    # IMAGEPIER_MAIL_COLOR=#6b46e5
    # IMAGEPIER_MAIL_LOGO_URL=https://photos.example.com/mail-logo.png

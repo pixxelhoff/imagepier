@@ -54,7 +54,7 @@
 
   const getRole = (user: UserAdminResponseDto): UserListRole => roles[user.id] ?? (user.isAdmin ? 'admin' : 'staff');
 
-  const getRoleLabel = (role: UserListRole) => (role === 'library' ? $ipt('media_library') : $ipt(`role.${role}`));
+  const getRoleLabel = (role: UserListRole) => (role === 'library' ? $ipt('area_account') : $ipt(`role.${role}`));
 
   const roleOptions = $derived([
     { label: $ipt('users_role_all'), value: '' },
