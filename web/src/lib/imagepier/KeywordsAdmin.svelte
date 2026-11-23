@@ -11,9 +11,11 @@
     groupKeywords,
     mergeKeywordImport,
     parseKeywordTable,
+    toKeywordCsv,
     updateKeywordsAdmin,
     type Keyword,
   } from '#lib/imagepier/keywords.ts';
+  import { downloadBlob } from '#lib/utils.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
   import {
     Button,
@@ -27,7 +29,7 @@
     modalManager,
     toastManager,
   } from '@immich/ui';
-  import { mdiPlus } from '@mdi/js';
+  import { mdiDownload, mdiPlus } from '@mdi/js';
   import { onMount } from 'svelte';
 
   let keywords = $state<Keyword[]>([]);
@@ -102,6 +104,18 @@
     }
   };
 
+  const exportList = () => {
+    const header = [
+      $ipt('keyword_category'),
+      $ipt('keyword_name'),
+      $ipt('keyword_description'),
+      $ipt('keyword_active'),
+    ];
+    const csv = toKeywordCsv(keywords, header, $ipt('keyword_export_active'), $ipt('keyword_export_inactive'));
+    const date = new Date().toISOString().slice(0, 10);
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `${$ipt('keywords_export_file')}-${date}.csv`);
+  };
+
   const setActive = (keyword: Keyword, active: boolean) =>
     change(() => editKeywordAdmin(getKeywordValue(keyword), { ...keyword, active }));
 
@@ -149,10 +163,15 @@
       {/if}
     </Stack>
 
-    <div>
+    <div class="flex flex-wrap gap-2">
       <Button leadingIcon={mdiPlus} size="small" onclick={() => openEditor()} disabled={saving}>
         {$ipt('keyword_add_title')}
       </Button>
+      {#if keywords.length > 0}
+        <Button leadingIcon={mdiDownload} size="small" variant="outline" color="secondary" onclick={exportList}>
+          {$ipt('keywords_export')}
+        </Button>
+      {/if}
     </div>
 
     {#if keywords.length === 0}

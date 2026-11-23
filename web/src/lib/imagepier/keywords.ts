@@ -57,6 +57,25 @@ export const mergeKeywordImport = (current: Keyword[], imported: Keyword[]): Key
   return [...imported, ...removed];
 };
 
+const toCsvCell = (value: string) => (/[";\r\n]/.test(value) ? `"${value.replaceAll('"', () => '""')}"` : value);
+
+/**
+Keyword list as CSV file for Excel: semicolons as separator and a byte order mark, so Excel opens it with the
+right columns and umlauts. Copying the first three columns back into "Paste from a spreadsheet" works as well.
+*/
+export const toKeywordCsv = (keywords: Keyword[], header: string[], active: string, inactive: string) => {
+  const rows = [
+    header,
+    ...keywords.map((keyword) => [
+      keyword.category,
+      keyword.name,
+      keyword.description ?? '',
+      keyword.active ? active : inactive,
+    ]),
+  ];
+  return `\uFEFF${rows.map((row) => row.map((cell) => toCsvCell(cell)).join(';')).join('\r\n')}\r\n`;
+};
+
 export const getKeywords = async () => {
   const { keywords } = await request<{ keywords: Keyword[] }>('/imagepier/keywords');
   return keywords;
