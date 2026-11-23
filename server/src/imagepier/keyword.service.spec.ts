@@ -11,7 +11,7 @@ describe(ImagePierKeywordService.name, () => {
 
   beforeEach(() => {
     ({ sut, mocks } = newTestService(ImagePierKeywordService));
-    mocks.systemMetadata.get.mockResolvedValue({ keywords: [harbour, beach] });
+    mocks.systemMetadata.get.mockResolvedValue({ keywords: [harbour, beach] } as any);
     mocks.user.getList.mockResolvedValue([{ id: 'user-1' }, { id: 'area-user' }] as any);
     mocks.tag.getByValue.mockResolvedValue(undefined);
     mocks.asset.getForUpdateTags.mockResolvedValue({ tags: [] } as any);
