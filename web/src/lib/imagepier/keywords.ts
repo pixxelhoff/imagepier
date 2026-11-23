@@ -11,6 +11,9 @@ export type KeywordGroup = { category: string; keywords: Keyword[] };
 /** Result of the keyword dialog: keywords (`Category/Keyword`) to add and to remove. */
 export type KeywordChange = { add: string[]; remove: string[] };
 
+/** Result of the dialog to add or edit one keyword. */
+export type KeywordEditResult = { action: 'save'; keyword: Keyword } | { action: 'delete' };
+
 export const getKeywordValue = ({ category, name }: Pick<Keyword, 'category' | 'name'>) => `${category}/${name}`;
 
 /** Splits a stored value `Category/Keyword` for display. */
@@ -66,6 +69,22 @@ export const updateKeywordsAdmin = async (keywords: Keyword[]) => {
   });
   return result.keywords;
 };
+
+const adminKeywordRequest = async (action: 'add' | 'edit' | 'delete', body: object) => {
+  const result = await request<{ keywords: Keyword[] }>(`/admin/imagepier/keywords/${action}`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return result.keywords;
+};
+
+export const addKeywordAdmin = (keyword: Omit<Keyword, 'active'>) => adminKeywordRequest('add', keyword);
+
+/** Changes a keyword; a new category or name renames the keyword on all assets. */
+export const editKeywordAdmin = (value: string, keyword: Keyword) => adminKeywordRequest('edit', { value, ...keyword });
+
+/** Deletes a keyword that is not assigned to any asset. */
+export const deleteKeywordAdmin = (value: string) => adminKeywordRequest('delete', { value });
 
 export const getAssetKeywords = async (assetId: string) => {
   const { values } = await request<{ values: string[] }>(`/imagepier/keywords/assets/${assetId}`);

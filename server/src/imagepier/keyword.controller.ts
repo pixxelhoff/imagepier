@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
@@ -21,6 +21,20 @@ const KeywordListSchema = z.object({
 });
 
 class KeywordListDto extends createZodDto(KeywordListSchema) {}
+
+const KeywordValueSchema = z.string().min(3).max(201).describe('Keyword (Category/Keyword)');
+
+const KeywordAddSchema = KeywordSchema.omit({ active: true });
+
+class KeywordAddDto extends createZodDto(KeywordAddSchema) {}
+
+const KeywordEditSchema = KeywordSchema.extend({ value: KeywordValueSchema });
+
+class KeywordEditDto extends createZodDto(KeywordEditSchema) {}
+
+const KeywordDeleteSchema = z.object({ value: KeywordValueSchema });
+
+class KeywordDeleteDto extends createZodDto(KeywordDeleteSchema) {}
 
 const AssetKeywordsSchema = z.object({
   assetIds: z.array(z.uuidv4()).min(1).max(10_000).describe('Assets to change'),
@@ -72,5 +86,26 @@ export class ImagePierKeywordAdminController {
   @Authenticated({ admin: true })
   async updateKeywords(@Body() dto: KeywordListDto) {
     return { keywords: await this.service.updateKeywords(dto.keywords) };
+  }
+
+  @Post('add')
+  @Authenticated({ admin: true })
+  @HttpCode(HttpStatus.OK)
+  async addKeyword(@Body() dto: KeywordAddDto) {
+    return { keywords: await this.service.addKeyword(dto) };
+  }
+
+  @Post('edit')
+  @Authenticated({ admin: true })
+  @HttpCode(HttpStatus.OK)
+  async editKeyword(@Body() { value, ...keyword }: KeywordEditDto) {
+    return { keywords: await this.service.editKeyword(value, keyword) };
+  }
+
+  @Post('delete')
+  @Authenticated({ admin: true })
+  @HttpCode(HttpStatus.OK)
+  async deleteKeyword(@Body() { value }: KeywordDeleteDto) {
+    return { keywords: await this.service.deleteKeyword(value) };
   }
 }

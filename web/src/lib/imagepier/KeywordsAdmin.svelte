@@ -1,6 +1,10 @@
 <script lang="ts">
+  import KeywordEditModal from '#lib/imagepier/KeywordEditModal.svelte';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import {
+    addKeywordAdmin,
+    deleteKeywordAdmin,
+    editKeywordAdmin,
     getKeywordValue,
     getKeywords,
     groupKeywords,
@@ -10,17 +14,40 @@
     type Keyword,
   } from '#lib/imagepier/keywords.ts';
   import { handleError } from '#lib/utils/handle-error.ts';
-  import { Button, Checkbox, HelperText, Label, Stack, Text, Textarea, toastManager } from '@immich/ui';
+  import {
+    Button,
+    Checkbox,
+    HelperText,
+    Input,
+    Label,
+    Stack,
+    Text,
+    Textarea,
+    modalManager,
+    toastManager,
+  } from '@immich/ui';
+  import { mdiPlus } from '@mdi/js';
   import { onMount } from 'svelte';
 
   let keywords = $state<Keyword[]>([]);
   let failed = $state(false);
   let saving = $state(false);
   let pasted = $state('');
+  let filter = $state('');
 
   const imported = $derived(parseKeywordTable(pasted));
   const importedCategories = $derived(new Set(imported.map((keyword) => keyword.category)).size);
-  const groups = $derived(groupKeywords(keywords));
+  const categories = $derived([...new Set(keywords.map((keyword) => keyword.category))]);
+  const groups = $derived.by(() => {
+    const query = filter.trim().toLowerCase();
+    return groupKeywords(
+      query
+        ? keywords.filter((keyword) =>
+            `${keyword.category} ${keyword.name} ${keyword.description ?? ''}`.toLowerCase().includes(query),
+          )
+        : keywords,
+    );
+  });
   const activeCount = $derived(keywords.filter((keyword) => keyword.active).length);
 
   const load = async () => {
@@ -56,8 +83,38 @@
     }
   };
 
-  const setActive = (value: string, active: boolean) => {
-    keywords = keywords.map((keyword) => (getKeywordValue(keyword) === value ? { ...keyword, active } : keyword));
+  /** Runs a change of single keywords; the server returns the new list. */
+  const change = async (action: () => Promise<Keyword[]>) => {
+    saving = true;
+    try {
+      keywords = await action();
+      toastManager.primary($ipt('keywords_saved'));
+    } catch (error) {
+      handleError(error, $ipt('keywords_save_failed'));
+    } finally {
+      saving = false;
+    }
+  };
+
+  const setActive = (keyword: Keyword, active: boolean) =>
+    change(() => editKeywordAdmin(getKeywordValue(keyword), { ...keyword, active }));
+
+  const openEditor = async (keyword?: Keyword) => {
+    const result = await modalManager.show(KeywordEditModal, { keyword, categories });
+    if (!result) {
+      return;
+    }
+
+    if (result.action === 'delete' && keyword) {
+      await change(() => deleteKeywordAdmin(getKeywordValue(keyword)));
+    } else if (result.action === 'save') {
+      const updated = result.keyword;
+      await change(() =>
+        keyword
+          ? editKeywordAdmin(getKeywordValue(keyword), updated)
+          : addKeywordAdmin({ category: updated.category, name: updated.name, description: updated.description }),
+      );
+    }
   };
 </script>
 
@@ -86,12 +143,20 @@
       {/if}
     </Stack>
 
+    <div>
+      <Button leadingIcon={mdiPlus} size="small" onclick={() => openEditor()} disabled={saving}>
+        {$ipt('keyword_add_title')}
+      </Button>
+    </div>
+
     {#if keywords.length === 0}
       <Text size="small" color="muted">{$ipt('keywords_empty')}</Text>
     {:else}
       <Text size="small" color="muted">
         {$ipt('keywords_count', { active: activeCount, inactive: keywords.length - activeCount })}
+        {$ipt('keywords_admin_edit_hint')}
       </Text>
+      <Input bind:value={filter} aria-label={$ipt('keywords_filter')} placeholder={$ipt('keywords_filter')} />
       {#each groups as group, groupIndex (group.category)}
         <div>
           <Label label={group.category} />
@@ -102,17 +167,17 @@
                   id="imagepier-keyword-admin-{groupIndex}-{index}"
                   size="tiny"
                   checked={keyword.active}
-                  onCheckedChange={(checked) => setActive(getKeywordValue(keyword), checked)}
+                  disabled={saving}
+                  onCheckedChange={(checked) => setActive(keyword, checked)}
                 />
-                <Label label={keyword.name} for="imagepier-keyword-admin-{groupIndex}-{index}" />
+                <Button size="tiny" variant="ghost" color="secondary" onclick={() => openEditor(keyword)}>
+                  {keyword.name}
+                </Button>
               </div>
             {/each}
           </div>
         </div>
       {/each}
-      <div>
-        <Button onclick={() => void save(keywords)} loading={saving}>{$ipt('save')}</Button>
-      </div>
     {/if}
   {/if}
 </Stack>
