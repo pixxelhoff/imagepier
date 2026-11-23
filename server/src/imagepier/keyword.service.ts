@@ -75,7 +75,7 @@ export class ImagePierKeywordService extends BaseService {
   /** Removes a keyword from the list; only possible while it is not assigned to any asset. */
   async deleteKeyword(value: string): Promise<Keyword[]> {
     const keywords = await this.getKeywords();
-    if (!keywords.some((keyword) => getKeywordValue(keyword) === value)) {
+    if (keywords.every((keyword) => getKeywordValue(keyword) !== value)) {
       throw new NotFoundException('Keyword not found');
     }
 
