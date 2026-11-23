@@ -53,6 +53,7 @@ conflicts can occur during updates.
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entries (usage rights, keywords, area) |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" and "Keywords" search tabs |
 | `server/src/utils/database.ts` | `hasTags`: tags with the same value count as one tag, so keywords of several accounts (areas) can be searched together; unchanged result for tags of one account |
+| `server/src/repositories/person.repository.ts` | `UpdateFacesData.newPersonGroupId` may be `null`, so faces can be unassigned |
 | `server/src/services/tag.service.ts` | `create` and `upsert`: only administrators create tags once a keyword list exists |
 | `server/src/services/user.service.ts` | `getMyPreferences` / `updateMyPreferences`: Immich's tag feature is always off for non-administrators |
 | `web/src/routes/(user)/user-settings/FeatureSettings.svelte` | the "Tags" switch is shown to administrators only |
@@ -176,7 +177,9 @@ when access rules change.
 - A keyword is the Immich tag `Category/Keyword` of the asset owner (own account or area account). Adding or removing
   keywords also updates the locked `tags` column of the asset's EXIF data and queues `SidecarWrite`, like Immich's tag
   service, so a new metadata extraction keeps them. Usage rights tags are left out of the EXIF tags.
-- `moveToLibrary` moves all tags of an asset to the new owner (`moveTagsToOwner`).
+- `moveToLibrary` moves all tags of an asset to the new owner (`moveTagsToOwner`), recalculates the storage usage of
+  the previous owners and the area account (`syncUsage`), and unassigns faces found by machine learning and queues
+  `FacialRecognition` for them, so the people are recognized in the area account.
 - Single keywords: `POST /api/admin/imagepier/keywords/add|edit|delete`. A new category or name moves the assets of
   the old tag of every account (own accounts and area accounts) to the new tag, deletes the old tag, updates the
   locked EXIF tags and queues `SidecarWrite`; empty parent tags are removed by Immich's nightly tag cleanup. Deleting

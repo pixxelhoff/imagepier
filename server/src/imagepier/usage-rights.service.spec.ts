@@ -1,3 +1,4 @@
+import { JobName, SourceType } from 'src/enum.js';
 import {
   ASSET_AREA_KEY,
   SHARED_AREA_ID,
@@ -17,6 +18,7 @@ describe(ImagePierUsageRightsService.name, () => {
   beforeEach(() => {
     ({ sut, mocks } = newTestService(ImagePierUsageRightsService));
     mocks.user.getList.mockResolvedValue([]);
+    mocks.person.getFaces.mockResolvedValue([]);
   });
 
   it('should work', () => {
@@ -197,6 +199,31 @@ describe(ImagePierUsageRightsService.name, () => {
       expect(mocks.asset.updateAll).toHaveBeenCalledWith(['asset-1'], { ownerId: 'press-account' });
       expect(mocks.asset.upsertMetadata).toHaveBeenCalledWith('asset-1', [
         { key: ASSET_AREA_KEY, value: { areaId: 'press' } },
+      ]);
+      expect(mocks.user.syncUsage).toHaveBeenCalledWith('user-id');
+      expect(mocks.user.syncUsage).toHaveBeenCalledWith('press-account');
+    });
+
+    it('should recognize faces again for the new owner', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({
+        libraryUserId,
+        areas,
+        users: { 'user-id': { role: 'staff', areas: { press: 'editor' } } },
+      });
+      mocks.asset.getByIds.mockResolvedValue([{ id: 'asset-1', ownerId: 'user-id' }] as any);
+      mocks.asset.getById.mockResolvedValue(undefined);
+      mocks.person.getFaces.mockResolvedValue([
+        { id: 'face-ml', sourceType: SourceType.MachineLearning, personGroupId: 'old-group' },
+        { id: 'face-exif', sourceType: SourceType.Exif, personGroupId: 'old-group' },
+        { id: 'face-new', sourceType: SourceType.MachineLearning, personGroupId: null },
+      ] as any);
+
+      await sut.moveToLibrary(auth, ['asset-1'], 'press');
+
+      expect(mocks.person.reassignFaces).toHaveBeenCalledWith({ faceIds: ['face-ml'], newPersonGroupId: null });
+      expect(mocks.job.queueAll).toHaveBeenCalledWith([
+        { name: JobName.FacialRecognition, data: { id: 'face-ml', deferred: false } },
       ]);
     });
 

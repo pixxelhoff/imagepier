@@ -64,7 +64,8 @@ export interface UpdateFacesData {
   oldPersonGroupId?: string;
   faceIds?: string[];
   ownerId?: string;
-  newPersonGroupId: string;
+  // ImagePier: null unassigns faces (src/imagepier/usage-rights.service.ts, recognizeFacesForNewOwner)
+  newPersonGroupId: string | null;
 }
 
 export interface PersonStatistics {

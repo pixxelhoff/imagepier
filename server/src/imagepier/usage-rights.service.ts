@@ -5,9 +5,11 @@ import { mapNotification } from 'src/dtos/notification.dto.js';
 import {
   AssetPathType,
   ImmichWorker,
+  JobName,
   NotificationLevel,
   NotificationType,
   Permission,
+  SourceType,
   SystemMetadataKey,
 } from 'src/enum.js';
 import { getAccessForAuth } from 'src/imagepier/access-hook.js';
@@ -232,7 +234,8 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     // All assets are own or media library assets (checked above).
-    const moveIds = assets.filter((asset) => asset.ownerId !== target.userId).map((asset) => asset.id);
+    const moved = assets.filter((asset) => asset.ownerId !== target.userId);
+    const moveIds = moved.map((asset) => asset.id);
     if (moveIds.length > 0) {
       await this.assetRepository.updateAll(moveIds, { ownerId: target.userId });
       const users = await this.getFolderOwners();
@@ -240,6 +243,12 @@ export class ImagePierUsageRightsService extends BaseService {
         await this.tryMoveFilesToOwner(assetId, users);
         await this.moveTagsToOwner(assetId, target.userId);
       }
+
+      // The storage usage moves with the assets.
+      for (const ownerId of new Set([...moved.map((asset) => asset.ownerId), target.userId])) {
+        await this.userRepository.syncUsage(ownerId);
+      }
+      await this.recognizeFacesForNewOwner(moveIds, target.userId);
     }
 
     for (const assetId of [...ownIds, ...libraryIds]) {
@@ -253,6 +262,30 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     return { count: ownIds.length + libraryIds.length };
+  }
+
+  /**
+  People belong to an account: faces keep the person of the previous owner. Faces found by machine learning are
+  unassigned and recognized again, so the people appear in the new owner's account (and in the area).
+  */
+  private async recognizeFacesForNewOwner(assetIds: string[], ownerId: string) {
+    const faceIds: string[] = [];
+    for (const assetId of assetIds) {
+      const faces = await this.personRepository.getFaces(assetId, { viewingUserId: ownerId });
+      for (const face of faces) {
+        if (face.sourceType === SourceType.MachineLearning && face.personGroupId) {
+          faceIds.push(face.id);
+        }
+      }
+    }
+    if (faceIds.length === 0) {
+      return;
+    }
+
+    await this.personRepository.reassignFaces({ faceIds, newPersonGroupId: null });
+    await this.jobRepository.queueAll(
+      faceIds.map((id) => ({ name: JobName.FacialRecognition, data: { id, deferred: false } })),
+    );
   }
 
   /** Tags belong to an account: after an owner change the asset gets the tags of the same name of its new owner. */
