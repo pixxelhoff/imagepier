@@ -49,11 +49,7 @@
       {#each rows as row, index (row.id ?? `new-${index}`)}
         <div class="flex items-center gap-3">
           <div class="grow">
-            <Input
-              bind:value={row.label}
-              placeholder={$ipt('channel_new')}
-              aria-label={$ipt('channel_label')}
-            />
+            <Input bind:value={row.label} placeholder={$ipt('channel_new')} aria-label={$ipt('channel_label')} />
           </div>
           <div class="flex shrink-0 items-center gap-2">
             <Checkbox

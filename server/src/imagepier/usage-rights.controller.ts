@@ -5,8 +5,8 @@ import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
 import { getCachedAccessSettings } from 'src/imagepier/access-rules.js';
-import { MAX_CHANNELS } from 'src/imagepier/channels.js';
 import { recordAuditFor } from 'src/imagepier/audit.js';
+import { MAX_CHANNELS } from 'src/imagepier/channels.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
 

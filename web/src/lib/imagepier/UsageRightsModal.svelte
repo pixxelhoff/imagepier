@@ -163,7 +163,10 @@
             <div class="w-44 shrink-0">
               <Select
                 options={channelOptions}
-                bind:value={() => channelValues[channel.id] ?? '', (value) => (channelValues[channel.id] = value as ChannelValue | '')}
+                bind:value={
+                  () => channelValues[channel.id] ?? '',
+                  (value) => (channelValues[channel.id] = value as ChannelValue | '')
+                }
               />
             </div>
           </div>

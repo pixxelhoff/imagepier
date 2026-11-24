@@ -60,7 +60,7 @@ conflicts can occur during updates.
 | `server/src/services/tag.service.ts` | `create` and `upsert`: only administrators create tags once a keyword list exists |
 | `server/src/services/user.service.ts` | `getMyPreferences` / `updateMyPreferences`: Immich's tag feature is always off for non-administrators |
 | `web/src/routes/(user)/user-settings/FeatureSettings.svelte` | the "Tags" switch is shown to administrators only |
-| `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits; audit log |
+| `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits, not cached by the browser (blocked assets and changed credits apply at once); audit log |
 | `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log |
 | `web/src/lib/components/layouts/UserPageLayout.svelte` | hides the upload button without upload permission |
 | `web/src/routes/(user)/+layout.svelte` | no drag-and-drop upload without upload permission |

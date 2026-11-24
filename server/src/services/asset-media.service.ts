@@ -262,7 +262,8 @@ export class AssetMediaService extends BaseService {
       path: await applyUsageRightsCredits(repositories, id, path),
       fileName: getFileNameWithoutExtension(originalFileName) + getFilenameExtension(path),
       contentType: mimeTypes.lookup(path),
-      cacheControl: CacheControl.PrivateWithCache,
+      // ImagePier: not cached, so blocked assets and changed credits apply to the next download at once
+      cacheControl: CacheControl.PrivateWithoutCache,
     });
   }
 

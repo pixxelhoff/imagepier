@@ -11,6 +11,7 @@ import {
   getCachedAccessSettings,
   getUserAccess,
 } from 'src/imagepier/access-rules.js';
+import { getTagLabels } from 'src/imagepier/usage-rights-tags.js';
 import { USAGE_RIGHTS_KEY, type UsageRightsStatus } from 'src/imagepier/usage-rights.js';
 import type { AccessRepository } from 'src/repositories/access.repository.js';
 
@@ -217,13 +218,10 @@ export const getShareableAssets = async (auth: AuthDto, ids: string[]) => {
   return permitted.difference(await getBlockedAssets(permitted));
 };
 
-const SHARE_FORBIDDEN = 'Media library assets can only be shared by editors and media managers of their areas';
-const SHARE_BLOCKED = 'Blocked assets cannot be shared';
-
 const requirePermittedToShare = async (auth: AuthDto, ids: string[]) => {
   const permitted = await getPermittedToShare(auth, ids);
   if (permitted.size < new Set(ids).size) {
-    throw new ForbiddenException(SHARE_FORBIDDEN);
+    throw new ForbiddenException(getTagLabels().errors.shareForbidden);
   }
 };
 
@@ -232,7 +230,7 @@ export const requireShareableAssets = async (auth: AuthDto, ids: string[]) => {
   await requirePermittedToShare(auth, ids);
   const blocked = await getBlockedAssets(new Set(ids));
   if (blocked.size > 0) {
-    throw new ForbiddenException(SHARE_BLOCKED);
+    throw new ForbiddenException(getTagLabels().errors.shareBlocked);
   }
 };
 

@@ -41,6 +41,8 @@ export type TagLabels = {
   /** Default channels and their names (see channels.ts). */
   usages: Record<string, string>;
   usageTerms: { license: string; usage: string; conditionalUsage: string; validUntil: string };
+  /** Error messages shown in the web app (the server answers in the configured language). */
+  errors: { shareForbidden: string; shareBlocked: string };
   notificationTitle: string;
   notificationExpiring: string;
   notificationExpired: string;
@@ -95,6 +97,10 @@ const labels: Record<string, TagLabels> = {
       conditionalUsage: 'Permitted under conditions: {value}.',
       validUntil: 'Valid until {value}.',
     },
+    errors: {
+      shareForbidden: 'Media library assets can only be shared by editors and media managers of their areas',
+      shareBlocked: 'Blocked assets cannot be shared',
+    },
     notificationTitle: 'Usage rights',
     notificationExpiring: '{count} licenses expire within the next {days} days.',
     notificationExpired: '{count} licenses have expired.',
@@ -146,6 +152,10 @@ const labels: Record<string, TagLabels> = {
       usage: 'Erlaubte Nutzung: {value}.',
       conditionalUsage: 'Unter Bedingungen erlaubt: {value}.',
       validUntil: 'Gültig bis {value}.',
+    },
+    errors: {
+      shareForbidden: 'Bilder der Mediathek können nur Bearbeiter und Medienverantwortliche ihres Bereichs teilen',
+      shareBlocked: 'Gesperrte Bilder können nicht geteilt werden',
     },
     notificationTitle: 'Nutzungsrechte',
     notificationExpiring: '{count} Lizenzen laufen in den nächsten {days} Tagen ab.',
