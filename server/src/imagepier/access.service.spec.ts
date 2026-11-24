@@ -28,7 +28,7 @@ describe(ImagePierAccessService.name, () => {
       const setup = vitest.spyOn(sut, 'setupLibrary').mockResolvedValue();
       const sync = vitest.spyOn(sut, 'syncLibrarySharing').mockResolvedValue();
 
-      await sut.onUserCreate();
+      sut.onUserCreate();
 
       expect(setup).toHaveBeenCalledTimes(1);
       expect(sync).not.toHaveBeenCalled();
@@ -40,9 +40,9 @@ describe(ImagePierAccessService.name, () => {
       const setup = vitest.spyOn(sut, 'setupLibrary').mockResolvedValue();
       const sync = vitest.spyOn(sut, 'syncLibrarySharing').mockResolvedValue();
 
-      await sut.onUserCreate();
+      sut.onUserCreate();
 
-      expect(sync).toHaveBeenCalledTimes(1);
+      await vitest.waitFor(() => expect(sync).toHaveBeenCalledTimes(1));
       expect(setup).not.toHaveBeenCalled();
     });
 
@@ -57,7 +57,7 @@ describe(ImagePierAccessService.name, () => {
       const sync = vitest.spyOn(sut, 'syncLibrarySharing').mockResolvedValue();
 
       const setup = sut.setupLibrary();
-      await expect(sut.onUserCreate()).resolves.toBeUndefined();
+      sut.onUserCreate();
       finish?.();
       await setup;
       await vitest.waitFor(() => expect(sync).toHaveBeenCalledTimes(1));
@@ -121,6 +121,19 @@ describe(ImagePierAccessService.name, () => {
       );
     });
 
+    it('should ignore a partner that was created in the meantime', async () => {
+      mocks.systemMetadata.get.mockResolvedValue({
+        libraryUserId,
+        users: { new: { role: 'staff', areas: { shared: 'viewer' } } },
+      } as any);
+      mocks.partner.getAll.mockResolvedValue([]);
+      mocks.user.getList.mockResolvedValue([{ id: 'new', isAdmin: false }] as any);
+      mocks.partner.create.mockRejectedValue(Object.assign(new Error('duplicate key'), { code: '23505' }));
+
+      await sut.loadSettings();
+      await expect(sut.syncLibrarySharing()).resolves.toBeUndefined();
+    });
+
     it('should do nothing without a media library account', async () => {
       mocks.systemMetadata.get.mockResolvedValue(null);
 
@@ -169,6 +182,25 @@ describe(ImagePierAccessService.name, () => {
   });
 
   describe('updateUserAccessAdmin', () => {
+    it('should keep parallel changes', async () => {
+      let stored: any = { libraryUserId, users: {} };
+      mocks.systemMetadata.get.mockImplementation(() => Promise.resolve(structuredClone(stored)));
+      mocks.systemMetadata.set.mockImplementation((_key, value) => {
+        stored = value;
+        return Promise.resolve();
+      });
+      mocks.user.get.mockImplementation((id: string) => Promise.resolve({ id, isAdmin: false } as any));
+      mocks.user.getList.mockResolvedValue([]);
+      await sut.loadSettings();
+
+      await Promise.all([
+        sut.updateUserAccessAdmin('user-1', { role: 'staff' }),
+        sut.updateUserAccessAdmin('user-2', { role: 'external' }),
+      ]);
+
+      expect(stored.users).toEqual({ 'user-1': { role: 'staff' }, 'user-2': { role: 'external' } });
+    });
+
     it('should not assign a role to the media library account', async () => {
       mocks.systemMetadata.get.mockResolvedValue({ libraryUserId, users: {} } as any);
       mocks.user.get.mockResolvedValue({ id: libraryUserId, isAdmin: false } as any);

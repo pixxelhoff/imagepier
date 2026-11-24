@@ -72,6 +72,7 @@ Roles and the media library areas.
 export class ImagePierAccessService extends BaseService {
   private settings: AccessSettings = { areas: [], users: {} };
   private setupRunning?: Promise<void>;
+  private exclusive: Promise<unknown> = Promise.resolve();
 
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   async onConfigInit() {
@@ -92,21 +93,18 @@ export class ImagePierAccessService extends BaseService {
   the cron job; until then the role rules do not apply.
   */
   @OnEvent({ name: 'UserCreate', workers: [ImmichWorker.Api] })
-  async onUserCreate() {
-    // A running setup creates accounts itself; waiting for it here would block it. Share once it is done.
-    if (this.setupRunning) {
-      handlePromiseError(
-        this.setupRunning.then(() => this.syncLibrarySharing()),
-        this.logger,
-      );
+  onUserCreate() {
+    if (!this.settings.libraryUserId && !this.setupRunning) {
+      handlePromiseError(this.setupLibrary(), this.logger);
       return;
     }
 
-    try {
-      await (this.settings.libraryUserId ? this.syncLibrarySharing() : this.setupLibrary());
-    } catch (error) {
-      this.logger.warn(`Unable to set up or share the media library for a new user: ${error}`);
-    }
+    // Shares after a running change of the settings, which may be the one creating this user: waiting for it here
+    // would block it.
+    handlePromiseError(
+      this.runExclusive(() => this.syncLibrarySharing()),
+      this.logger,
+    );
   }
 
   async loadSettings() {
@@ -127,10 +125,20 @@ export class ImagePierAccessService extends BaseService {
 
   /** Sets up the media library; calls while a setup is running wait for that setup instead of starting another. */
   async setupLibrary() {
-    this.setupRunning ??= this.runSetupLibrary().finally(() => {
+    this.setupRunning ??= this.runExclusive(() => this.runSetupLibrary()).finally(() => {
       this.setupRunning = undefined;
     });
     return this.setupRunning;
+  }
+
+  /**
+  Changes of the settings and of the sharing run one after another: they read the stored settings, change them and
+  write them back as a whole, so parallel changes would overwrite each other. A task must not wait for another one.
+  */
+  private runExclusive<T>(task: () => Promise<T>): Promise<T> {
+    const result = this.exclusive.then(task);
+    this.exclusive = result.catch(() => undefined);
+    return result;
   }
 
   private async runSetupLibrary() {
@@ -294,13 +302,24 @@ export class ImagePierAccessService extends BaseService {
         const partner = sharedWith.get(user.id);
         const ids = { sharedById: accountId, sharedWithId: user.id };
         if (canView && !partner) {
-          await this.partnerRepository.create({ ...ids, inTimeline: true });
+          await this.createPartner({ ...ids, inTimeline: true });
         } else if (canView && partner && !partner.inTimeline) {
           // "All photos" always includes the areas; "My photos" hides them in the web app.
           await this.partnerRepository.update(ids, { inTimeline: true });
         } else if (!canView && partner) {
           await this.partnerRepository.remove(ids);
         }
+      }
+    }
+  }
+
+  /** Ignores a partner that was created in the meantime, e.g. by Immich's own partner sharing. */
+  private async createPartner(values: { sharedById: string; sharedWithId: string; inTimeline: boolean }) {
+    try {
+      await this.partnerRepository.create(values);
+    } catch (error) {
+      if ((error as { code?: string }).code !== '23505') {
+        throw error;
       }
     }
   }
@@ -367,7 +386,11 @@ export class ImagePierAccessService extends BaseService {
   Replaces the list of areas. Areas without id are created with their own account; the shared area always stays.
   Areas that still contain assets cannot be removed.
   */
-  async updateAreas(areas: Array<{ id?: string; name: string }>) {
+  updateAreas(areas: Array<{ id?: string; name: string }>) {
+    return this.runExclusive(() => this.saveAreas(areas));
+  }
+
+  private async saveAreas(areas: Array<{ id?: string; name: string }>) {
     await this.loadSettings();
     const result: Area[] = [];
     for (const area of areas) {
@@ -438,13 +461,15 @@ export class ImagePierAccessService extends BaseService {
       throw new BadRequestException('Area accounts have no role');
     }
 
-    await this.loadSettings();
-    const users = {
-      ...this.settings.users,
-      [userId]: parseStoredUserAccess({ ...this.settings.users[userId], ...dto }),
-    };
-    await this.saveSettings({ ...this.settings, users });
-    await this.syncLibrarySharing();
+    await this.runExclusive(async () => {
+      await this.loadSettings();
+      const users = {
+        ...this.settings.users,
+        [userId]: parseStoredUserAccess({ ...this.settings.users[userId], ...dto }),
+      };
+      await this.saveSettings({ ...this.settings, users });
+      await this.syncLibrarySharing();
+    });
 
     return this.toAdminResponse(user);
   }

@@ -110,7 +110,8 @@ when access rules change.
   The shared area uses the original media library account (`IMAGEPIER_LIBRARY_EMAIL`, `IMAGEPIER_LIBRARY_NAME`);
   every other area gets `media-library+<areaId>@…` with the name `<library name>: <area name>`.
 - `access.service.ts`: creates the media library account and the area accounts on startup – on a new installation as
-  soon as the first admin exists (`onUserCreate`); `setupLibrary` never runs twice at the same time. It shares each
+  soon as the first admin exists (`onUserCreate`). Setup, area and level changes and the sharing run one after another
+  (`runExclusive`, they rewrite the whole settings value), so parallel changes are not lost. It shares each
   area account as partner (`inTimeline`) with the users who have a level in the area, and repairs the sharing every
   15 minutes, after a user is created and after areas or levels change. Timeline, search, map and mobile apps therefore only
   show the areas a user has access to. Removing an area is refused while its account owns assets (including the
