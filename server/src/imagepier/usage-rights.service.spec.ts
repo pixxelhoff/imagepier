@@ -1,4 +1,5 @@
-import { JobName, SourceType } from 'src/enum.js';
+import { vitest } from 'vitest';
+import { AssetFileType, JobName, SourceType } from 'src/enum.js';
 import {
   ASSET_AREA_KEY,
   SHARED_AREA_ID,
@@ -225,6 +226,53 @@ describe(ImagePierUsageRightsService.name, () => {
       expect(mocks.job.queueAll).toHaveBeenCalledWith([
         { name: JobName.FacialRecognition, data: { id: 'face-ml', deferred: false } },
       ]);
+    });
+
+    it('should process moved uploads without thumbnails again', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({
+        libraryUserId,
+        areas,
+        users: { 'user-id': { role: 'staff', areas: { press: 'editor' } } },
+      });
+      mocks.asset.getByIds.mockResolvedValue([
+        { id: 'asset-1', ownerId: 'user-id' },
+        { id: 'asset-2', ownerId: 'user-id' },
+      ] as any);
+      mocks.asset.getById.mockImplementation((id: string) =>
+        Promise.resolve(
+          id === 'asset-2'
+            ? ({
+                id,
+                tags: [],
+                files: [{ type: AssetFileType.Preview }, { type: AssetFileType.Thumbnail }],
+              } as any)
+            : ({ id, tags: [], files: [] } as any),
+        ),
+      );
+      vitest.spyOn(sut, 'moveFilesToOwner').mockResolvedValue(true);
+
+      await sut.moveToLibrary(auth, ['asset-1', 'asset-2'], 'press');
+
+      expect(mocks.job.queueAll).toHaveBeenCalledWith([
+        { name: JobName.AssetExtractMetadata, data: { id: 'asset-1', source: 'upload' } },
+      ]);
+    });
+
+    it('should not process assets again when no files were moved', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      setCachedAccessSettings({
+        libraryUserId,
+        areas,
+        users: { 'user-id': { role: 'staff', areas: { press: 'editor' } } },
+      });
+      mocks.asset.getByIds.mockResolvedValue([{ id: 'asset-1', ownerId: 'user-id' }] as any);
+      mocks.asset.getById.mockResolvedValue({ id: 'asset-1', tags: [], files: [] } as any);
+      vitest.spyOn(sut, 'moveFilesToOwner').mockResolvedValue(false);
+
+      await sut.moveToLibrary(auth, ['asset-1'], 'press');
+
+      expect(mocks.job.queueAll).not.toHaveBeenCalled();
     });
 
     it('should remember who added own assets', async () => {

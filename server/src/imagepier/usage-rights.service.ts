@@ -3,6 +3,7 @@ import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { mapNotification } from 'src/dtos/notification.dto.js';
 import {
+  AssetFileType,
   AssetPathType,
   ImmichWorker,
   JobName,
@@ -347,10 +348,14 @@ export class ImagePierUsageRightsService extends BaseService {
     if (moveIds.length > 0) {
       await this.assetRepository.updateAll(moveIds, { ownerId: target.userId });
       const users = await this.getFolderOwners();
+      const filesMovedIds: string[] = [];
       for (const assetId of moveIds) {
-        await this.tryMoveFilesToOwner(assetId, users);
+        if (await this.tryMoveFilesToOwner(assetId, users)) {
+          filesMovedIds.push(assetId);
+        }
         await this.moveTagsToOwner(assetId, target.userId);
       }
+      await this.processMovedUploads(filesMovedIds);
 
       // The storage usage moves with the assets.
       for (const ownerId of new Set([...moved.map((asset) => asset.ownerId), target.userId])) {
@@ -370,6 +375,28 @@ export class ImagePierUsageRightsService extends BaseService {
     }
 
     return { count: ownIds.length + libraryIds.length };
+  }
+
+  /**
+  The jobs of a fresh upload (metadata, storage template, thumbnails) may still use the previous path of the moved
+  files and fail. Runs them again for moved assets without thumbnails; the metadata job queues the others.
+  */
+  private async processMovedUploads(assetIds: string[]) {
+    const ids: string[] = [];
+    for (const assetId of assetIds) {
+      const asset = await this.assetRepository.getById(assetId, { files: true });
+      const types = new Set((asset?.files ?? []).map((file) => file.type));
+      if (asset && (!types.has(AssetFileType.Preview) || !types.has(AssetFileType.Thumbnail))) {
+        ids.push(assetId);
+      }
+    }
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.jobRepository.queueAll(
+      ids.map((id) => ({ name: JobName.AssetExtractMetadata, data: { id, source: 'upload' as const } })),
+    );
   }
 
   /**

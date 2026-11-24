@@ -174,7 +174,7 @@ when access rules change.
 - `POST /api/imagepier/usage-rights/library` moves own assets and media library assets into an area (owner change to
   the area account). Their files (original, thumbnails, encoded videos, the video part of live photos) move into the
   folders of the area account (`asset-files.ts`, Immich's `StorageCore.moveFile`), because Immich removes the folders
-  of a deleted user. Assets assigned by earlier releases are moved once on startup (`areaFilesMoved`). Faces of moved assets stay linked to the people of the previous owner. The usage rights search
+  of a deleted user. Assets assigned by earlier releases are moved once on startup (`areaFilesMoved`). Moved assets without thumbnails (a fresh upload whose jobs still use the previous path) get their metadata and thumbnails generated again. Faces of moved assets stay linked to the people of the previous owner. The usage rights search
   works per area, because Immich combines tag filters with AND and every area account has its own tags.
 - Endpoints (not in the OpenAPI spec): `GET /api/imagepier/access/me`, `GET /api/admin/imagepier/access/users`
   (role of every account for the user list), `GET|PUT /api/admin/imagepier/access/users/:id`,
