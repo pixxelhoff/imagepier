@@ -76,6 +76,12 @@ ImagePier remembers who delivered each photo. Externals can only edit, trash and
 selection with other photos, the other photos are skipped. They cannot move photos between areas, share links or
 publish galleries, and they cannot become media manager.
 
+### Import
+
+Editors and media managers find **Import** below the areas in the sidebar. It uploads a folder or many files into an
+area they edit, with keywords and usage rights; externals can use it too. Media managers can set the release status,
+for everybody else new photos are *in review*.
+
 ### Trash
 
 - Editors and media managers find **Trash of the areas** below the areas in the sidebar. It lists the deleted photos

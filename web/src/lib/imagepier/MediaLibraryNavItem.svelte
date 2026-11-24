@@ -38,7 +38,7 @@
   // Only areas with a level are shown.
   const areas = $derived(showLibrary && access ? getVisibleAreas(access) : []);
 
-  // The trash of the areas is available to editors and media managers.
+  // The trash of the areas and the import are available to editors and media managers.
   const showTrash = $derived(showLibrary && !!access && getAssignableAreas(access).length > 0);
 
   const isPhotosPage = $derived(page.url.pathname.startsWith(Route.photos()));
@@ -86,6 +86,9 @@
     {#if showTrash}
       <a href="/media-library/trash" class={itemClass(isAreaPage('trash'))}>
         {$ipt('library_trash_nav')}
+      </a>
+      <a href="/media-library/import" class={itemClass(isAreaPage('import'))}>
+        {$ipt('import_nav')}
       </a>
     {/if}
   </div>

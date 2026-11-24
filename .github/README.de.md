@@ -60,6 +60,11 @@ brauchen:
   Exklusivität sowie Zusatzprüfungen (erkennbare Personen, Minderjährige, Musik/Kunstwerke/Marken, Drohne,
   Privatgelände), jeweils *betrifft nicht*, *offen* oder *geklärt*; offene Prüfungen werden hervorgehoben. Dazu ein
   Link zum Rechtedokument.
+- **Import-Seite** – *Import* unter den Bereichen (Stufe Bearbeiter): Ordner oder Dateien wählen, gegen die
+  Bild-Richtlinie prüfen (lange Kante mindestens 3.000 px, Aufnahme ab 2021, Dubletten in der Auswahl, Dateien schon
+  in ImagePier), Bereich, Schlagworte und Nutzungsrechte für alle Dateien setzen, nach Schema benennen
+  (`thema-motiv-ort-jahr-c-urheber-001.jpg`) und hochladen. Die Originaldateien bleiben unverändert; ein Protokoll
+  lässt sich als CSV herunterladen.
 - **Import-Schnittstelle** – Werkzeuge laden über den Upload von Immich hoch und setzen danach mit einer Anfrage
   Bereich, Schlagworte und Nutzungsrechte für einen ganzen Stapel (`POST /api/imagepier/import`, API-Schlüssel der
   importierenden Person).
@@ -196,9 +201,6 @@ Zeitraum, mit CSV-Export.
   Englisch. Name, Farbe und Logo lassen sich in der `.env` ändern.
 
 ### 🧭 Geplant
-
-- **Import-Tool** für Windows und macOS – bereitet Ordner von einer Netzwerkfreigabe vor und lädt sie mit Bereich,
-  Schlagworten und Nutzungsrechten hoch.
 
 ### 🧭 Vielleicht später
 

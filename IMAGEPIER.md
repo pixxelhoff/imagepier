@@ -140,6 +140,11 @@ when access rules change.
   move into the area (`moveToLibrary`, needs editor), add keywords from the list (`updateAssetKeywords`), merge
   usage rights into existing ones (`importUsageRights`, release status via `applyMetadataRules`). Audit entries
   `library_move` and `usage_rights`.
+- Import page (`/media-library/import`, `ImportPage.svelte`, `import.ts`): reads size and capture date in the browser
+  (EXIF of JPEG files, bitmap size of PNG/WebP/GIF), computes SHA-1 checksums with the upload worker and asks
+  `POST /api/imagepier/import/check` (permission `asset.upload`) which files already exist in the own photos or an
+  area (asset ids only for visible areas). Files are uploaded with `POST /api/assets` under the new name and imported
+  in batches of 20 with the import endpoint.
 - Further usage rights fields: `title`, `altText` (written into downloads as `XMP-dc:Title`, `IPTC:ObjectName`,
   `XMP-iptcCore:AltTextAccessibility`; galleries use them as heading and `alt`), `rightsDocument`, `territory`
   (+ `territoryNote`), `editing`, `transfer`, `exclusive` and `checks` (people, minors, works, drone, property:

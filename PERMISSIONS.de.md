@@ -83,6 +83,13 @@ Papierkorb verschieben und wiederherstellen – bei einer Auswahl mit anderen Fo
 Sie können keine Fotos zwischen Bereichen verschieben, keine Links teilen und keine Galerien veröffentlichen, und sie
 können nicht medienverantwortlich werden.
 
+### Import
+
+Bearbeiter und Medienverantwortliche finden **Import** unter den Bereichen in der Seitenleiste. Damit laden sie einen
+Ordner oder viele Dateien in einen Bereich, den sie bearbeiten, mit Schlagworten und Nutzungsrechten; auch Externe
+können das nutzen. Medienverantwortliche können den Freigabestatus setzen, bei allen anderen sind neue Fotos
+*in Prüfung*.
+
 ### Papierkorb
 
 - Bearbeiter und Medienverantwortliche finden den **Papierkorb der Bereiche** unter den Bereichen in der

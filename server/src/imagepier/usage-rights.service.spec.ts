@@ -355,4 +355,19 @@ describe(ImagePierUsageRightsService.name, () => {
       ]);
     });
   });
+
+  describe('checkImport', () => {
+    it('should return files that are already in the own photos', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      const checksum = 'a'.repeat(40);
+      mocks.asset.getByChecksums.mockResolvedValue([
+        { id: 'asset-1', checksum: Buffer.from(checksum, 'hex'), deletedAt: null },
+      ] as any);
+
+      await expect(sut.checkImport(auth, [checksum, 'b'.repeat(40)])).resolves.toEqual([
+        { checksum, areaId: null, assetId: 'asset-1', trashed: false },
+      ]);
+      expect(mocks.asset.getByChecksums).toHaveBeenCalledWith('user-id', expect.any(Array));
+    });
+  });
 });

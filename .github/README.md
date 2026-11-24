@@ -58,6 +58,11 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Scope of rights** – territory, editing (allowed, cropping only, not allowed), passing on to third parties,
   exclusivity, and additional checks (recognizable people, minors, music/artworks/brands, drone, private property),
   each *does not apply*, *open* or *cleared*; open checks are highlighted. Plus a link to the rights document.
+- **Import page** – *Import* below the areas (level editor): choose a folder or files, check them against the image
+  guideline (long edge at least 3,000 px, taken 2021 or later, duplicates in the selection, files already in
+  ImagePier), set area, keywords and usage rights for all files, name them by a scheme
+  (`topic-subject-place-year-c-author-001.jpg`) and upload them. The original files stay unchanged; a log can be
+  downloaded as CSV.
 - **Import interface** – tools upload with Immich's upload endpoint and then set area, keywords and usage rights
   for a whole batch with one request (`POST /api/imagepier/import`, API key of the person importing).
 - **Channels** – for every channel (internal, web, print, social media, press, social ads, presentations, partners,
@@ -178,9 +183,6 @@ accounts – filterable by action, person and period, with CSV export.
   logo can be changed in `.env`.
 
 ### 🧭 Planned
-
-- **Import tool** for Windows and macOS – prepares folders from a network share and uploads them with area, keywords
-  and usage rights.
 
 ### 🧭 Possible later
 

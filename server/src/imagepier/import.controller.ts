@@ -27,6 +27,16 @@ const ImportSchema = z.object({
 
 class ImportDto extends createZodDto(ImportSchema) {}
 
+const ImportCheckSchema = z.object({
+  checksums: z
+    .array(z.string().regex(/^(?:[\da-f]{40}|[\d+/a-z]{27}=)$/i))
+    .min(1)
+    .max(1000)
+    .describe('SHA-1 checksums of the files (hex or base64)'),
+});
+
+class ImportCheckDto extends createZodDto(ImportCheckSchema) {}
+
 /**
 ImagePier import endpoint for tools that upload many assets (not part of Immich's public API specification).
 
@@ -65,5 +75,13 @@ export class ImagePierImportController {
     }
 
     return { count: assetIds.length };
+  }
+
+  /** Files that are already in ImagePier (own photos or an area), so the import page can skip them. */
+  @Post('check')
+  @Authenticated({ permission: Permission.AssetUpload })
+  @HttpCode(HttpStatus.OK)
+  checkImport(@Auth() auth: AuthDto, @Body() dto: ImportCheckDto) {
+    return this.usageRightsService.checkImport(auth, dto.checksums);
   }
 }

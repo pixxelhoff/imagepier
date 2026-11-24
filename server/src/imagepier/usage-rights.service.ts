@@ -59,7 +59,11 @@ import type { ArgOf } from 'src/repositories/event.repository.js';
 import { BaseService } from 'src/services/base.service.js';
 import type { SystemMetadata } from 'src/types.js';
 import { handlePromiseError } from 'src/utils/misc.js';
+import { fromChecksum } from 'src/utils/request.js';
 import { upsertTags } from 'src/utils/tag.js';
+
+/** File of the import page that is already in ImagePier; `areaId` is null for the user's own photos. */
+export type ImportMatch = { checksum: string; areaId: string | null; assetId?: string; trashed: boolean };
 
 /** Daily at 03:17 (server time) */
 const REFRESH_CRON_NAME = 'ImagePierUsageRightsRefresh';
@@ -572,6 +576,38 @@ export class ImagePierUsageRightsService extends BaseService {
     for (const assetId of assetIds) {
       await this.syncTags(assetId);
     }
+  }
+
+  /**
+  Finds files that are already in ImagePier, in the user's own photos or in an area, by their SHA-1 checksum.
+  Used by the import page before uploading. Asset ids are only returned for areas the user can see.
+  */
+  async checkImport(auth: AuthDto, checksums: string[]) {
+    const access = getAccessForAuth(auth);
+    const owners = new Map<string, string | null>([[auth.user.id, null]]);
+    for (const [userId, areaId] of getAreaAccounts(getCachedAccessSettings())) {
+      owners.set(userId, areaId);
+    }
+
+    const buffers = checksums.map((checksum) => fromChecksum(checksum));
+    const found = new Map<string, ImportMatch>();
+    for (const [ownerId, areaId] of owners) {
+      const assets = await this.assetRepository.getByChecksums(ownerId, buffers);
+      for (const asset of assets) {
+        const checksum = checksums[buffers.findIndex((buffer) => buffer.equals(asset.checksum))];
+        if (checksum === undefined || found.has(checksum)) {
+          continue;
+        }
+        const visible = areaId === null || !!getAreaLevel(access, areaId);
+        found.set(checksum, {
+          checksum,
+          areaId,
+          assetId: visible ? asset.id : undefined,
+          trashed: !!asset.deletedAt,
+        });
+      }
+    }
+    return found.values().toArray();
   }
 
   async syncTagsForAssets(auth: AuthDto, assetIds: string[]) {
