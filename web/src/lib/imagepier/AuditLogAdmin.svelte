@@ -12,6 +12,7 @@
     type AuditItem,
     type AuditSettings,
   } from '#lib/imagepier/access.ts';
+  import { toCsv } from '#lib/imagepier/csv.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import { Route } from '#lib/route.ts';
   import { locale } from '#lib/stores/preferences.store.ts';
@@ -223,8 +224,6 @@
     return more > 0 ? `${item.assetName} ${$ipt('audit_more', { count: more })}` : item.assetName;
   };
 
-  const csvValue = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
-
   const exportCsv = async () => {
     try {
       const result = await getAuditLog(getFilter(0, EXPORT_LIMIT));
@@ -235,7 +234,7 @@
         $ipt('audit_asset'),
         $ipt('audit_count'),
         $ipt('audit_details'),
-        'Asset IDs',
+        $ipt('audit_asset_ids'),
       ];
       const rows = result.items.map((item) => [
         formatTime(item.createdAt),
@@ -246,7 +245,7 @@
         formatDetails(item),
         item.assetIds.join(' '),
       ]);
-      const csv = [header, ...rows].map((row) => row.map((value) => csvValue(value)).join(';')).join('\r\n');
+      const csv = toCsv([header, ...rows]);
       const date = DateTime.now().toISODate();
       downloadBlob(new Blob([`\u{FEFF}${csv}`], { type: 'text/csv;charset=utf-8' }), `imagepier-audit-${date}.csv`);
     } catch (error) {

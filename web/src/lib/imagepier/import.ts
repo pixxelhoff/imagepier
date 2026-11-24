@@ -1,4 +1,5 @@
 import { request } from '#lib/imagepier/access.ts';
+import { toCsv } from '#lib/imagepier/csv.ts';
 import {
   applyChannels,
   applyChecks,
@@ -279,5 +280,4 @@ export const uploadImportFile = async (file: File, fileName: string) => {
 };
 
 /** Protocol of an import as CSV (semicolon separated, for Excel). */
-export const toImportCsv = (header: string[], rows: string[][]) =>
-  [header, ...rows].map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(';')).join('\r\n');
+export const toImportCsv = (header: string[], rows: string[][]) => toCsv([header, ...rows]);

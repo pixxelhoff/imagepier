@@ -60,4 +60,8 @@ describe('toImportCsv', () => {
   it('should quote all cells', () => {
     expect(toImportCsv(['a', 'b'], [['x "y"', 'z']])).toBe('"a";"b"\r\n"x ""y""";"z"');
   });
+
+  it('should protect file names that start like a formula', () => {
+    expect(toImportCsv(['a'], [['=cmd.jpg']])).toBe(`"a"\r\n"'=cmd.jpg"`);
+  });
 });
