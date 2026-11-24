@@ -17,7 +17,8 @@ Diese Seite erklärt, wer in ImagePier was darf. Die Kurzfassung steht in der [R
   - **Extern** – zum Beispiel Fotografen oder Agenturen. Wie Mitarbeiter/innen, aber beschränkt auf ihre eigenen
     Lieferungen (siehe unten).
 - **Stufe pro Bereich** – Mitarbeiter/innen und Externe erhalten für jeden Bereich, den sie brauchen, eine Stufe.
-  Ohne Stufe ist der Bereich überhaupt nicht sichtbar – weder in der Zeitleiste noch in Suche, Karte oder Mobil-Apps.
+  Ohne Stufe ist der Bereich überhaupt nicht sichtbar – weder in der Zeitleiste noch in Suche, Karte oder Mobil-Apps,
+  und auch nicht in Alben, die jemand anderes mit der Person teilt.
 
 | Stufe | Bedeutung |
 |---|---|

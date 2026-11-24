@@ -16,7 +16,8 @@ This page explains who can do what in ImagePier. The short version is in the [RE
   - **Staff** – employees. Access to the media library depends on their level per area.
   - **External** – for example photographers or agencies. Like staff, but limited to their own deliveries (see below).
 - **Level per area** – staff and externals get one level for each area they need. Without a level, the area is not
-  visible at all – not in the timeline, search, map or the mobile apps.
+  visible at all – not in the timeline, search, map or the mobile apps, and not in albums somebody else shares with
+  the person.
 
 | Level | Meaning |
 |---|---|

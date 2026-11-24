@@ -106,6 +106,17 @@ describe('ImagePier access hook', () => {
     });
   });
 
+  it('should hide media library assets of areas without a level, also in shared albums', async () => {
+    useSettings({ user: { role: 'staff', areas: { press: 'viewer' } } });
+    const result = await applyImagePierAccess(
+      access,
+      { auth: authFor('user'), permission: Permission.AssetView, ids: new Set(['asset-1', 'asset-2', 'own']) },
+      Promise.resolve(new Set(['asset-1', 'asset-2', 'own'])),
+    );
+
+    expect(result).toEqual(new Set(['asset-1', 'own']));
+  });
+
   it('should let editors view trashed media library assets of their areas', async () => {
     useSettings({ user: { role: 'staff', areas: { press: 'editor', marketing: 'viewer' } } });
     const result = await applyImagePierAccess(

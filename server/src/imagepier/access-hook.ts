@@ -10,6 +10,7 @@ import {
   getAreaLevel,
   getCachedAccessSettings,
   getUserAccess,
+  isAtLeast,
 } from 'src/imagepier/access-rules.js';
 import { getTagLabels } from 'src/imagepier/usage-rights-tags.js';
 import { USAGE_RIGHTS_KEY, toStoredUsageRights, type UsageRightsStatus } from 'src/imagepier/usage-rights.js';
@@ -140,15 +141,24 @@ export const applyImagePierAccess = async (
       return allowed.union(new Set([...permitted].filter((id) => uploaders.get(id) === auth.user.id)));
     }
 
-    // Admins and editors see media library assets of their areas in the trash (partner sharing hides them).
+    // Media library assets are only visible with a level in their area, also when they are in an album shared with
+    // the user. Admins and editors also see media library assets of their areas in the trash (partner sharing hides
+    // them).
     case Permission.AssetRead:
     case Permission.AssetView: {
-      const missing = ids.difference(allowed);
+      let result = allowed;
+      if (userAccess.role !== 'admin') {
+        const visible = await checkLibraryAssets(allowed, (areaId) =>
+          isAtLeast(getAreaLevel(userAccess, areaId), 'viewer'),
+        );
+        result = allowed.difference(visible.library.difference(visible.permitted));
+      }
+      const missing = ids.difference(result);
       if (!userAccess.canEditLibrary || missing.size === 0) {
-        return allowed;
+        return result;
       }
       const { permitted } = await checkLibraryAssets(missing, (areaId) => canEditArea(userAccess, areaId));
-      return allowed.union(permitted);
+      return result.union(permitted);
     }
 
     // Usage rights tags of the area accounts are used by the search of users with a level in the area.
@@ -215,6 +225,16 @@ export const hideBlockedSharedLinkAssets = async <
 };
 
 /** Assets of a download without the blocked ones; used for downloads through shared links. */
+/** Keeps the assets that pass the given access check, e.g. the album assets a member may download. */
+export const keepPermittedAssets = async <T extends { id: string }>(
+  assets: AsyncIterable<T>,
+  check: (ids: Set<string>) => Promise<Set<string>>,
+) => {
+  const items = await Array.fromAsync(assets);
+  const permitted = await check(new Set(items.map((asset) => asset.id)));
+  return items.filter((asset) => permitted.has(asset.id));
+};
+
 export const skipBlockedAssets = async <T extends { id: string }>(assets: AsyncIterable<T>) => {
   const items = await Array.fromAsync(assets);
   const blocked = await getBlockedAssets(new Set(items.map((asset) => asset.id)));

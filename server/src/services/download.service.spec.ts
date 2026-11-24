@@ -287,6 +287,7 @@ describe(DownloadService.name, () => {
     it('should return a list of archives (albumId)', async () => {
       mocks.user.getMetadata.mockResolvedValue([]);
       mocks.access.album.checkOwnerAccess.mockResolvedValue(new Set(['album-1']));
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1', 'asset-2']));
       mocks.downloadRepository.downloadAlbumId.mockReturnValue(
         makeStream([
           { id: 'asset-1', livePhotoVideoId: null, size: 100_000 },
@@ -298,6 +299,23 @@ describe(DownloadService.name, () => {
 
       expect(mocks.access.album.checkOwnerAccess).toHaveBeenCalledWith(authStub.admin.user.id, new Set(['album-1']));
       expect(mocks.downloadRepository.downloadAlbumId).toHaveBeenCalledWith('album-1');
+    });
+
+    it('should leave out album assets the user may not download', async () => {
+      mocks.user.getMetadata.mockResolvedValue([]);
+      mocks.access.album.checkOwnerAccess.mockResolvedValue(new Set(['album-1']));
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-2']));
+      mocks.downloadRepository.downloadAlbumId.mockReturnValue(
+        makeStream([
+          { id: 'asset-1', livePhotoVideoId: null, size: 100_000 },
+          { id: 'asset-2', livePhotoVideoId: null, size: 5000 },
+        ]),
+      );
+
+      await expect(sut.getDownloadInfo(authStub.admin, { albumId: 'album-1' })).resolves.toEqual({
+        totalSize: 5000,
+        archives: [{ assetIds: ['asset-2'], size: 5000 }],
+      });
     });
 
     it('should leave out blocked assets of albums through shared links', async () => {

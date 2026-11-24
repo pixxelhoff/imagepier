@@ -9,7 +9,7 @@ import {
   DownloadResponseDto,
 } from 'src/dtos/download.dto.js';
 import { Permission } from 'src/enum.js';
-import { skipBlockedAssets } from 'src/imagepier/access-hook.js';
+import { keepPermittedAssets, skipBlockedAssets } from 'src/imagepier/access-hook.js';
 import { recordDownload } from 'src/imagepier/audit.js';
 import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import { ImmichReadStream } from 'src/repositories/storage.repository.js';
@@ -31,10 +31,12 @@ export class DownloadService extends BaseService {
       const albumId = dto.albumId;
       await this.requireAccess({ auth, permission: Permission.AlbumDownload, ids: [albumId] });
       assets = this.downloadRepository.downloadAlbumId(albumId);
-      // ImagePier: blocked assets are not downloaded through shared links
-      if (auth.sharedLink) {
-        assets = await skipBlockedAssets(assets);
-      }
+      // ImagePier: blocked assets are not downloaded through shared links; album members only get what they may download
+      assets = auth.sharedLink
+        ? await skipBlockedAssets(assets)
+        : await keepPermittedAssets(assets, (ids) =>
+            this.checkAccess({ auth, permission: Permission.AssetDownload, ids }),
+          );
     } else if (dto.userId) {
       const userId = dto.userId;
       await this.requireAccess({ auth, permission: Permission.TimelineDownload, ids: [userId] });

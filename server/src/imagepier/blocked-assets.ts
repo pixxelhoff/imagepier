@@ -1,4 +1,6 @@
 import { sql, type SelectQueryBuilder } from 'kysely';
+import type { AuthDto } from 'src/dtos/auth.dto.js';
+import { getAreaLevel, getCachedAccessSettings, getUserAccess } from 'src/imagepier/access-rules.js';
 import { USAGE_RIGHTS_KEY } from 'src/imagepier/usage-rights.js';
 import type { DB } from 'src/schema/index.js';
 
@@ -19,3 +21,21 @@ export const withoutBlockedAssets = <O>(qb: SelectQueryBuilder<DB, 'asset', O>) 
       ),
     ),
   );
+
+/**
+Leaves out media library assets of areas the user has no level in. They can only reach the timeline through an album
+shared with the user; the access checks refuse them as well.
+*/
+export const withoutHiddenAreas =
+  (auth: AuthDto) =>
+  <O>(qb: SelectQueryBuilder<DB, 'asset', O>) => {
+    const settings = getCachedAccessSettings();
+    if (!settings.libraryUserId || auth.user.isAdmin) {
+      return qb;
+    }
+    const access = getUserAccess(settings, auth.user);
+    const hidden = settings.areas.flatMap((area) =>
+      area.userId && !getAreaLevel(access, area.id) ? [area.userId] : [],
+    );
+    return hidden.length > 0 ? qb.where('asset.ownerId', 'not in', hidden) : qb;
+  };

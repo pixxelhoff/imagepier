@@ -26,7 +26,7 @@ import {
   AssetVisibility,
   CalendarHeatmapType,
 } from 'src/enum.js';
-import { withoutBlockedAssets } from 'src/imagepier/blocked-assets.js';
+import { withoutBlockedAssets, withoutHiddenAreas } from 'src/imagepier/blocked-assets.js';
 import { DB } from 'src/schema/index.js';
 import { AssetAudioTable, AssetKeyframeTable, AssetVideoTable } from 'src/schema/tables/asset-av.table.js';
 import { AssetExifTable } from 'src/schema/tables/asset-exif.table.js';
@@ -780,8 +780,9 @@ export class AssetRepository {
               .innerJoin('album_asset', 'asset.id', 'album_asset.assetId')
               .where('album_asset.albumId', '=', asUuid(options.albumId!)),
           )
-          // ImagePier: blocked assets are not shown through shared links
+          // ImagePier: blocked assets are not shown through shared links; assets of areas without a level are hidden
           .$if(!!auth.sharedLink, withoutBlockedAssets)
+          .$if(!auth.sharedLink, withoutHiddenAreas(auth))
           .$if(!!options.personId, (qb) => hasPeople(qb, [options.personId!]))
           .$if(!!options.withStacked, (qb) =>
             qb
@@ -857,8 +858,9 @@ export class AssetRepository {
           .where('asset.deletedAt', options.isTrashed ? 'is not' : 'is', null)
           .$if(options.visibility === undefined, withDefaultVisibility)
           .$if(!!options.visibility, (qb) => qb.where('asset.visibility', '=', options.visibility!))
-          // ImagePier: blocked assets are not shown through shared links
+          // ImagePier: blocked assets are not shown through shared links; assets of areas without a level are hidden
           .$if(!!auth.sharedLink, withoutBlockedAssets)
+          .$if(!auth.sharedLink, withoutHiddenAreas(auth))
           .$if(!!options.bbox, (qb) => {
             const bbox = options.bbox!;
             const circle = getBoundingCircle(bbox);
