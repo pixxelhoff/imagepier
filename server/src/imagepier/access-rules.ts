@@ -130,15 +130,6 @@ export const parseAccessSettings = (value: unknown, sharedAreaName = 'Shared'): 
 export const getAreaAccounts = (settings: AccessSettings) =>
   new Map(settings.areas.flatMap((area) => (area.userId ? [[area.userId, area.id] as const] : [])));
 
-/**
-Accounts that share people with the given account: the media library and all area accounts share one face cluster
-group, so a name given in one area applies in all areas. Empty for regular users.
-*/
-export const getSharedPersonOwners = (settings: AccessSettings, ownerId: string) => {
-  const accounts = getAreaAccounts(settings);
-  return accounts.has(ownerId) ? [...accounts.keys()].filter((id) => id !== ownerId) : [];
-};
-
 /** Area that owns assets of the given account, or undefined for regular users. */
 export const getAreaOfOwner = (settings: AccessSettings, ownerId: string) =>
   settings.areas.find((area) => !!area.userId && area.userId === ownerId);
@@ -217,6 +208,14 @@ export const canDownloadArea = (access: UserAccess, areaId: string | undefined) 
   isAtLeast(getAreaLevel(access, areaId), 'standard');
 
 /** Whether a user may upload into, edit and trash assets of the given area. */
+/**
+Whether a name given to a person applies to everybody who sees the person: the media library, the area accounts and
+the users with access to the areas share one face cluster group. True for the people of area accounts and for users
+who edit at least one area; other users name people only for themselves.
+*/
+export const sharesPersonNames = (settings: AccessSettings, access: UserAccess, ownerId: string) =>
+  getAreaAccounts(settings).has(ownerId) || settings.areas.some((area) => canEditArea(access, area.id));
+
 export const canEditArea = (access: UserAccess, areaId: string | undefined) =>
   isAtLeast(getAreaLevel(access, areaId), 'editor');
 

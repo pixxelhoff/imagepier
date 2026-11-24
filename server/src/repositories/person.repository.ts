@@ -866,22 +866,42 @@ export class PersonRepository {
       .execute();
   }
 
-  // ImagePier: names of a person shared by the area accounts (src/imagepier/access-rules.ts, getSharedPersonOwners)
-  async updateForOwners(
-    ownerIds: string[],
-    personGroupId: string,
-    person: Pick<Updateable<PersonTable>, 'name' | 'birthDate'>,
-  ): Promise<void> {
-    if (ownerIds.length === 0) {
+  // ImagePier: a name shared by everybody who sees the person (src/imagepier/access-rules.ts, sharesPersonNames)
+  async updateGroupNames(personGroupId: string, person: Pick<Updateable<PersonTable>, 'name' | 'birthDate'>) {
+    await this.db.updateTable('person').set(person).where('person.personGroupId', '=', personGroupId).execute();
+  }
+
+  /**
+  ImagePier: gives the owners a person for each person of the source accounts (the area accounts), so the people of
+  the areas appear in their people overview. The area assets are partner assets of these owners.
+  */
+  async addMissingPeople(ownerIds: string[], sourceOwnerIds: string[]): Promise<void> {
+    if (sourceOwnerIds.length === 0) {
       return;
     }
 
-    await this.db
-      .updateTable('person')
-      .set(person)
-      .where('person.personGroupId', '=', personGroupId)
-      .where('person.ownerId', 'in', ownerIds)
-      .execute();
+    for (const ownerId of ownerIds) {
+      await this.db
+        .insertInto('person')
+        .columns(['ownerId', 'personGroupId', 'name', 'birthDate', 'faceAssetId'])
+        .expression((eb) =>
+          eb
+            .selectFrom('person as source')
+            .distinctOn('source.personGroupId')
+            .select([
+              sql<string>`${ownerId}::uuid`.as('ownerId'),
+              'source.personGroupId',
+              'source.name',
+              'source.birthDate',
+              'source.faceAssetId',
+            ])
+            .where('source.ownerId', 'in', sourceOwnerIds)
+            .orderBy('source.personGroupId')
+            .orderBy('source.name', 'desc'),
+        )
+        .onConflict((oc) => oc.columns(['ownerId', 'personGroupId']).doNothing())
+        .execute();
+    }
   }
 
   async updateAll(people: Insertable<PersonTable>[]): Promise<void> {

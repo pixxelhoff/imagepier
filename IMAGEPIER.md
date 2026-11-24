@@ -53,8 +53,8 @@ conflicts can occur during updates.
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entries (usage rights, keywords, area) |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" and "Keywords" search tabs |
 | `server/src/utils/database.ts` | `hasTags`: tags with the same value count as one tag, so keywords of several accounts (areas) can be searched together; unchanged result for tags of one account |
-| `server/src/repositories/person.repository.ts` | `UpdateFacesData.newPersonGroupId` may be `null`, so faces can be unassigned; `updateForOwners` for shared names |
-| `server/src/services/person.service.ts` | `update`: a name or birth date given in an area applies to the same person in all areas |
+| `server/src/repositories/person.repository.ts` | `UpdateFacesData.newPersonGroupId` may be `null`, so faces can be unassigned; `updateGroupNames` (shared names) and `addMissingPeople` (people of the areas for users) |
+| `server/src/services/person.service.ts` | `update`: a name or birth date given in an area (or by an area editor) applies to everybody who sees the person |
 | `server/src/services/tag.service.ts` | `create` and `upsert`: only administrators create tags once a keyword list exists |
 | `server/src/services/user.service.ts` | `getMyPreferences` / `updateMyPreferences`: Immich's tag feature is always off for non-administrators |
 | `web/src/routes/(user)/user-settings/FeatureSettings.svelte` | the "Tags" switch is shown to administrators only |
@@ -181,9 +181,11 @@ when access rules change.
 - `moveToLibrary` moves all tags of an asset to the new owner (`moveTagsToOwner`), recalculates the storage usage of
   the previous owners and the area account (`syncUsage`), and unassigns faces found by machine learning and queues
   `FacialRecognition` for them, so the people are recognized in the area account.
-- `setupLibrary` puts the media library and all area accounts into one face cluster group (Immich's
-  `user.clusterGroupId`, `syncFaceClusterGroup`), so a person is recognized across areas; accounts that join are
-  recognized again (`FacialRecognitionQueueAll` with `force`).
+- `setupLibrary` (start and every 15 minutes) puts the media library, all area accounts and every user with access to
+  an area into one face cluster group (Immich's `user.clusterGroupId`, `syncFaceClusterGroup`), so a person is
+  recognized across areas; accounts that join are recognized again (`FacialRecognitionQueueAll` with `force`). Users
+  get a person for each person of the area accounts (`addMissingPeople`); as the area accounts are their partners,
+  Immich's people overview and person page then show the people and photos of all accessible areas.
 - Single keywords: `POST /api/admin/imagepier/keywords/add|edit|delete`. A new category or name moves the assets of
   the old tag of every account (own accounts and area accounts) to the new tag, deletes the old tag, updates the
   locked EXIF tags and queues `SidecarWrite`; empty parent tags are removed by Immich's nightly tag cleanup. Deleting

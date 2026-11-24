@@ -30,7 +30,7 @@ two. Who may do what is described in [PERMISSIONS.md](PERMISSIONS.md); technical
 | Creating tags | Everybody | Once a keyword list exists, only administrators create tags; everybody else assigns keywords from the list. Keywords embedded in uploaded files are still read |
 | Searching tags | Tags of the own account | Search tab *Keywords*: all selected keywords must apply, in own photos and all accessible areas at once. Immich's tag filter treats tags with the same name in different accounts as one tag |
 | Tags when moving to an area | – (owners never change) | Tags of the photo are moved to the area account (same names) |
-| Face recognition across areas | Each account has its own face group | The media library and all areas share one face group, so a person is recognized in every area; a name given in one area applies in all areas |
+| Face recognition across areas | Each account has its own face group | The media library and all areas share one face group, so a person is recognized in every area; a name given in one area applies in all areas, and the people overview shows the people of all accessible areas |
 | Storage usage and people when moving to an area | – (owners never change) | The storage usage moves to the area account; faces are recognized again in the area account |
 | Downloads | Original file | Copy with photographer, copyright and usage terms written into IPTC/XMP/EXIF; the original stays unchanged |
 

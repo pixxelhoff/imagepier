@@ -123,23 +123,28 @@ export class ImagePierAccessService extends BaseService {
   }
 
   /**
-  The media library and all area accounts share one face cluster group (an Immich feature), so a person is
-  recognized across all areas. Accounts that join the group are recognized again once.
+  The media library, all area accounts and the users with access to an area share one face cluster group (an Immich
+  feature), so a person is recognized across all areas and has one name. Accounts that join the group are recognized
+  again once. Users get the people of the areas, so they appear in their people overview.
   */
   async syncFaceClusterGroup() {
     const { libraryUserId } = this.settings;
-    if (!libraryUserId) {
-      return;
-    }
-
-    const library = await this.userRepository.get(libraryUserId, {});
+    const library = libraryUserId ? await this.userRepository.get(libraryUserId, {}) : undefined;
     if (!library) {
       return;
     }
 
+    const accounts = getAreaAccounts(this.settings);
+    const users = (await this.userRepository.getList())
+      .filter((user) => !accounts.has(user.id))
+      .filter((user) => {
+        const access = getUserAccess(this.settings, user);
+        return this.settings.areas.some((area) => isAtLeast(getAreaLevel(access, area.id), 'viewer'));
+      });
+
     const clusterGroupId = library.clusterGroupId;
     let changed = false;
-    for (const userId of getAreaAccounts(this.settings).keys()) {
+    for (const userId of [...accounts.keys(), ...users.map((user) => user.id)]) {
       const user = await this.userRepository.get(userId, {});
       if (!user || user.clusterGroupId === clusterGroupId) {
         continue;
@@ -148,6 +153,11 @@ export class ImagePierAccessService extends BaseService {
       await this.userRepository.update(userId, { clusterGroupId });
       changed = true;
     }
+
+    await this.personRepository.addMissingPeople(
+      users.map((user) => user.id),
+      [...accounts.keys()],
+    );
 
     if (!changed) {
       return;
