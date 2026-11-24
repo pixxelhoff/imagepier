@@ -180,6 +180,9 @@ when access rules change.
 - `moveToLibrary` moves all tags of an asset to the new owner (`moveTagsToOwner`), recalculates the storage usage of
   the previous owners and the area account (`syncUsage`), and unassigns faces found by machine learning and queues
   `FacialRecognition` for them, so the people are recognized in the area account.
+- `setupLibrary` puts the media library and all area accounts into one face cluster group (Immich's
+  `user.clusterGroupId`, `syncFaceClusterGroup`), so a person is recognized across areas; accounts that join are
+  recognized again (`FacialRecognitionQueueAll` with `force`).
 - Single keywords: `POST /api/admin/imagepier/keywords/add|edit|delete`. A new category or name moves the assets of
   the old tag of every account (own accounts and area accounts) to the new tag, deletes the old tag, updates the
   locked EXIF tags and queues `SidecarWrite`; empty parent tags are removed by Immich's nightly tag cleanup. Deleting

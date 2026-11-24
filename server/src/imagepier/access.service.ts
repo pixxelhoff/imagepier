@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { OnEvent } from 'src/decorators.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
-import { ImmichWorker, SystemMetadataKey, UserStatus } from 'src/enum.js';
+import { ImmichWorker, JobName, SystemMetadataKey, UserStatus } from 'src/enum.js';
 import { getAccessForAuth, setAssetOwnerResolver, setAssetUploaderResolver } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
@@ -119,6 +119,43 @@ export class ImagePierAccessService extends BaseService {
     await this.ensureAreaAccounts();
     await this.migrateAreaAssets();
     await this.syncLibrarySharing();
+    await this.syncFaceClusterGroup();
+  }
+
+  /**
+  The media library and all area accounts share one face cluster group (an Immich feature), so a person is
+  recognized across all areas. Accounts that join the group are recognized again once.
+  */
+  async syncFaceClusterGroup() {
+    const { libraryUserId } = this.settings;
+    if (!libraryUserId) {
+      return;
+    }
+
+    const library = await this.userRepository.get(libraryUserId, {});
+    if (!library) {
+      return;
+    }
+
+    const clusterGroupId = library.clusterGroupId;
+    let changed = false;
+    for (const userId of getAreaAccounts(this.settings).keys()) {
+      const user = await this.userRepository.get(userId, {});
+      if (!user || user.clusterGroupId === clusterGroupId) {
+        continue;
+      }
+      await this.personRepository.reassignCluster({ userId, newClusterId: clusterGroupId });
+      await this.userRepository.update(userId, { clusterGroupId });
+      changed = true;
+    }
+
+    if (changed) {
+      this.logger.log('Area accounts joined the face cluster group of the media library');
+      await this.jobRepository.queue({
+        name: JobName.FacialRecognitionQueueAll,
+        data: { clusterGroupId, force: true },
+      });
+    }
   }
 
   /** Creates the media library account, or finds it again after it was deleted from the settings. */
