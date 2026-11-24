@@ -27,7 +27,7 @@ For features and installation see the [README](.github/README.md).
 | `web/src/lib/imagepier/` | web code (components, translations) |
 | `imagepier/` | deployment example and maintenance scripts |
 | `.github/workflows/imagepier-*.yml` | ImagePier CI |
-| `.github/README.md` | ImagePier README (shown by GitHub instead of Immich's `README.md`) |
+| `.github/README.md`, `.github/README.de.md` | ImagePier README in English and German (shown by GitHub instead of Immich's `README.md`); keep both in sync |
 
 ### Hooks in Immich files
 

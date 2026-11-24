@@ -14,6 +14,8 @@
   <a href="https://github.com/pixxelhoff/imagepier/pkgs/container/imagepier-server"><img src="https://img.shields.io/badge/image-ghcr.io-a66cff?style=for-the-badge" alt="Container image on ghcr.io"></a>
 </p>
 
+<p align="center"><b>English</b> · <a href="README.de.md">Deutsch</a></p>
+
 <p align="center">
   <a href="#features">Features</a> ·
   <a href="#installation">Installation</a> ·
@@ -33,7 +35,9 @@ ImagePier keeps everything that makes [Immich](https://github.com/immich-app/imm
 albums, face and object search, mobile apps – and adds what teams need to work with photos professionally:
 
 - 📝 **Usage rights, licenses and photo credits** for every image – also written into downloaded files
+- ✅ **A release status** (in review, approved, approved with restrictions, blocked) decided by media managers
 - 🗂️ **A shared media library** with roles, areas (departments) and its own trash
+- 🏷️ **A controlled keyword list** for consistent tagging and searching
 - 🌐 **Public website galleries** that only show images cleared for publication
 - 📋 **An audit log** of uploads, downloads and changes
 
@@ -50,7 +54,13 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Automatic suggestions** after upload from embedded IPTC/XMP/EXIF metadata (By-line, Creator, Artist,
   Copyright Notice, Rights, Copyright, Credit) and from file names like `Harbour Festival (c) ACME, Jane Doe.jpg`.
   Suggestions are marked for review and never overwrite existing entries.
-- **Bulk editing** for many assets at once – only filled-in fields are applied, everything else stays as it is.
+- **Release status** – *In review*, *Approved*, *Approved with restrictions* (with a note on the restriction) or
+  *Blocked*; *Expired* is shown automatically after the expiry date. Media managers of the area decide the status;
+  changes by editors put approved photos back to *in review*, blocked photos stay blocked.
+- **Blocked photos** cannot be downloaded (except by media managers and administrators), are refused for new shared
+  links, are hidden in existing shared links and never appear in website galleries.
+- **Bulk editing** for many assets at once – in an area, in *All photos* or in search results. Only filled-in fields
+  are applied, everything else stays as it is.
 - **Copy credit line** with one click, ready to paste below a photo on a website or in print.
 - **Credits in downloaded files** – when an asset is downloaded (single file, ZIP archive, shared link, gallery or
   mobile app), photographer, copyright, credit line and usage terms are written into the file's IPTC/XMP/EXIF
@@ -59,7 +69,7 @@ albums, face and object search, mobile apps – and adds what teams need to work
 ### 🔎 Search and license monitoring
 
 - **"Usage rights" tab in the search dialog** – filter by photographer, copyright holder, license type, license
-  status (valid, expiring soon, expired, unreviewed), permitted usage, license source, credit line, expiry year and
+  status (approved, approved with restrictions, expiring soon, expired, blocked, in review), permitted usage, license source, credit line, expiry year and
   area, combined with all other Immich filters.
 - **Find missing information** – every asset without copyright holder, photographer or license is tagged
   (`Usage rights/Missing/…`), so incomplete assets can be found and completed.
@@ -95,8 +105,12 @@ albums, face and object search, mobile apps – and adds what teams need to work
   asset shows its area, and the usage rights search works per area.
 - **Assign to area** – own assets can be assigned to an area with the level *Editor* or higher (selection menu or
   the menu of a single photo); editors can also upload directly in the view of an area.
-- **Confirming usage rights** – usage rights entered by editors stay *to be reviewed* until a media manager of the
-  area (or an administrator) confirms them. Only confirmed usage rights count for website galleries.
+- **Approving usage rights** – usage rights entered by editors stay *in review* until a media manager of the area
+  (or an administrator) decides the release status. Only approved usage rights count for website galleries.
+- **People across areas** – the media library and all areas share one face recognition: a person is recognized in
+  every area, a name given once applies everywhere, and the people overview shows the people of all accessible
+  areas.
+- **Map across areas** – the map shows the locations of the own photos and of all accessible areas.
 - **External photographers** – externals with the level *Editor* deliver photos into an area and maintain the usage
   rights of their own deliveries; they cannot move other photos, share links or publish galleries.
 - **Trash per area** – editors and media managers find the trash of their areas below the areas in the sidebar,
@@ -126,7 +140,7 @@ Administrators, editors and media managers (staff only, not externals) publish a
 *Website galleries* in the sidebar – everyone except administrators only their own albums. Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
 website or embedded in an iframe – no login needed for visitors.
 
-- Only images with **confirmed usage rights for website or press use** that have **not expired** are shown. The
+- Only images with **approved usage rights for website or press use** that have **not expired** are shown. The
   filter runs on the server, so the rest of the album stays private.
 - Every image shows its credit line. Visitors confirm the license terms before downloading – single images, a
   selection or the whole gallery as ZIP file.
@@ -154,6 +168,15 @@ accounts – filterable by action, person and period, with CSV export.
   the logo folder), an accent color and a neutral footer instead of Immich's, in German or English. Name, color and
   logo can be changed in `.env`.
 
+### 🧭 Planned
+
+- **Channels** (internal, web, print, social media, press, social ads, presentations, partners, paid campaigns) with
+  *yes / no / conditional* per channel, configurable in the administration.
+- **Scope of rights** (territory, editing, passing on, exclusivity) and additional checks (model release, minors,
+  music and artworks, drone, private property).
+- **Title, alternative text and a link to the rights document** for every photo.
+- **Import interface and import tool** – upload with area, keywords and usage rights in one step.
+
 ### 🧭 Possible later
 
 - **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
@@ -166,7 +189,7 @@ ImagePier replaces only the Immich **server** container. Machine learning, Postg
 official Immich images, and existing Immich data is used as it is.
 
 > [!IMPORTANT]
-> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.26` for Immich `v3.4.2`).
+> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.50` for Immich `v3.4.2`).
 > Downgrading Immich is not supported. Always create a database backup before switching.
 
 1. Start from a working [Immich Docker Compose installation](https://docs.immich.app/install/docker-compose).
@@ -174,7 +197,7 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.26
+   IMAGEPIER_VERSION=v3.4.2-ip.50
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
@@ -228,7 +251,7 @@ the official Immich server of the same version. Usage rights stay stored in Immi
 
 | Tag | Meaning |
 |---|---|
-| `v3.4.2-ip.26` | ImagePier release 26 based on Immich `v3.4.2` |
+| `v3.4.2-ip.50` | ImagePier release 50 based on Immich `v3.4.2` |
 | `release` | latest ImagePier release |
 | `edge` | latest build of the `imagepier` branch – for testing only |
 
