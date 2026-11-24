@@ -120,8 +120,16 @@ when access rules change.
   level `editor` only edit and trash assets they added themselves (`asset_metadata` key `imagepier.uploaded-by`,
   written when own assets are moved into an area; resolved via the asset uploader resolver).
 - `applyMetadataRules` (called from Immich's asset metadata endpoints): the keys `imagepier.area` and
-  `imagepier.uploaded-by` are reserved for the server; usage rights of media library assets saved with status
-  `confirmed` by anyone but admins and media managers of the area are stored as `suggested` (to be reviewed).
+  `imagepier.uploaded-by` are reserved for the server; usage rights of media library assets saved by anyone but
+  admins and media managers of the area are stored as `suggested` (in review), or stay `blocked` if they were blocked
+  (current status via the release status resolver of the usage rights service).
+- Release status (`status` in the usage rights): `suggested` = in review, `confirmed` = approved, `restricted` =
+  approved with restrictions (`restriction`), `blocked`. The stored names are kept from earlier versions. Blocked
+  assets: `AssetDownload` only for admins and media managers of the area; shared links
+  (`applyImagePierSharedLinkAccess`, hook in `checkAccess`) hide them; `requireShareableAssets` refuses them
+  (album links are created, the blocked assets are not shown); galleries only publish `confirmed`.
+- Status tags `Usage rights/Status/…`: Approved, Approved with restrictions, Expiring soon, Expired, Blocked,
+  In review. Tags of earlier versions (Valid, Unreviewed) are renamed by `refreshStatuses` on startup.
 - Uploads in the view of an area (upload button of the navigation bar, drag and drop) are assigned to the area when
   the user is editor there (`upload-access.svelte.ts`, hook in `fileUploadHandler`).
 - Shared links (`shared-link.service.ts`): media library assets can only be shared by staff with the level editor
@@ -131,7 +139,7 @@ when access rules change.
 - Trash of the areas: `GET /api/imagepier/library/trash` returns the trashed assets of the areas where the user is
   editor or media manager (externals: only their deliveries); page `/media-library/trash`, also used in the
   administration. Editors restore, media managers and admins delete permanently.
-- Audit log: confirmations of usage rights are logged as `usage_rights_confirm`.
+- Audit log: approvals of usage rights are logged as `usage_rights_confirm`.
 - Areas: stored in the same settings (`areas`, the area `shared` always exists). The area is also stored in
   `asset_metadata` (`imagepier.area`) and mirrored as tag `Usage rights/Area/<name>`.
   `GET /api/admin/imagepier/access/areas` returns the number of media managers per area, so the administration can
@@ -158,7 +166,7 @@ when access rules change.
 
 - Galleries and their branding are stored in `system_metadata` (`imagepier.galleries`); each gallery publishes one
   album under a random key. `ImagePierGalleryService` reads the album assets with plain SQL and filters them with
-  `isPublishable()` (confirmed rights, website or press use, not expired); the result is cached for one minute.
+  `isPublishable()` (approved rights, website or press use, not expired); the result is cached for one minute.
 - Public endpoints (`@Authenticated({ public: true })`): `GET /api/imagepier/gallery/:key`,
   `GET /api/imagepier/gallery/:key/assets/:id?size=thumbnail|preview`, `GET /api/imagepier/gallery/:key/assets/:id/download`
   (original with usage rights credits, counted in the audit log). Every file request checks that the asset is published.

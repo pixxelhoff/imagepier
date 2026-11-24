@@ -37,6 +37,11 @@ describe('usage rights tags', () => {
       expect(getUsageRightsStatus({ status: 'confirmed' }, today)).toBe('valid');
       expect(getUsageRightsStatus({ status: 'suggested' }, today)).toBe('unreviewed');
     });
+
+    it('should show restricted and blocked usage rights', () => {
+      expect(getUsageRightsStatus({ status: 'restricted' }, today)).toBe('restricted');
+      expect(getUsageRightsStatus({ status: 'blocked', validUntil: '2026-05-31' }, today)).toBe('blocked');
+    });
   });
 
   describe('getUsageRightsTagValues', () => {
@@ -76,7 +81,7 @@ describe('usage rights tags', () => {
         'Nutzungsrechte/Lizenzquelle/Contract 2026-12',
         'Nutzungsrechte/Bildnachweis/Foto: Jane Doe - ACME',
         'Nutzungsrechte/Gültig bis/2027',
-        'Nutzungsrechte/Status/Gültig',
+        'Nutzungsrechte/Status/Freigegeben',
         'Nutzungsrechte/Fehlende Angaben/Rechteinhaber',
         'Nutzungsrechte/Fehlende Angaben/Fotograf',
         'Nutzungsrechte/Fehlende Angaben/Lizenz',
@@ -87,7 +92,7 @@ describe('usage rights tags', () => {
       const rights: UsageRights = { version: USAGE_RIGHTS_VERSION, status: 'suggested' };
 
       expect(getUsageRightsTagValues(rights, today, getTagLabels('de'))).toEqual([
-        'Nutzungsrechte/Status/Ungeprüft',
+        'Nutzungsrechte/Status/In Prüfung',
         'Nutzungsrechte/Fehlende Angaben/Rechteinhaber',
         'Nutzungsrechte/Fehlende Angaben/Fotograf',
         'Nutzungsrechte/Fehlende Angaben/Lizenz',

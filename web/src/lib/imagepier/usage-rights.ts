@@ -13,7 +13,12 @@ export type LicenseType = (typeof LICENSE_TYPES)[number];
 export const PERMITTED_USAGES = ['internal', 'web', 'print', 'social', 'press'] as const;
 export type PermittedUsage = (typeof PERMITTED_USAGES)[number];
 
-export type UsageRightsStatus = 'suggested' | 'confirmed';
+/**
+Release status: `suggested` = in review, `confirmed` = approved, `restricted` = approved with restrictions,
+`blocked` = no download, sharing or publishing. Expired follows from `validUntil`.
+*/
+export const RELEASE_STATUSES = ['suggested', 'confirmed', 'restricted', 'blocked'] as const;
+export type UsageRightsStatus = (typeof RELEASE_STATUSES)[number];
 
 export interface UsageRights {
   version: number;
@@ -28,7 +33,12 @@ export interface UsageRights {
   validUntil?: string;
   creditLine?: string;
   notes?: string;
+  /** What the restriction of the status `restricted` is. */
+  restriction?: string;
 }
+
+/** Usage rights entered in the dialog; without status (several assets) the status of each asset is kept. */
+export type UsageRightsInput = Omit<UsageRights, 'status'> & { status?: UsageRightsStatus };
 
 const text = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined);
 
@@ -39,10 +49,11 @@ export const normalizeUsageRights = (value: Record<string, unknown>): UsageRight
     ? PERMITTED_USAGES.filter((usage) => (value.permittedUsage as unknown[]).includes(usage))
     : [];
   const validUntil = text(value.validUntil);
+  const status = RELEASE_STATUSES.find((item) => item === value.status) ?? 'suggested';
 
   return {
     version: USAGE_RIGHTS_VERSION,
-    status: value.status === 'confirmed' ? 'confirmed' : 'suggested',
+    status,
     suggestedFrom: Array.isArray(value.suggestedFrom)
       ? value.suggestedFrom.filter((item) => typeof item === 'string')
       : undefined,
@@ -54,6 +65,7 @@ export const normalizeUsageRights = (value: Record<string, unknown>): UsageRight
     validUntil: validUntil && /^\d{4}-\d{2}-\d{2}$/.test(validUntil) ? validUntil : undefined,
     creditLine: text(value.creditLine),
     notes: text(value.notes),
+    restriction: status === 'restricted' ? text(value.restriction) : undefined,
   };
 };
 
@@ -71,7 +83,7 @@ export type UsageRightsConfig = {
     missing: string;
     area: string;
   };
-  statuses: Record<'valid' | 'expiring' | 'expired' | 'unreviewed', string>;
+  statuses: Record<'valid' | 'restricted' | 'expiring' | 'expired' | 'blocked' | 'unreviewed', string>;
   missing: Record<'copyrightHolder' | 'photographer' | 'license', string>;
   expiringSoonDays: number;
 };
@@ -109,6 +121,8 @@ export const getUsageRightsConfig = () => {
 const compact = (rights: UsageRights) =>
   Object.fromEntries(Object.entries(rights).filter(([, value]) => value !== undefined)) as Record<string, unknown>;
 
+export const isBlocked = (rights: UsageRights | undefined) => rights?.status === 'blocked';
+
 export const isExpired = (rights: UsageRights | undefined, today = new Date().toISOString().slice(0, 10)) =>
   !!rights?.validUntil && rights.validUntil < today;
 
@@ -135,8 +149,9 @@ export const loadAssetDetails = async (assetId: string) => {
   };
 };
 
+/** Saves usage rights; the server keeps them "in review" if the user may not decide the release status. */
 export const saveUsageRights = async (assetId: string, rights: UsageRights): Promise<UsageRights> => {
-  const value = compact(normalizeUsageRights({ ...rights, status: 'confirmed', suggestedFrom: undefined }));
+  const value = compact(normalizeUsageRights({ ...rights, suggestedFrom: undefined }));
   const items = await updateAssetMetadata({
     id: assetId,
     assetMetadataUpsertDto: { items: [{ key: USAGE_RIGHTS_KEY, value }] },
@@ -146,10 +161,18 @@ export const saveUsageRights = async (assetId: string, rights: UsageRights): Pro
   return normalizeUsageRights(saved?.value ?? value);
 };
 
-const TEXT_FIELDS = ['photographer', 'copyrightHolder', 'licenseSource', 'creditLine', 'notes', 'validUntil'] as const;
+const TEXT_FIELDS = [
+  'photographer',
+  'copyrightHolder',
+  'licenseSource',
+  'creditLine',
+  'notes',
+  'validUntil',
+  'restriction',
+] as const;
 
 /** Keeps only the fields that were filled in, so empty fields leave existing values unchanged. */
-export const toUsageRightsPatch = (rights: UsageRights): Partial<UsageRights> => {
+export const toUsageRightsPatch = (rights: UsageRightsInput): Partial<UsageRights> => {
   const patch: Partial<UsageRights> = {};
   for (const key of TEXT_FIELDS) {
     const value = rights[key]?.trim();
@@ -163,12 +186,15 @@ export const toUsageRightsPatch = (rights: UsageRights): Partial<UsageRights> =>
   if (rights.permittedUsage?.length) {
     patch.permittedUsage = rights.permittedUsage;
   }
+  if (rights.status) {
+    patch.status = rights.status;
+  }
   return patch;
 };
 
 const BULK_CHUNK_SIZE = 20;
 
-/** Merges a patch into the usage rights of many assets and marks them as confirmed. */
+/** Merges a patch into the usage rights of many assets; without a status in the patch the status is kept. */
 export const applyUsageRightsToAssets = async (assetIds: string[], patch: Partial<UsageRights>) => {
   for (let index = 0; index < assetIds.length; index += BULK_CHUNK_SIZE) {
     const chunk = assetIds.slice(index, index + BULK_CHUNK_SIZE);
@@ -177,7 +203,12 @@ export const applyUsageRightsToAssets = async (assetIds: string[], patch: Partia
       assetId,
       key: USAGE_RIGHTS_KEY,
       value: compact(
-        normalizeUsageRights({ ...existing[position], ...patch, status: 'confirmed', suggestedFrom: undefined }),
+        normalizeUsageRights({
+          ...existing[position],
+          ...patch,
+          status: patch.status ?? existing[position]?.status ?? 'suggested',
+          suggestedFrom: undefined,
+        }),
       ),
     }));
     await updateBulkAssetMetadata({ assetMetadataBulkUpsertDto: { items } });

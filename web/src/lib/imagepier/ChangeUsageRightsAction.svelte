@@ -27,6 +27,7 @@
     const result = await modalManager.show(UsageRightsModal, {
       title: $ipt('usage_rights_bulk_title', { count: ids.length }),
       hint: $ipt('usage_rights_bulk_hint'),
+      bulk: true,
     });
     if (!result) {
       return;

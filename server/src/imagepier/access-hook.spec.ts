@@ -4,6 +4,7 @@ import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
 import {
   applyImagePierAccess,
+  applyImagePierSharedLinkAccess,
   applyMetadataRules,
   getShareableAssets,
   rejectReservedMetadataKeys,
@@ -11,6 +12,7 @@ import {
   requireShareableAssets,
   setAssetOwnerResolver,
   setAssetUploaderResolver,
+  setReleaseStatusResolver,
 } from 'src/imagepier/access-hook.js';
 import {
   AccessSettings,
@@ -64,6 +66,7 @@ describe('ImagePier access hook', () => {
     setCachedAccessSettings({ areas: [], users: {} });
     setAssetOwnerResolver(undefined);
     setAssetUploaderResolver(undefined);
+    setReleaseStatusResolver(undefined);
   });
 
   it('should let external editors edit only the media library assets they added', async () => {
@@ -112,6 +115,51 @@ describe('ImagePier access hook', () => {
     );
 
     expect(result).toEqual(new Set(['asset-1']));
+  });
+
+  describe('blocked assets', () => {
+    beforeEach(() => {
+      setReleaseStatusResolver((ids) =>
+        Promise.resolve(new Map(ids.filter((id) => id.startsWith('asset-')).map((id) => [id, 'blocked' as const]))),
+      );
+    });
+
+    it('should let only media managers of the area download blocked media library assets', async () => {
+      useSettings({ user: { role: 'staff', areas: { press: 'manager', marketing: 'editor' } } });
+      const result = await applyImagePierAccess(
+        access,
+        { auth: authFor('user'), permission: Permission.AssetDownload, ids: new Set(['asset-1', 'asset-2', 'own']) },
+        Promise.resolve(new Set(['asset-1', 'asset-2', 'own'])),
+      );
+
+      expect(result).toEqual(new Set(['asset-1', 'own']));
+    });
+
+    it('should hide blocked assets in shared links', async () => {
+      await expect(
+        applyImagePierSharedLinkAccess(Permission.AssetView, Promise.resolve(new Set(['asset-1', 'own']))),
+      ).resolves.toEqual(new Set(['own']));
+      await expect(
+        applyImagePierSharedLinkAccess(Permission.AlbumRead, Promise.resolve(new Set(['album']))),
+      ).resolves.toEqual(new Set(['album']));
+    });
+
+    it('should not share blocked assets', async () => {
+      useSettings({});
+
+      await expect(getShareableAssets(authFor('admin', true), ['asset-1', 'own'])).resolves.toEqual(new Set(['own']));
+      await expect(requireShareableAssets(authFor('admin', true), ['asset-1'])).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should keep blocked assets blocked when editors change their usage rights', async () => {
+      useSettings({ user: { role: 'staff', areas: { press: 'editor' } } });
+
+      const result = await applyMetadataRules(authFor('user'), [
+        { assetId: 'asset-1', key: USAGE_RIGHTS_KEY, value: { status: 'suggested' } },
+      ]);
+
+      expect(result[0].value.status).toBe('blocked');
+    });
   });
 
   describe('applyMetadataRules', () => {

@@ -11,7 +11,7 @@ import {
   getCachedAccessSettings,
   getUserAccess,
 } from 'src/imagepier/access-rules.js';
-import { USAGE_RIGHTS_KEY } from 'src/imagepier/usage-rights.js';
+import { USAGE_RIGHTS_KEY, type UsageRightsStatus } from 'src/imagepier/usage-rights.js';
 import type { AccessRepository } from 'src/repositories/access.repository.js';
 
 type AccessCheck = { auth: AuthDto; permission: Permission; ids: Set<string> };
@@ -37,6 +37,39 @@ export const setAssetUploaderResolver = (resolver: AssetUploaderResolver | undef
 };
 
 /** Access for the current user according to the ImagePier role settings. */
+/** Returns the release status of each given asset that has usage rights; registered by the usage rights service. */
+export type ReleaseStatusResolver = (assetIds: string[]) => Promise<Map<string, UsageRightsStatus>>;
+
+let releaseStatusResolver: ReleaseStatusResolver | undefined;
+
+export const setReleaseStatusResolver = (resolver: ReleaseStatusResolver | undefined) => {
+  releaseStatusResolver = resolver;
+};
+
+/** Assets among the given ones whose usage rights have the status "blocked". */
+export const getBlockedAssets = async (ids: Set<string>) => {
+  if (!releaseStatusResolver || ids.size === 0) {
+    return new Set<string>();
+  }
+  const statuses = await releaseStatusResolver([...ids]);
+  return new Set([...ids].filter((id) => statuses.get(id) === 'blocked'));
+};
+
+/** Blocked assets cannot be opened or downloaded through shared links. */
+export const applyImagePierSharedLinkAccess = async (permission: Permission, granted: Promise<Set<string>>) => {
+  const allowed = await granted;
+  switch (permission) {
+    case Permission.AssetRead:
+    case Permission.AssetView:
+    case Permission.AssetDownload: {
+      return allowed.difference(await getBlockedAssets(allowed));
+    }
+    default: {
+      return allowed;
+    }
+  }
+};
+
 export const getAccessForAuth = (auth: AuthDto) => getUserAccess(getCachedAccessSettings(), auth.user);
 
 /** Media library assets (owned by an area account) among the given ids, and those whose area passes the check. */
@@ -79,12 +112,15 @@ export const applyImagePierAccess = async (
 
   switch (permission) {
     // Media library assets can be downloaded from areas with the level standard or higher.
+    // Blocked media library assets only by media managers of their area.
     case Permission.AssetDownload: {
       if (userAccess.role === 'admin') {
         return allowed;
       }
       const { library, permitted } = await checkLibraryAssets(allowed, (areaId) => canDownloadArea(userAccess, areaId));
-      return allowed.difference(library.difference(permitted));
+      const blocked = await getBlockedAssets(permitted);
+      const managed = (await checkLibraryAssets(blocked, (areaId) => canManageArea(userAccess, areaId))).permitted;
+      return allowed.difference(library.difference(permitted)).difference(blocked.difference(managed));
     }
 
     // Editors and media managers edit and trash media library assets of their areas; externals only assets they added.
@@ -161,7 +197,7 @@ export const setAlbumAssetResolver = (resolver: AlbumAssetResolver | undefined) 
 Assets among the given ones that the user may publish with a shared link: own assets, and media library assets of
 areas where the user is editor or media manager. Externals do not share media library assets.
 */
-export const getShareableAssets = async (auth: AuthDto, ids: string[]) => {
+const getPermittedToShare = async (auth: AuthDto, ids: string[]) => {
   const userAccess = getAccessForAuth(auth);
   const all = new Set(ids);
   if (userAccess.role === 'admin') {
@@ -175,20 +211,37 @@ export const getShareableAssets = async (auth: AuthDto, ids: string[]) => {
   return all.difference(library.difference(permitted));
 };
 
-const SHARE_FORBIDDEN = 'Media library assets can only be shared by editors and media managers of their areas';
+/** Assets among the given ones that the user may publish with a shared link and that are not blocked. */
+export const getShareableAssets = async (auth: AuthDto, ids: string[]) => {
+  const permitted = await getPermittedToShare(auth, ids);
+  return permitted.difference(await getBlockedAssets(permitted));
+};
 
-/** Shared links with media library assets need the level editor in their areas. */
-export const requireShareableAssets = async (auth: AuthDto, ids: string[]) => {
-  const shareable = await getShareableAssets(auth, ids);
-  if (shareable.size < new Set(ids).size) {
+const SHARE_FORBIDDEN = 'Media library assets can only be shared by editors and media managers of their areas';
+const SHARE_BLOCKED = 'Blocked assets cannot be shared';
+
+const requirePermittedToShare = async (auth: AuthDto, ids: string[]) => {
+  const permitted = await getPermittedToShare(auth, ids);
+  if (permitted.size < new Set(ids).size) {
     throw new ForbiddenException(SHARE_FORBIDDEN);
   }
 };
 
-/** Shared links of albums are checked against the assets the album contains when the link is created. */
+/** Shared links with media library assets need the level editor in their areas; blocked assets are refused. */
+export const requireShareableAssets = async (auth: AuthDto, ids: string[]) => {
+  await requirePermittedToShare(auth, ids);
+  if ((await getBlockedAssets(new Set(ids))).size > 0) {
+    throw new ForbiddenException(SHARE_BLOCKED);
+  }
+};
+
+/**
+Shared links of albums are checked against the assets the album contains when the link is created.
+Blocked assets of the album are not refused here; the shared link does not show them.
+*/
 export const requireShareableAlbum = async (auth: AuthDto, albumId: string) => {
   if (albumAssetResolver) {
-    await requireShareableAssets(auth, await albumAssetResolver(albumId));
+    await requirePermittedToShare(auth, await albumAssetResolver(albumId));
   }
 };
 
@@ -205,8 +258,8 @@ type MetadataItem = { key: string; value: Record<string, unknown> };
 /**
 Applies the ImagePier rules to asset metadata written through Immich's metadata endpoints:
 - reserved keys are rejected,
-- usage rights of media library assets can only be confirmed by admins and media managers of the area;
-  everybody else saves them as "to be reviewed".
+- the release status of media library assets can only be decided by admins and media managers of the area;
+  everybody else saves the usage rights as "in review", and blocked assets stay blocked.
 Own assets are not restricted.
 */
 export const applyMetadataRules = async <T extends MetadataItem>(
@@ -216,17 +269,26 @@ export const applyMetadataRules = async <T extends MetadataItem>(
   rejectReservedMetadataKeys(items.map((item) => item.key));
 
   const userAccess = getAccessForAuth(auth);
-  const confirmed = items.filter((item) => item.key === USAGE_RIGHTS_KEY && item.value.status === 'confirmed');
-  if (userAccess.role === 'admin' || confirmed.length === 0) {
+  const rights = items.filter((item) => item.key === USAGE_RIGHTS_KEY);
+  if (userAccess.role === 'admin' || rights.length === 0) {
     return items;
   }
 
-  const { library, permitted } = await checkLibraryAssets(new Set(confirmed.map((item) => item.assetId)), (areaId) =>
+  const { library, permitted } = await checkLibraryAssets(new Set(rights.map((item) => item.assetId)), (areaId) =>
     canManageArea(userAccess, areaId),
   );
+  const undecided = library.difference(permitted);
+  if (undecided.size === 0) {
+    return items;
+  }
+
+  const current = releaseStatusResolver ? await releaseStatusResolver([...undecided]) : new Map<string, string>();
   return items.map((item) =>
-    confirmed.includes(item) && library.has(item.assetId) && !permitted.has(item.assetId)
-      ? { ...item, value: { ...item.value, status: 'suggested' } }
+    rights.includes(item) && undecided.has(item.assetId)
+      ? {
+          ...item,
+          value: { ...item.value, status: current.get(item.assetId) === 'blocked' ? 'blocked' : 'suggested' },
+        }
       : item,
   );
 };

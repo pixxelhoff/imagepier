@@ -96,7 +96,7 @@ describe(ImagePierUsageRightsService.name, () => {
       expect(mocks.tag.removeAssetIds).toHaveBeenCalledWith('tag-outdated', [asset.id]);
       expect(mocks.tag.upsertAssetIds).toHaveBeenCalledWith([
         { assetId: asset.id, tagId: 'tag-Usage rights/Photographer/Jane Doe' },
-        { assetId: asset.id, tagId: 'tag-Usage rights/Status/Valid' },
+        { assetId: asset.id, tagId: 'tag-Usage rights/Status/Approved' },
         { assetId: asset.id, tagId: 'tag-Usage rights/Missing/Copyright holder' },
         { assetId: asset.id, tagId: 'tag-Usage rights/Missing/License' },
       ]);

@@ -21,7 +21,7 @@ This page explains who can do what in ImagePier. The short version is in the [RE
 | **View only** | sees the area |
 | **Standard** | sees and downloads |
 | **Editor** | maintains the area: upload, usage rights, trash, sharing |
-| **Media manager** | responsible for the area: also confirms usage rights and deletes permanently (staff only) |
+| **Media manager** | responsible for the area: also decides the release status and deletes permanently (staff only) |
 
 Every area should have at least one media manager. *Administration → Areas* marks areas without one.
 
@@ -37,7 +37,8 @@ Every area should have at least one media manager. *Administration → Areas* ma
 | Upload into the area, assign own photos to it | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Enter usage rights | ❌ | ❌ | ❌ | 👤 | ✅ | ✅ | ✅ |
 | Assign keywords from the keyword list | ❌ | ❌ | ❌ | 👤 | ✅ | ✅ | ✅ |
-| Confirm usage rights | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Decide the release status (approve, restrict, block) | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Download blocked photos | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Edit description and metadata | ❌ | ❌ | ❌ | 👤 | ✅ | ✅ | ✅ |
 | Move to another area ¹ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
 | Move to the trash and restore | ❌ | ❌ | ❌ | 👤 | ✅ | ✅ | ✅ |
@@ -56,10 +57,15 @@ administrators create new tags. Immich's own tag feature (tag page, tag panel) i
 
 ### Usage rights
 
-- Usage rights entered by editors are saved as **to be reviewed**. They count as **confirmed** only after a media
-  manager of the area or an administrator confirms them. Confirmations are recorded in the audit log.
-- Owners can confirm the usage rights of their own photos.
-- Website galleries only show photos with confirmed usage rights for web or press use that have not expired.
+- Every photo with usage rights has a **release status**: *In review*, *Approved*, *Approved with restrictions*
+  (with a note on the restriction), *Blocked*. *Expired* is shown automatically once the expiry date has passed.
+- Usage rights entered by editors are saved as **in review**. Only media managers of the area and administrators
+  decide the release status; approvals are recorded in the audit log. Changes by editors put approved photos back
+  to *in review*; blocked photos stay blocked.
+- Owners decide the release status of their own photos.
+- **Blocked** photos cannot be downloaded (except by media managers of the area and administrators), cannot be
+  shared with new shared links, are not shown in existing shared links and never appear in website galleries.
+- Website galleries only show *approved* photos with usage rights for web or press use that have not expired.
 
 ### External editors
 

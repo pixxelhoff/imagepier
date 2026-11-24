@@ -12,7 +12,7 @@ import {
   SourceType,
   SystemMetadataKey,
 } from 'src/enum.js';
-import { getAccessForAuth } from 'src/imagepier/access-hook.js';
+import { getAccessForAuth, setReleaseStatusResolver } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
   ASSET_AREA_KEY,
@@ -40,7 +40,13 @@ import {
   getUsageRightsStatus,
   getUsageRightsTagValues,
 } from 'src/imagepier/usage-rights-tags.js';
-import { USAGE_RIGHTS_KEY, UsageRights, parseUsageRights, suggestUsageRights } from 'src/imagepier/usage-rights.js';
+import {
+  USAGE_RIGHTS_KEY,
+  UsageRights,
+  UsageRightsStatus as ReleaseStatus,
+  parseUsageRights,
+  suggestUsageRights,
+} from 'src/imagepier/usage-rights.js';
 import type { ArgOf } from 'src/repositories/event.repository.js';
 import { BaseService } from 'src/services/base.service.js';
 import { handlePromiseError } from 'src/utils/misc.js';
@@ -79,6 +85,9 @@ export class ImagePierUsageRightsService extends BaseService {
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   onConfigInit() {
     setAreaMigrations({ moveAssets: () => this.migrateAreaAssets(), moveFiles: () => this.moveAreaAssetFiles() });
+    setReleaseStatusResolver((assetIds) => this.getReleaseStatuses(assetIds));
+    // Status tags of earlier versions are renamed once after an update.
+    handlePromiseError(this.refreshStatuses(), this.logger);
     this.cronRepository.create({
       name: REFRESH_CRON_NAME,
       expression: REFRESH_CRON_EXPRESSION,
@@ -113,6 +122,18 @@ export class ImagePierUsageRightsService extends BaseService {
   async getUsageRights(assetId: string): Promise<UsageRights | undefined> {
     const item = await this.assetRepository.getMetadataByKey(assetId, USAGE_RIGHTS_KEY);
     return item ? parseUsageRights(item.value) : undefined;
+  }
+
+  /** Release status of each given asset that has usage rights. */
+  async getReleaseStatuses(assetIds: string[]) {
+    const statuses = new Map<string, ReleaseStatus>();
+    for (const assetId of assetIds) {
+      const rights = await this.getUsageRights(assetId);
+      if (rights) {
+        statuses.set(assetId, rights.status);
+      }
+    }
+    return statuses;
   }
 
   /** Brings the usage rights tags of an asset in line with its stored usage rights. */
@@ -474,22 +495,34 @@ export class ImagePierUsageRightsService extends BaseService {
     };
   }
 
-  /** Re-evaluates the status of all assets that are not expired yet and notifies their owners. */
+  /**
+  Re-evaluates the status of all assets that are not expired or blocked and notifies their owners.
+  Assets with status tags of earlier versions get the current tags; the old tags are removed.
+  */
   async refreshStatuses(today = new Date()) {
     const tagLabels = getTagLabels();
     const statusPath = getTagPaths(tagLabels).status;
     const counts = new Map<string, { expiring: number; expired: number }>();
+    const labels: Array<{ label: string; status?: UsageRightsStatus }> = [
+      ...(['valid', 'restricted', 'expiring', 'unreviewed'] as const).map((status) => ({
+        label: tagLabels.statuses[status],
+        status,
+      })),
+      ...Object.values(tagLabels.legacyStatuses)
+        .filter((label) => label !== undefined)
+        .map((label) => ({ label })),
+    ];
 
     for (const user of await this.userRepository.getList()) {
-      for (const status of ['valid', 'expiring', 'unreviewed'] as const) {
-        const tag = await this.tagRepository.getByValue(user.id, `${statusPath}/${tagLabels.statuses[status]}`);
+      for (const { label, status } of labels) {
+        const tag = await this.tagRepository.getByValue(user.id, `${statusPath}/${label}`);
         if (!tag) {
           continue;
         }
 
         for (const assetId of await this.tagRepository.getAssetIdsByTagId(tag.id)) {
           const rights = await this.getUsageRights(assetId);
-          if (rights && getUsageRightsStatus(rights, today) === status) {
+          if (status && rights && getUsageRightsStatus(rights, today) === status) {
             continue;
           }
 
@@ -505,6 +538,10 @@ export class ImagePierUsageRightsService extends BaseService {
           const count = counts.get(result.ownerId) ?? { expiring: 0, expired: 0 };
           count[result.current]++;
           counts.set(result.ownerId, count);
+        }
+
+        if (!status) {
+          await this.tagRepository.delete(tag.id);
         }
       }
     }

@@ -3,9 +3,11 @@
   import {
     LICENSE_TYPES,
     PERMITTED_USAGES,
+    RELEASE_STATUSES,
     USAGE_RIGHTS_VERSION,
     type PermittedUsage,
     type UsageRights,
+    type UsageRightsInput,
   } from '#lib/imagepier/usage-rights.ts';
   import {
     Button,
@@ -27,11 +29,28 @@
     rights?: UsageRights;
     title?: string;
     hint?: string;
-    onClose: (rights?: UsageRights) => void;
+    /** Whether the user may decide the release status (admins, media managers of the area, owners). */
+    canRelease?: boolean;
+    /** Several assets: the release status can be left unchanged. */
+    bulk?: boolean;
+    onClose: (rights?: UsageRightsInput) => void;
   };
 
-  let { rights, title, hint, onClose }: Props = $props();
+  let { rights, title, hint, canRelease = true, bulk = false, onClose }: Props = $props();
 
+  // Saving usage rights "in review" approves them by default, as media managers review them while editing.
+  const getInitialStatus = () => {
+    if (bulk) {
+      return '';
+    }
+    if (rights?.status && rights.status !== 'suggested') {
+      return rights.status;
+    }
+    return canRelease ? 'confirmed' : 'suggested';
+  };
+
+  let status = $state<string>(getInitialStatus());
+  let restriction = $state(rights?.restriction ?? '');
   let photographer = $state(rights?.photographer ?? '');
   let copyrightHolder = $state(rights?.copyrightHolder ?? '');
   let licenseType = $state<string>(rights?.licenseType ?? '');
@@ -40,6 +59,11 @@
   let validUntil = $state(rights?.validUntil ?? '');
   let creditLine = $state(rights?.creditLine ?? '');
   let notes = $state(rights?.notes ?? '');
+
+  const statusOptions = $derived([
+    ...(bulk ? [{ label: $ipt('release_status_unchanged'), value: '' }] : []),
+    ...RELEASE_STATUSES.map((item) => ({ label: $ipt(`release_status.${item}`), value: item })),
+  ]);
 
   const licenseOptions = $derived([
     { label: $ipt('not_specified'), value: '' },
@@ -55,7 +79,8 @@
   const onSubmit = () => {
     onClose({
       version: USAGE_RIGHTS_VERSION,
-      status: 'confirmed',
+      status: canRelease ? RELEASE_STATUSES.find((item) => item === status) : rights?.status,
+      restriction: status === 'restricted' ? restriction : undefined,
       photographer,
       copyrightHolder,
       licenseType: LICENSE_TYPES.find((type) => type === licenseType),
@@ -78,6 +103,19 @@
   <Stack gap={4}>
     {#if hint}
       <Text size="small" color="muted">{hint}</Text>
+    {/if}
+
+    {#if canRelease}
+      <Field label={$ipt('release_status')}>
+        <Select bind:value={status} options={statusOptions} />
+      </Field>
+      {#if status === 'restricted'}
+        <Field label={$ipt('release_restriction')}>
+          <Input bind:value={restriction} placeholder={$ipt('release_restriction_placeholder')} />
+        </Field>
+      {/if}
+    {:else}
+      <Text size="small" color="muted">{$ipt('release_status_by_managers')}</Text>
     {/if}
 
     <Field label={$ipt('photographer')}>

@@ -3,7 +3,7 @@ import { AuthSharedLink } from 'src/database.js';
 import { AuthDto } from 'src/dtos/auth.dto.js';
 import { PersonUserRole } from 'src/dtos/person.dto.js';
 import { AlbumUserRole, Permission } from 'src/enum.js';
-import { applyImagePierAccess } from 'src/imagepier/access-hook.js';
+import { applyImagePierAccess, applyImagePierSharedLinkAccess } from 'src/imagepier/access-hook.js';
 import { AccessRepository } from 'src/repositories/access.repository.js';
 import { PersonId } from 'src/repositories/person.repository.js';
 
@@ -106,7 +106,11 @@ export const checkAccess = async (
   }
 
   if (auth.sharedLink) {
-    return checkSharedLinkAccess(access, { sharedLink: auth.sharedLink, permission, ids: idSet });
+    // ImagePier: blocked assets are not available through shared links
+    return applyImagePierSharedLinkAccess(
+      permission,
+      checkSharedLinkAccess(access, { sharedLink: auth.sharedLink, permission, ids: idSet }),
+    );
   }
 
   // ImagePier: role based rules for the shared media library

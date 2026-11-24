@@ -8,7 +8,8 @@ Notes are internal and therefore not mirrored.
 The language of the tag names is configured with IMAGEPIER_LANGUAGE (en, de).
 */
 
-export const USAGE_RIGHTS_STATUSES = ['valid', 'expiring', 'expired', 'unreviewed'] as const;
+/** Status shown in the tags: the release status, unless the license expires soon or has expired. */
+export const USAGE_RIGHTS_STATUSES = ['valid', 'restricted', 'expiring', 'expired', 'blocked', 'unreviewed'] as const;
 export type UsageRightsStatus = (typeof USAGE_RIGHTS_STATUSES)[number];
 
 /** Licenses expiring within this number of days are marked as "expiring". */
@@ -34,6 +35,8 @@ export type TagLabels = {
   missingFields: Record<MissingField, string>;
   licenses: Record<LicenseType, string>;
   statuses: Record<UsageRightsStatus, string>;
+  /** Status labels of earlier versions; assets with these tags are moved to the current labels. */
+  legacyStatuses: Partial<Record<UsageRightsStatus, string>>;
   usages: Record<PermittedUsage, string>;
   usageTerms: { license: string; usage: string; validUntil: string };
   notificationTitle: string;
@@ -63,7 +66,15 @@ const labels: Record<string, TagLabels> = {
       'creative-commons': 'Creative Commons',
       other: 'Other',
     },
-    statuses: { valid: 'Valid', expiring: 'Expiring soon', expired: 'Expired', unreviewed: 'Unreviewed' },
+    statuses: {
+      valid: 'Approved',
+      restricted: 'Approved with restrictions',
+      expiring: 'Expiring soon',
+      expired: 'Expired',
+      blocked: 'Blocked',
+      unreviewed: 'In review',
+    },
+    legacyStatuses: { valid: 'Valid', unreviewed: 'Unreviewed' },
     usages: { internal: 'Internal', web: 'Website', print: 'Print', social: 'Social media', press: 'Press' },
     usageTerms: { license: 'License: {value}.', usage: 'Permitted use: {value}.', validUntil: 'Valid until {value}.' },
     notificationTitle: 'Usage rights',
@@ -91,7 +102,15 @@ const labels: Record<string, TagLabels> = {
       'creative-commons': 'Creative Commons',
       other: 'Sonstige',
     },
-    statuses: { valid: 'Gültig', expiring: 'Läuft bald ab', expired: 'Abgelaufen', unreviewed: 'Ungeprüft' },
+    statuses: {
+      valid: 'Freigegeben',
+      restricted: 'Freigegeben mit Einschränkung',
+      expiring: 'Läuft bald ab',
+      expired: 'Abgelaufen',
+      blocked: 'Gesperrt',
+      unreviewed: 'In Prüfung',
+    },
+    legacyStatuses: { valid: 'Gültig', unreviewed: 'Ungeprüft' },
     usages: { internal: 'Intern', web: 'Website', print: 'Print', social: 'Social Media', press: 'Presse' },
     usageTerms: { license: 'Lizenz: {value}.', usage: 'Erlaubte Nutzung: {value}.', validUntil: 'Gültig bis {value}.' },
     notificationTitle: 'Nutzungsrechte',
@@ -133,7 +152,14 @@ export const getTagPaths = (tagLabels = getTagLabels()) => {
 
 const toIsoDate = (date: Date) => date.toISOString().slice(0, 10);
 
-export const getUsageRightsStatus = (rights: Pick<UsageRights, 'status' | 'validUntil'>, today = new Date()) => {
+export const getUsageRightsStatus = (
+  rights: Pick<UsageRights, 'status' | 'validUntil'>,
+  today = new Date(),
+): UsageRightsStatus => {
+  if (rights.status === 'blocked') {
+    return 'blocked';
+  }
+
   if (rights.validUntil) {
     if (rights.validUntil < toIsoDate(today)) {
       return 'expired';
@@ -146,7 +172,11 @@ export const getUsageRightsStatus = (rights: Pick<UsageRights, 'status' | 'valid
     }
   }
 
-  return rights.status === 'confirmed' ? 'valid' : 'unreviewed';
+  if (rights.status === 'confirmed') {
+    return 'valid';
+  }
+
+  return rights.status === 'restricted' ? 'restricted' : 'unreviewed';
 };
 
 /** Returns the tag values for fields that are not filled in yet. */
@@ -231,5 +261,7 @@ export const getStatusFromTagValues = (values: string[], tagLabels = getTagLabel
   }
 
   const label = value.slice(prefix.length);
-  return USAGE_RIGHTS_STATUSES.find((status) => tagLabels.statuses[status] === label);
+  return USAGE_RIGHTS_STATUSES.find(
+    (status) => tagLabels.statuses[status] === label || tagLabels.legacyStatuses[status] === label,
+  );
 };

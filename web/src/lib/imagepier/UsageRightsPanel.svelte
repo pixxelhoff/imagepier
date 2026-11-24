@@ -10,6 +10,7 @@
   import { ipt } from '#lib/imagepier/i18n.ts';
   import {
     confirmUsageRights,
+    isBlocked,
     isExpired,
     loadAssetDetails,
     loadUsageRights,
@@ -24,6 +25,7 @@
   import { Icon, IconButton, Text, modalManager, toastManager } from '@immich/ui';
   import {
     mdiAlertCircleOutline,
+    mdiCancel,
     mdiCheckDecagramOutline,
     mdiContentCopy,
     mdiCopyright,
@@ -88,24 +90,26 @@
   const areaName = $derived(area?.name);
 
   const expired = $derived(isExpired(rights));
+  const blocked = $derived(isBlocked(rights));
 
   const formatDate = (isoDate: string) =>
     DateTime.fromISO(isoDate).toLocaleString(DateTime.DATE_MED, { locale: $locale });
 
   const handleEdit = async () => {
     const assetId = asset.id;
-    const result = await modalManager.show(UsageRightsModal, { rights });
+    const result = await modalManager.show(UsageRightsModal, { rights, canRelease: canConfirm });
     if (!result) {
       return;
     }
 
+    const status = result.status ?? rights?.status ?? 'suggested';
     try {
-      const saved = await saveUsageRights(assetId, result);
+      const saved = await saveUsageRights(assetId, { ...result, status });
       if (asset.id === assetId) {
         rights = saved;
       }
       toastManager.primary(
-        saved.status === 'confirmed' ? $ipt('usage_rights_saved') : $ipt('usage_rights_saved_for_review'),
+        saved.status === status ? $ipt('usage_rights_saved') : $ipt('usage_rights_saved_for_review'),
       );
     } catch (error) {
       handleError(error, $ipt('usage_rights_save_failed'));
@@ -157,7 +161,27 @@
         <div><Icon icon={mdiCopyright} size="24" /></div>
 
         <div class="flex w-full flex-col gap-2 text-sm">
-          {#if rights.status === 'suggested'}
+          {#if rights.status === 'confirmed'}
+            <p class="flex items-center gap-1 text-xs text-green-700 dark:text-green-400">
+              <Icon icon={mdiCheckDecagramOutline} size="14" />
+              {$ipt('release_status.confirmed')}
+            </p>
+          {:else if rights.status === 'restricted'}
+            <div class="text-xs text-amber-600 dark:text-amber-400">
+              <p class="font-medium">{$ipt('release_status.restricted')}</p>
+              {#if rights.restriction}
+                <p class="wrap-break-word">{rights.restriction}</p>
+              {/if}
+            </div>
+          {:else if blocked}
+            <div class="text-xs text-red-600 dark:text-red-400">
+              <p class="flex items-center gap-1 font-medium">
+                <Icon icon={mdiCancel} size="14" />
+                {$ipt('release_status.blocked')}
+              </p>
+              <p>{$ipt('release_status_blocked_hint')}</p>
+            </div>
+          {:else}
             <div class="flex items-center justify-between gap-2">
               <p class="text-xs text-amber-600 dark:text-amber-400">
                 {rights.suggestedFrom?.length ? $ipt('usage_rights_suggested') : $ipt('usage_rights_unconfirmed')}

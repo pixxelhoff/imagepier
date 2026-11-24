@@ -4,7 +4,7 @@ import { UsageRights } from 'src/imagepier/usage-rights.js';
 /**
 Public website galleries.
 
-A gallery publishes one album under a random key. Only assets with confirmed usage rights that permit
+A gallery publishes one album under a random key. Only assets with approved usage rights that permit
 website or press use and that have not expired are shown; the filter is applied on the server.
 */
 

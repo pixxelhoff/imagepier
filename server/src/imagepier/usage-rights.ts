@@ -16,7 +16,13 @@ export type LicenseType = (typeof LICENSE_TYPES)[number];
 export const PERMITTED_USAGES = ['internal', 'web', 'print', 'social', 'press'] as const;
 export type PermittedUsage = (typeof PERMITTED_USAGES)[number];
 
-export type UsageRightsStatus = 'suggested' | 'confirmed';
+/**
+Release status. The stored names are kept from earlier versions: `suggested` means "in review", `confirmed` means
+"approved". `restricted` is approved with restrictions (see `restriction`); `blocked` assets cannot be downloaded,
+shared or published. "Expired" is not stored, it follows from `validUntil`.
+*/
+export const RELEASE_STATUSES = ['suggested', 'confirmed', 'restricted', 'blocked'] as const;
+export type UsageRightsStatus = (typeof RELEASE_STATUSES)[number];
 export type SuggestionSource = 'metadata' | 'filename';
 
 export interface UsageRights {
@@ -32,6 +38,8 @@ export interface UsageRights {
   validUntil?: string;
   creditLine?: string;
   notes?: string;
+  /** What the restriction of the status `restricted` is, e.g. "only print, not for advertising". */
+  restriction?: string;
 }
 
 /** Prefix used when a credit line is generated automatically. */
@@ -51,7 +59,7 @@ export const parseUsageRights = (value: Record<string, unknown>): UsageRights =>
 
   return {
     version: USAGE_RIGHTS_VERSION,
-    status: value.status === 'confirmed' ? 'confirmed' : 'suggested',
+    status: RELEASE_STATUSES.find((status) => status === value.status) ?? 'suggested',
     photographer: asText(value.photographer),
     copyrightHolder: asText(value.copyrightHolder),
     licenseType: LICENSE_TYPES.find((type) => type === value.licenseType),
@@ -60,6 +68,7 @@ export const parseUsageRights = (value: Record<string, unknown>): UsageRights =>
     validUntil: validUntil && /^\d{4}-\d{2}-\d{2}$/.test(validUntil) ? validUntil : undefined,
     creditLine: asText(value.creditLine),
     notes: asText(value.notes),
+    restriction: asText(value.restriction),
   };
 };
 
