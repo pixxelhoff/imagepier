@@ -678,7 +678,7 @@ describe(MetadataService.name, () => {
       } as any);
       mocks.systemMetadata.get.mockImplementation((key) =>
         Promise.resolve(
-          key === 'imagepier.keywords'
+          String(key) === 'imagepier.keywords'
             ? ({ keywords: [{ category: 'Place', name: 'Harbour', active: true }] } as any)
             : {},
         ),
