@@ -54,6 +54,12 @@ brauchen:
 
 - **Nutzungsrechte-Panel** in der Info-Seitenleiste der Bildansicht: Fotograf, Rechteinhaber, Bildnachweis,
   Lizenzart, Lizenzquelle, erlaubte Nutzung (intern, Website, Print, Social Media, Presse), Ablaufdatum und Notizen.
+- **Titel und Alternativtext** – werden auch in heruntergeladene Dateien (XMP/IPTC) geschrieben und in
+  Website-Galerien verwendet.
+- **Rechte-Umfang** – Gebiet, Bearbeitung (erlaubt, nur Zuschnitt, nicht erlaubt), Weitergabe an Dritte,
+  Exklusivität sowie Zusatzprüfungen (erkennbare Personen, Minderjährige, Musik/Kunstwerke/Marken, Drohne,
+  Privatgelände), jeweils *betrifft nicht*, *offen* oder *geklärt*; offene Prüfungen werden hervorgehoben. Dazu ein
+  Link zum Rechtedokument.
 - **Kanäle** – für jeden Kanal (intern, Website, Print, Social Media, Presse, Social Ads, Präsentationen, Partner,
   bezahlte Kampagnen) *erlaubt*, *nicht erlaubt* oder *bedingt*, mit einem Hinweis auf die Bedingungen.
   Administrator/innen passen die Kanalliste unter *Administration → Kanäle* an.
@@ -188,9 +194,6 @@ Zeitraum, mit CSV-Export.
 
 ### 🧭 Geplant
 
-- **Rechte-Umfang** (Gebiet, Bearbeitung, Weitergabe, Exklusivität) und Zusatzprüfungen (Model-Release,
-  Minderjährige, Musik und Kunstwerke, Drohne, Privatgelände).
-- **Titel, Alternativtext und Link zum Rechtedokument** für jedes Foto.
 - **Import-Schnittstelle und Import-Tool** – Upload mit Bereich, Schlagworten und Nutzungsrechten in einem Schritt.
 
 ### 🧭 Vielleicht später

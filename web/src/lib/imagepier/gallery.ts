@@ -23,6 +23,8 @@ export type GalleryAsset = {
   licenseSource: string | null;
   usages: string[];
   validUntil: string | null;
+  title: string | null;
+  altText: string | null;
 };
 
 export type PublicGallery = {

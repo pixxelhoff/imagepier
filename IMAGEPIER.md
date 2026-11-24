@@ -40,6 +40,7 @@ conflicts can occur during updates.
 | `server/src/controllers/index.ts` | registers the ImagePier access, audit and usage rights controllers |
 | `server/src/services/base.service.ts` | `createLoginResponse` reports logins to the audit log (`recordLogin`) |
 | `server/src/utils/access.ts` | `checkAccess` passes Immich's result through `applyImagePierAccess` (roles) |
+| `web/src/lib/services/asset.service.ts` | `handleDownloadAsset` asks `POST /api/imagepier/usage-rights/download-check` first and shows a message for blocked assets instead of saving the error response |
 | `server/src/services/asset.service.ts` | `deleteAll` with `force`: media library assets only by media managers of their areas (`requirePermanentDeleteAccess`) |
 | `web/src/lib/components/shared-components/side-bar/UserSidebar.svelte` | adds `MediaLibraryNavItem` (My photos, All photos, areas, website galleries) |
 | `web/src/routes/(user)/photos/[[assetId=id]]/+page.svelte` | `withPartners` follows `photosScope` ("My photos" / "All photos"); media library actions in the selection bar for assets of areas |
@@ -134,6 +135,10 @@ when access rules change.
   `permittedUsage` and `conditionalUsage` plus a `usageNote`; renamed channels keep their id, their tags are
   renamed in the background, removed channels are deactivated. Tags: `Usage rights/Permitted usage/<channel>` and
   `Usage rights/Conditionally permitted/<channel>`. Galleries need `web` or `press` in `permittedUsage`.
+- Further usage rights fields: `title`, `altText` (written into downloads as `XMP-dc:Title`, `IPTC:ObjectName`,
+  `XMP-iptcCore:AltTextAccessibility`; galleries use them as heading and `alt`), `rightsDocument`, `territory`
+  (+ `territoryNote`), `editing`, `transfer`, `exclusive` and `checks` (people, minors, works, drone, property:
+  `open` or `cleared`; a missing entry means the check does not apply).
 - Status tags `Usage rights/Status/…`: Approved, Approved with restrictions, Expiring soon, Expired, Blocked,
   In review. Tags of earlier versions (Valid, Unreviewed) are renamed by `refreshStatuses` on startup.
 - Uploads in the view of an area (upload button of the navigation bar, drag and drop) are assigned to the area when

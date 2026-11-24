@@ -50,6 +50,8 @@ export type GalleryAsset = {
   licenseSource: string | null;
   usages: string[];
   validUntil: string | null;
+  title: string | null;
+  altText: string | null;
 };
 
 type GalleryContent = { title: string; allowDownload: boolean; assets: GalleryAsset[] };
@@ -289,6 +291,8 @@ export class ImagePierGalleryService {
         licenseSource: rights.licenseSource ?? null,
         usages: (rights.permittedUsage ?? []).map((usage) => getChannelLabel(usage)),
         validUntil: rights.validUntil ?? null,
+        title: rights.title ?? null,
+        altText: rights.altText ?? null,
       });
     }
 

@@ -3,11 +3,37 @@ import {
   buildCreditLine,
   cleanHolder,
   parseFilename,
+  parseUsageRights,
   suggestUsageRights,
   toText,
 } from 'src/imagepier/usage-rights.js';
 
 describe('usage rights', () => {
+  describe('parseUsageRights', () => {
+    it('should keep the scope of rights and drop invalid values', () => {
+      const rights = parseUsageRights({
+        status: 'confirmed',
+        title: ' Harbour ',
+        territory: 'eu',
+        editing: 'crop',
+        transfer: 'anything',
+        exclusive: false,
+        checks: { people: 'cleared', drone: 'open', minors: 'maybe' },
+        rightsDocument: 'https://example.com/contract.pdf',
+      });
+
+      expect(rights).toMatchObject({
+        title: 'Harbour',
+        territory: 'eu',
+        editing: 'crop',
+        exclusive: false,
+        checks: { people: 'cleared', drone: 'open' },
+        rightsDocument: 'https://example.com/contract.pdf',
+      });
+      expect(rights.transfer).toBeUndefined();
+    });
+  });
+
   describe('toText', () => {
     it('should handle strings, numbers, lists and language maps', () => {
       expect(toText('  Jane Doe ')).toBe('Jane Doe');

@@ -74,6 +74,16 @@ describe('download credits', () => {
       });
     });
 
+    it('should write title and alternative text', () => {
+      expect(
+        buildCreditTags({ version: 1, status: 'confirmed', title: 'Harbour at night', altText: 'Boats in a harbour' }),
+      ).toEqual({
+        'XMP-dc:Title': 'Harbour at night',
+        'IPTC:ObjectName': 'Harbour at night',
+        'XMP-iptcCore:AltTextAccessibility': 'Boats in a harbour',
+      });
+    });
+
     it('should never include internal notes', () => {
       expect(Object.values(buildCreditTags(rights))).not.toContain('internal note');
     });

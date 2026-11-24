@@ -198,6 +198,12 @@ export class ImagePierUsageRightsService extends BaseService {
     return item ? parseUsageRights(item.value) : undefined;
   }
 
+  /** Assets among the given ones that the user may not download, so the web app can explain it before downloading. */
+  async getDeniedDownloads(auth: AuthDto, assetIds: string[]) {
+    const allowed = await this.checkAccess({ auth, permission: Permission.AssetDownload, ids: assetIds });
+    return assetIds.filter((id) => !allowed.has(id));
+  }
+
   /** Release status of each given asset that has usage rights. */
   async getReleaseStatuses(assetIds: string[]) {
     const statuses = new Map<string, ReleaseStatus>();

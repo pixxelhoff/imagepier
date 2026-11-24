@@ -188,7 +188,7 @@
             <button type="button" class="block w-full" onclick={() => open(index)}>
               <img
                 src={getGalleryImageUrl(galleryKey, asset.id, 'thumbnail')}
-                alt={asset.fileName}
+                alt={asset.altText ?? asset.title ?? asset.fileName}
                 class="aspect-square w-full rounded-lg object-cover"
                 loading="lazy"
               />
@@ -240,7 +240,7 @@
     <div class="relative flex h-[65dvh] shrink-0 items-center justify-center p-4 lg:h-auto lg:shrink lg:grow">
       <img
         src={getGalleryImageUrl(galleryKey, selected.id, 'preview')}
-        alt={selected.fileName}
+        alt={selected.altText ?? selected.title ?? selected.fileName}
         class="max-h-full max-w-full object-contain"
       />
       <div class="fixed top-4 left-4 z-10">
@@ -276,6 +276,12 @@
 
     <aside class="w-full shrink-0 bg-white p-6 text-gray-900 lg:w-96 lg:overflow-y-auto">
       <dl class="flex flex-col gap-3 text-sm">
+        {#if selected.title}
+          <div>
+            <dt class="text-gray-500">{$ipt('image_title')}</dt>
+            <dd class="font-medium">{selected.title}</dd>
+          </div>
+        {/if}
         <div>
           <dt class="text-gray-500">{$ipt('gallery_credit')}</dt>
           <dd class="font-medium">{getGalleryCredit(selected)}</dd>

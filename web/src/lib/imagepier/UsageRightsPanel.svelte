@@ -9,7 +9,9 @@
   } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import {
+    RIGHTS_CHECKS,
     applyChannels,
+    applyChecks,
     confirmUsageRights,
     getChannelLabel,
     getChannels,
@@ -101,6 +103,13 @@
   const areaName = $derived(area?.name);
 
   const expired = $derived(isExpired(rights));
+  const openChecks = $derived(RIGHTS_CHECKS.filter((check) => rights?.checks?.[check] === 'open'));
+  const clearedChecks = $derived(RIGHTS_CHECKS.filter((check) => rights?.checks?.[check] === 'cleared'));
+  const documentLink = $derived(rights?.rightsDocument ?? '');
+  const territoryText = $derived(
+    rights?.territory ? [$ipt(`territory.${rights.territory}`), rights.territoryNote].filter(Boolean).join(' · ') : '',
+  );
+  const isLink = (value: string) => /^https?:\/\//i.test(value);
   const blocked = $derived(isBlocked(rights));
 
   const formatDate = (isoDate: string) =>
@@ -115,7 +124,10 @@
 
     const status = result.status ?? rights?.status ?? 'suggested';
     try {
-      const saved = await saveUsageRights(assetId, applyChannels({ ...result, status }, result.channels));
+      const saved = await saveUsageRights(
+        assetId,
+        applyChecks(applyChannels({ ...result, status }, result.channels), result.checkValues),
+      );
       if (asset.id === assetId) {
         rights = saved;
       }
@@ -230,7 +242,22 @@
             </div>
           {/if}
 
+          {#if rights.title}
+            <p class="font-medium wrap-break-word">{rights.title}</p>
+          {/if}
+
+          {#if openChecks.length > 0}
+            <div class="text-xs text-amber-600 dark:text-amber-400">
+              <p class="font-medium">{$ipt('checks_open')}</p>
+              <p>{openChecks.map((check) => $ipt(`check.${check}`)).join(', ')}</p>
+            </div>
+          {/if}
+
           <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+            {#if rights.altText}
+              <dt class="opacity-60">{$ipt('alt_text')}</dt>
+              <dd class="wrap-break-word">{rights.altText}</dd>
+            {/if}
             {#if rights.photographer}
               <dt class="opacity-60">{$ipt('photographer')}</dt>
               <dd class="wrap-break-word">{rights.photographer}</dd>
@@ -258,6 +285,36 @@
             {#if rights.usageNote}
               <dt class="opacity-60">{$ipt('usage_note')}</dt>
               <dd class="wrap-break-word">{rights.usageNote}</dd>
+            {/if}
+            {#if rights.territory}
+              <dt class="opacity-60">{$ipt('territory')}</dt>
+              <dd>{territoryText}</dd>
+            {/if}
+            {#if rights.editing}
+              <dt class="opacity-60">{$ipt('editing')}</dt>
+              <dd>{$ipt(`editing.${rights.editing}`)}</dd>
+            {/if}
+            {#if rights.transfer}
+              <dt class="opacity-60">{$ipt('transfer')}</dt>
+              <dd>{$ipt(`transfer.${rights.transfer}`)}</dd>
+            {/if}
+            {#if rights.exclusive !== undefined}
+              <dt class="opacity-60">{$ipt('exclusive')}</dt>
+              <dd>{rights.exclusive ? $ipt('yes') : $ipt('no')}</dd>
+            {/if}
+            {#if clearedChecks.length > 0}
+              <dt class="opacity-60">{$ipt('checks_cleared')}</dt>
+              <dd>{clearedChecks.map((check) => $ipt(`check.${check}`)).join(', ')}</dd>
+            {/if}
+            {#if rights.rightsDocument}
+              <dt class="opacity-60">{$ipt('rights_document')}</dt>
+              <dd class="wrap-break-word">
+                {#if isLink(rights.rightsDocument)}
+                  <a class="underline" href={documentLink} target="_blank" rel="noreferrer">{documentLink}</a>
+                {:else}
+                  {rights.rightsDocument}
+                {/if}
+              </dd>
             {/if}
             <dt class="opacity-60">{$ipt('valid_until')}</dt>
             <dd class:text-red-600={expired} class:dark:text-red-400={expired}>

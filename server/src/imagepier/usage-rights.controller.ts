@@ -39,6 +39,12 @@ const ChannelListSchema = z.object({
 
 class ChannelListDto extends createZodDto(ChannelListSchema) {}
 
+const DownloadCheckSchema = z.object({
+  assetIds: z.array(z.uuidv4()).min(1).max(10_000).describe('Assets the user wants to download'),
+});
+
+class DownloadCheckDto extends createZodDto(DownloadCheckSchema) {}
+
 /** ImagePier endpoints. Not part of Immich's public API specification. */
 @ApiExcludeController()
 @Controller('imagepier/usage-rights')
@@ -55,6 +61,14 @@ export class ImagePierUsageRightsController {
   @Authenticated()
   async getChannels() {
     return { channels: await this.service.getChannels() };
+  }
+
+  /** Assets among the given ones that the user may not download (blocked, or no download level in the area). */
+  @Post('download-check')
+  @Authenticated()
+  @HttpCode(HttpStatus.OK)
+  async checkDownload(@Auth() auth: AuthDto, @Body() dto: DownloadCheckDto) {
+    return { deniedAssetIds: await this.service.getDeniedDownloads(auth, dto.assetIds) };
   }
 
   @Get('library-tags')

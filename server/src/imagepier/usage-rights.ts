@@ -33,6 +33,22 @@ shared or published. "Expired" is not stored, it follows from `validUntil`.
 */
 export const RELEASE_STATUSES = ['suggested', 'confirmed', 'restricted', 'blocked'] as const;
 export type UsageRightsStatus = (typeof RELEASE_STATUSES)[number];
+
+/** Scope of the rights. */
+export const TERRITORIES = ['worldwide', 'eu', 'germany', 'regional'] as const;
+export type Territory = (typeof TERRITORIES)[number];
+export const EDITING_OPTIONS = ['yes', 'crop', 'no'] as const;
+export type Editing = (typeof EDITING_OPTIONS)[number];
+export const TRANSFER_OPTIONS = ['yes', 'conditional', 'no'] as const;
+export type Transfer = (typeof TRANSFER_OPTIONS)[number];
+
+/**
+Additional checks: an entry means the check applies to the asset; `cleared` means it has been clarified
+(e.g. a model release exists).
+*/
+export const RIGHTS_CHECKS = ['people', 'minors', 'works', 'drone', 'property'] as const;
+export type RightsCheck = (typeof RIGHTS_CHECKS)[number];
+export type RightsCheckState = 'open' | 'cleared';
 export type SuggestionSource = 'metadata' | 'filename';
 
 export interface UsageRights {
@@ -55,7 +71,30 @@ export interface UsageRights {
   notes?: string;
   /** What the restriction of the status `restricted` is, e.g. "only print, not for advertising". */
   restriction?: string;
+  /** Title and alternative text (accessibility), also written into downloads and used in galleries. */
+  title?: string;
+  altText?: string;
+  /** Link or path to the contract, model release or other rights document. */
+  rightsDocument?: string;
+  territory?: Territory;
+  /** Details of the territory, e.g. the region. */
+  territoryNote?: string;
+  editing?: Editing;
+  transfer?: Transfer;
+  exclusive?: boolean;
+  checks?: Partial<Record<RightsCheck, RightsCheckState>>;
 }
+
+const parseChecks = (value: unknown) => {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const checks = Object.fromEntries(
+    RIGHTS_CHECKS.filter((check) => record[check] === 'open' || record[check] === 'cleared').map((check) => [
+      check,
+      record[check],
+    ]),
+  ) as Partial<Record<RightsCheck, RightsCheckState>>;
+  return Object.keys(checks).length > 0 ? checks : undefined;
+};
 
 /** Prefix used when a credit line is generated automatically. */
 export const CREDIT_LINE_PREFIX = 'Foto:';
@@ -84,6 +123,15 @@ export const parseUsageRights = (value: Record<string, unknown>): UsageRights =>
     creditLine: asText(value.creditLine),
     notes: asText(value.notes),
     restriction: asText(value.restriction),
+    title: asText(value.title),
+    altText: asText(value.altText),
+    rightsDocument: asText(value.rightsDocument),
+    territory: TERRITORIES.find((item) => item === value.territory),
+    territoryNote: asText(value.territoryNote),
+    editing: EDITING_OPTIONS.find((item) => item === value.editing),
+    transfer: TRANSFER_OPTIONS.find((item) => item === value.transfer),
+    exclusive: typeof value.exclusive === 'boolean' ? value.exclusive : undefined,
+    checks: parseChecks(value.checks),
   };
 };
 

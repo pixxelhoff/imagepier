@@ -91,6 +91,15 @@ export const buildCreditTags = (rights: UsageRights, labels: TagLabels = getTagL
     tags['XMP-xmpRights:UsageTerms'] = usageTerms;
   }
 
+  if (rights.title) {
+    tags['XMP-dc:Title'] = rights.title;
+    tags['IPTC:ObjectName'] = rights.title.slice(0, 64);
+  }
+
+  if (rights.altText) {
+    tags['XMP-iptcCore:AltTextAccessibility'] = rights.altText;
+  }
+
   if (rights.licenseSource && /^https?:\/\//i.test(rights.licenseSource)) {
     tags['XMP-xmpRights:WebStatement'] = rights.licenseSource;
   }

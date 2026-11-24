@@ -1,4 +1,6 @@
 import { ProjectionType } from '#lib/constants.ts';
+import { ipt } from '#lib/imagepier/i18n.ts';
+import { getDeniedDownloads } from '#lib/imagepier/usage-rights.ts';
 import { assetMultiSelectManager } from '#lib/managers/asset-multi-select-manager.svelte.ts';
 import { assetViewerManager } from '#lib/managers/asset-viewer-manager.svelte.ts';
 import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -425,6 +427,12 @@ export const getAssetActions = (
 
 export const handleDownloadAsset = async (asset: AssetResponseDto, { edited }: { edited: boolean }) => {
   const $t = await getFormatter();
+
+  // ImagePier: blocked assets cannot be downloaded; explain it instead of saving the error response as a file
+  if (authManager.authenticated && (await getDeniedDownloads([asset.id])).length > 0) {
+    toastManager.danger(get(ipt)('download_not_allowed'));
+    return;
+  }
 
   const assets = [
     {

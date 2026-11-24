@@ -54,6 +54,10 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Automatic suggestions** after upload from embedded IPTC/XMP/EXIF metadata (By-line, Creator, Artist,
   Copyright Notice, Rights, Copyright, Credit) and from file names like `Harbour Festival (c) ACME, Jane Doe.jpg`.
   Suggestions are marked for review and never overwrite existing entries.
+- **Title and alternative text** – also written into downloaded files (XMP/IPTC) and used in website galleries.
+- **Scope of rights** – territory, editing (allowed, cropping only, not allowed), passing on to third parties,
+  exclusivity, and additional checks (recognizable people, minors, music/artworks/brands, drone, private property),
+  each *does not apply*, *open* or *cleared*; open checks are highlighted. Plus a link to the rights document.
 - **Channels** – for every channel (internal, web, print, social media, press, social ads, presentations, partners,
   paid campaigns) *permitted*, *not permitted* or *under conditions*, with a note on the conditions. Administrators
   adjust the channel list under *Administration → Channels*.
@@ -173,9 +177,6 @@ accounts – filterable by action, person and period, with CSV export.
 
 ### 🧭 Planned
 
-- **Scope of rights** (territory, editing, passing on, exclusivity) and additional checks (model release, minors,
-  music and artworks, drone, private property).
-- **Title, alternative text and a link to the rights document** for every photo.
 - **Import interface and import tool** – upload with area, keywords and usage rights in one step.
 
 ### 🧭 Possible later

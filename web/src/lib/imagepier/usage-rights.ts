@@ -36,6 +36,18 @@ Release status: `suggested` = in review, `confirmed` = approved, `restricted` = 
 export const RELEASE_STATUSES = ['suggested', 'confirmed', 'restricted', 'blocked'] as const;
 export type UsageRightsStatus = (typeof RELEASE_STATUSES)[number];
 
+/** Scope of the rights; keep in sync with server/src/imagepier/usage-rights.ts. */
+export const TERRITORIES = ['worldwide', 'eu', 'germany', 'regional'] as const;
+export type Territory = (typeof TERRITORIES)[number];
+export const EDITING_OPTIONS = ['yes', 'crop', 'no'] as const;
+export type Editing = (typeof EDITING_OPTIONS)[number];
+export const TRANSFER_OPTIONS = ['yes', 'conditional', 'no'] as const;
+export type Transfer = (typeof TRANSFER_OPTIONS)[number];
+/** Additional checks: an entry means the check applies; `cleared` means it has been clarified. */
+export const RIGHTS_CHECKS = ['people', 'minors', 'works', 'drone', 'property'] as const;
+export type RightsCheck = (typeof RIGHTS_CHECKS)[number];
+export type RightsCheckState = 'open' | 'cleared';
+
 export interface UsageRights {
   version: number;
   status: UsageRightsStatus;
@@ -54,13 +66,57 @@ export interface UsageRights {
   notes?: string;
   /** What the restriction of the status `restricted` is. */
   restriction?: string;
+  title?: string;
+  altText?: string;
+  /** Link or path to the contract, model release or other rights document. */
+  rightsDocument?: string;
+  territory?: Territory;
+  territoryNote?: string;
+  editing?: Editing;
+  transfer?: Transfer;
+  exclusive?: boolean;
+  checks?: Partial<Record<RightsCheck, RightsCheckState>>;
 }
+
+const toChecks = (value: unknown) => {
+  const record = (value ?? {}) as Record<string, unknown>;
+  const checks: Partial<Record<RightsCheck, RightsCheckState>> = {};
+  for (const check of RIGHTS_CHECKS) {
+    if (record[check] === 'open' || record[check] === 'cleared') {
+      checks[check] = record[check];
+    }
+  }
+  return Object.keys(checks).length > 0 ? checks : undefined;
+};
 
 /** Usage rights entered in the dialog; without status (several assets) the status of each asset is kept. */
 export type UsageRightsInput = Omit<UsageRights, 'status'> & {
   status?: UsageRightsStatus;
   /** Channels set in the dialog; channels that are missing keep their value. */
   channels?: Record<string, ChannelValue>;
+  /** Additional checks set in the dialog (`none` = does not apply); checks that are missing keep their value. */
+  checkValues?: Partial<Record<RightsCheck, CheckValue>>;
+};
+
+export type CheckValue = 'none' | RightsCheckState;
+export const CHECK_VALUES: CheckValue[] = ['none', 'open', 'cleared'];
+
+/** Applies the additional checks set in the dialog. */
+export const applyChecks = <T extends Partial<UsageRights>>(
+  rights: T,
+  values?: Partial<Record<RightsCheck, CheckValue>>,
+): T => {
+  if (!values) {
+    return rights;
+  }
+  const checks: Partial<Record<RightsCheck, RightsCheckState>> = {};
+  for (const check of RIGHTS_CHECKS) {
+    const value = values[check] ?? rights.checks?.[check];
+    if (value && value !== 'none') {
+      checks[check] = value;
+    }
+  }
+  return { ...rights, checks };
 };
 
 const text = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined);
@@ -89,6 +145,15 @@ export const normalizeUsageRights = (value: Record<string, unknown>): UsageRight
     creditLine: text(value.creditLine),
     notes: text(value.notes),
     restriction: status === 'restricted' ? text(value.restriction) : undefined,
+    title: text(value.title),
+    altText: text(value.altText),
+    rightsDocument: text(value.rightsDocument),
+    territory: TERRITORIES.find((item) => item === value.territory),
+    territoryNote: text(value.territoryNote),
+    editing: EDITING_OPTIONS.find((item) => item === value.editing),
+    transfer: TRANSFER_OPTIONS.find((item) => item === value.transfer),
+    exclusive: typeof value.exclusive === 'boolean' ? value.exclusive : undefined,
+    checks: toChecks(value.checks),
   };
 };
 
@@ -138,6 +203,23 @@ export const getUsageRightsConfig = () => {
       throw error;
     });
   return configPromise;
+};
+
+/**
+Asks the server which of the given assets the user may not download (blocked assets, areas without download level).
+Without a signed-in user (shared links) or when the check fails, the download is left to the server.
+*/
+export const getDeniedDownloads = async (assetIds: string[]): Promise<string[]> => {
+  try {
+    const response = await imagePierRequest('/usage-rights/download-check', {
+      method: 'POST',
+      body: JSON.stringify({ assetIds }),
+    });
+    const result = (await response.json()) as { deniedAssetIds?: string[] };
+    return result.deniedAssetIds ?? [];
+  } catch {
+    return [];
+  }
 };
 
 let channelsPromise: Promise<Channel[]> | undefined;
@@ -248,6 +330,10 @@ const TEXT_FIELDS = [
   'validUntil',
   'restriction',
   'usageNote',
+  'title',
+  'altText',
+  'rightsDocument',
+  'territoryNote',
 ] as const;
 
 /** Keeps only the fields that were filled in, so empty fields leave existing values unchanged. */
@@ -268,6 +354,21 @@ export const toUsageRightsPatch = (rights: UsageRightsInput): Partial<UsageRight
   if (rights.status) {
     patch.status = rights.status;
   }
+  if (rights.territory) {
+    patch.territory = rights.territory;
+  }
+  if (rights.editing) {
+    patch.editing = rights.editing;
+  }
+  if (rights.transfer) {
+    patch.transfer = rights.transfer;
+  }
+  if (rights.exclusive !== undefined) {
+    patch.exclusive = rights.exclusive;
+  }
+  if (rights.checkValues && Object.keys(rights.checkValues).length > 0) {
+    patch.checkValues = rights.checkValues;
+  }
   return patch;
 };
 
@@ -276,7 +377,7 @@ const BULK_CHUNK_SIZE = 20;
 /** Merges a patch into the usage rights of many assets; without a status in the patch the status is kept. */
 export const applyUsageRightsToAssets = async (
   assetIds: string[],
-  { channels, ...patch }: Partial<UsageRightsInput>,
+  { channels, checkValues, ...patch }: Partial<UsageRightsInput>,
 ) => {
   for (let index = 0; index < assetIds.length; index += BULK_CHUNK_SIZE) {
     const chunk = assetIds.slice(index, index + BULK_CHUNK_SIZE);
@@ -286,7 +387,7 @@ export const applyUsageRightsToAssets = async (
       key: USAGE_RIGHTS_KEY,
       value: compact(
         normalizeUsageRights({
-          ...applyChannels({ ...existing[position] }, channels),
+          ...applyChecks(applyChannels({ ...existing[position] }, channels), checkValues),
           ...patch,
           status: patch.status ?? existing[position]?.status ?? 'suggested',
           suggestedFrom: undefined,
