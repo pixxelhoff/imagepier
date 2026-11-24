@@ -73,7 +73,7 @@ export const toKeywordCsv = (keywords: Keyword[], header: string[], active: stri
       keyword.active ? active : inactive,
     ]),
   ];
-  return `\uFEFF${rows.map((row) => row.map((cell) => toCsvCell(cell)).join(';')).join('\r\n')}\r\n`;
+  return `\u{FEFF}${rows.map((row) => row.map((cell) => toCsvCell(cell)).join(';')).join('\r\n')}\r\n`;
 };
 
 export const getKeywords = async () => {
