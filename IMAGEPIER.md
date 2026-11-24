@@ -134,7 +134,7 @@ when access rules change.
   *Administration → Channels* (`PUT /api/admin/imagepier/channels`). Usage rights store channel ids in
   `permittedUsage` and `conditionalUsage` plus a `usageNote`; renamed channels keep their id, their tags are
   renamed in the background, removed channels are deactivated. Tags: `Usage rights/Permitted usage/<channel>` and
-  `Usage rights/Conditionally permitted/<channel>`. Galleries need `web` or `press` in `permittedUsage`.
+  `Usage rights/Conditionally permitted/<channel>`. Galleries need a channel marked `gallery` (default `web` and `press`) in `permittedUsage`.
 - Import endpoint (`import.controller.ts`, `POST /api/imagepier/import`, permission `asset.update`): tools upload
   with Immich's `POST /api/assets` and then send `{ assetIds, areaId?, keywords?, usageRights? }` per batch. Order:
   move into the area (`moveToLibrary`, needs editor), add keywords from the list (`updateAssetKeywords`), merge
@@ -187,7 +187,7 @@ when access rules change.
 
 - Galleries and their branding are stored in `system_metadata` (`imagepier.galleries`); each gallery publishes one
   album under a random key. `ImagePierGalleryService` reads the album assets with plain SQL and filters them with
-  `isPublishable()` (approved rights, website or press use, not expired); the result is cached for one minute.
+  `isPublishable()` (approved rights, a gallery channel from the channel list, not expired); the result is cached for one minute.
 - Public endpoints (`@Authenticated({ public: true })`): `GET /api/imagepier/gallery/:key`,
   `GET /api/imagepier/gallery/:key/assets/:id?size=thumbnail|preview`, `GET /api/imagepier/gallery/:key/assets/:id/download`
   (original with usage rights credits, counted in the audit log). Every file request checks that the asset is published.

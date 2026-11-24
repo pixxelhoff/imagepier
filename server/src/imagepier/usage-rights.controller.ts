@@ -31,6 +31,7 @@ const ChannelListSchema = z.object({
         id: z.string().max(40).optional(),
         label: z.string().max(60),
         active: z.boolean(),
+        gallery: z.boolean().optional(),
       }),
     )
     .max(MAX_CHANNELS)

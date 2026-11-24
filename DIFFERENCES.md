@@ -37,7 +37,7 @@ two. Who may do what is described in [PERMISSIONS.md](PERMISSIONS.md); technical
 
 ## Additional functions
 
-- **Website galleries** – public galleries of albums with approved usage rights for web or press, embeddable in a
+- **Website galleries** – public galleries of albums with approved usage rights for the gallery channels set by administrators, embeddable in a
   website, with their own look.
 - **Audit log** – uploads, downloads, changes, trash and deletion, role and area changes (*Administration → Audit log*).
 - **Import page** – *Import* in the sidebar for editors and media managers: checks a folder against the image

@@ -8,7 +8,7 @@ import { AssetFileType, AssetType, CacheControl, SystemMetadataKey } from 'src/e
 import { getAccessForAuth, setAlbumAssetResolver } from 'src/imagepier/access-hook.js';
 import { canEditArea, getAreaAccounts, getCachedAccessSettings, getUserAccess } from 'src/imagepier/access-rules.js';
 import { recordAudit } from 'src/imagepier/audit.js';
-import { getChannelLabel } from 'src/imagepier/channels.js';
+import { CHANNELS_KEY, getChannelLabel, getGalleryChannelIds, parseChannelSettings } from 'src/imagepier/channels.js';
 import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import {
   GALLERY_SETTINGS_KEY,
@@ -272,11 +272,13 @@ export class ImagePierGalleryService {
     `.execute(this.db);
 
     const labels = getTagLabels();
+    const channels = parseChannelSettings(await this.systemMetadataRepository.get(CHANNELS_KEY as SystemMetadataKey));
+    const galleryChannels = getGalleryChannelIds(channels);
     const canPublish = await this.getPublishCheck(gallery.createdById);
     const assets: GalleryAsset[] = [];
     for (const row of rows) {
       const rights: UsageRights | undefined = row.rights ? parseUsageRights(row.rights) : undefined;
-      if (!rights || !isPublishable(rights) || !canPublish(row.ownerId)) {
+      if (!rights || !isPublishable(rights, new Date(), galleryChannels) || !canPublish(row.ownerId)) {
         continue;
       }
       assets.push({
@@ -289,7 +291,7 @@ export class ImagePierGalleryService {
         copyrightHolder: rights.copyrightHolder ?? null,
         license: rights.licenseType ? labels.licenses[rights.licenseType] : null,
         licenseSource: rights.licenseSource ?? null,
-        usages: (rights.permittedUsage ?? []).map((usage) => getChannelLabel(usage)),
+        usages: (rights.permittedUsage ?? []).map((usage) => getChannelLabel(usage, channels)),
         validUntil: rights.validUntil ?? null,
         title: rights.title ?? null,
         altText: rights.altText ?? null,

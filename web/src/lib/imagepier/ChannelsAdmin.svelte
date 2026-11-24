@@ -7,7 +7,7 @@
   import { onMount } from 'svelte';
 
   /** Rows of the form; new channels have no id until they are saved. */
-  type Row = { id?: string; label: string; active: boolean };
+  type Row = { id?: string; label: string; active: boolean; gallery: boolean };
 
   let rows = $state<Row[]>([]);
   let failed = $state(false);
@@ -23,7 +23,7 @@
   });
 
   const addRow = () => {
-    rows = [...rows, { label: '', active: true }];
+    rows = [...rows, { label: '', active: true, gallery: false }];
   };
 
   const save = async () => {
@@ -42,6 +42,7 @@
 
 <Stack gap={4}>
   <Text size="small" color="muted">{$ipt('channels_hint')}</Text>
+  <Text size="small" color="muted">{$ipt('channels_gallery_hint')}</Text>
 
   {#if failed}
     <HelperText color="danger">{$ipt('channels_load_failed')}</HelperText>
@@ -60,6 +61,15 @@
               onCheckedChange={(checked) => (row.active = checked)}
             />
             <label for="imagepier-channel-{index}" class="text-sm">{$ipt('channel_active')}</label>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <Checkbox
+              id="imagepier-channel-gallery-{index}"
+              size="tiny"
+              checked={row.gallery}
+              onCheckedChange={(checked) => (row.gallery = checked)}
+            />
+            <label for="imagepier-channel-gallery-{index}" class="text-sm">{$ipt('channel_gallery')}</label>
           </div>
         </div>
       {/each}

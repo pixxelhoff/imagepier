@@ -154,7 +154,8 @@ Administrators, editors and media managers (staff only, not externals) publish a
 *Website galleries* in the sidebar – everyone except administrators only their own albums. Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
 website or embedded in an iframe – no login needed for visitors.
 
-- Only images with **approved usage rights for website or press use** that have **not expired** are shown. The
+- Only images with **approved usage rights for a gallery channel** that have **not expired** are shown.
+  Administrators choose the gallery channels under *Administration → Channels* (by default website and press). The
   filter runs on the server, so the rest of the album stays private.
 - Every image shows its credit line. Visitors confirm the license terms before downloading – single images, a
   selection or the whole gallery as ZIP file.

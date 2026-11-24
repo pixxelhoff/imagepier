@@ -1,6 +1,7 @@
 import {
   getChannelLabel,
   getDefaultChannels,
+  getGalleryChannelIds,
   normalizeChannels,
   parseChannelSettings,
   toChannelId,
@@ -34,15 +35,22 @@ describe('channels', () => {
   it('should keep ids, generate missing ones and drop duplicate labels', () => {
     const channels = normalizeChannels([
       { id: 'web', label: 'Homepage', active: true },
-      { label: 'Messe', active: false },
+      { label: 'Messe', active: false, gallery: true },
       { label: 'homepage', active: true },
       { label: '  ' },
     ]);
 
     expect(channels).toEqual([
-      { id: 'web', label: 'Homepage', active: true },
-      { id: 'messe', label: 'Messe', active: false },
+      { id: 'web', label: 'Homepage', active: true, gallery: true },
+      { id: 'messe', label: 'Messe', active: false, gallery: true },
     ]);
+  });
+
+  it('should mark website and press as gallery channels by default', () => {
+    const channels = getDefaultChannels(getTagLabels('en'));
+
+    expect([...getGalleryChannelIds(channels)]).toEqual(['web', 'press']);
+    expect(getGalleryChannelIds(normalizeChannels([{ id: 'web', label: 'Web', gallery: false }])).size).toBe(0);
   });
 
   it('should show the label of a channel', () => {

@@ -72,8 +72,8 @@ Tag-Panel) steht nur Administrator/innen zur Verfügung.
 - **Gesperrte** Fotos können nicht heruntergeladen werden (außer von Medienverantwortlichen des Bereichs und
   Administrator/innen), lassen sich nicht in neue geteilte Links aufnehmen, werden in bestehenden geteilten Links
   nicht angezeigt und erscheinen nie in Website-Galerien.
-- Website-Galerien zeigen nur *freigegebene* Fotos mit Nutzungsrechten für Website oder Presse, die nicht abgelaufen
-  sind.
+- Website-Galerien zeigen nur *freigegebene* Fotos mit Nutzungsrechten für einen Galerie-Kanal (legen Administratoren fest,
+  Standard: Website und Presse), die nicht abgelaufen sind.
 
 ### Externe Bearbeiter
 

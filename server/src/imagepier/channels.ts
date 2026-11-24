@@ -5,14 +5,17 @@ Channels in which an asset may be used (web, print, social media, ...).
 
 The list is configured by administrators and stored in `system_metadata` under `CHANNELS_KEY`. Usage rights refer
 to channels by their id, so renaming a channel keeps all assignments; channels that are no longer offered are
-deactivated instead of deleted.
+deactivated instead of deleted. Channels marked with `gallery` decide which assets appear in website galleries.
 */
 
 export const CHANNELS_KEY = 'imagepier.channels';
 
 export const MAX_CHANNELS = 50;
 
-export type Channel = { id: string; label: string; active: boolean };
+export type Channel = { id: string; label: string; active: boolean; gallery: boolean };
+
+/** Channels that admit assets to website galleries until an administrator changes them. */
+export const DEFAULT_GALLERY_CHANNELS = ['web', 'press'];
 
 const CHANNEL_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
@@ -20,7 +23,12 @@ export const isChannelId = (value: unknown): value is string => typeof value ===
 
 /** The channels offered until an administrator changes the list. */
 export const getDefaultChannels = (labels: TagLabels = getTagLabels()): Channel[] =>
-  Object.entries(labels.usages).map(([id, label]) => ({ id, label, active: true }));
+  Object.entries(labels.usages).map(([id, label]) => ({
+    id,
+    label,
+    active: true,
+    gallery: DEFAULT_GALLERY_CHANNELS.includes(id),
+  }));
 
 /** Id for a new channel, derived from its label, e.g. "Social Ads" -> "social-ads". */
 export const toChannelId = (label: string, existing: string[]) => {
@@ -52,7 +60,9 @@ export const normalizeChannels = (items: unknown[]): Channel[] => {
     }
     const ids = channels.map((channel) => channel.id);
     const id = isChannelId(value.id) && !ids.includes(value.id) ? value.id : toChannelId(label, ids);
-    channels.push({ id, label, active: value.active !== false });
+    // Lists stored before the gallery setting existed keep the former rule (website and press).
+    const gallery = typeof value.gallery === 'boolean' ? value.gallery : DEFAULT_GALLERY_CHANNELS.includes(id);
+    channels.push({ id, label, active: value.active !== false, gallery });
   }
   return channels;
 };
@@ -71,6 +81,10 @@ export const setCachedChannels = (channels: Channel[] | undefined) => {
 };
 
 export const getCachedChannels = () => cachedChannels ?? getDefaultChannels();
+
+/** Ids of the channels that admit assets to website galleries. */
+export const getGalleryChannelIds = (channels: Channel[]) =>
+  new Set(channels.filter((channel) => channel.gallery).map((channel) => channel.id));
 
 /** Display name of a channel; unknown ids are shown as they are. */
 export const getChannelLabel = (id: string, channels: Channel[] = getCachedChannels()) =>

@@ -13,7 +13,8 @@ export type LicenseType = (typeof LICENSE_TYPES)[number];
 /** Channel ids; the channels are configured by administrators (see getChannels). */
 export type PermittedUsage = string;
 
-export type Channel = { id: string; label: string; active: boolean };
+/** `gallery`: assets permitted for this channel appear in website galleries. */
+export type Channel = { id: string; label: string; active: boolean; gallery: boolean };
 
 /** Value of a channel for an asset: permitted, not permitted or permitted under conditions. */
 export const CHANNEL_VALUES = ['yes', 'no', 'conditional'] as const;

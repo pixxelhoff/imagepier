@@ -170,8 +170,9 @@ Administratoren, Bearbeiter und Medienverantwortliche (nur Mitarbeiter/innen, ke
 Jede Galerie erhält einen zufälligen Link (`/gallery/<key>`), der von einer Website verlinkt oder in einem iframe
 eingebettet werden kann – Besucher brauchen keine Anmeldung.
 
-- Es erscheinen nur Bilder mit **freigegebenen Nutzungsrechten für Website oder Presse**, die **nicht abgelaufen**
-  sind. Der Filter läuft auf dem Server, der Rest des Albums bleibt privat.
+- Es erscheinen nur Bilder mit **freigegebenen Nutzungsrechten für einen Galerie-Kanal**, die **nicht abgelaufen**
+  sind. Welche Kanäle das sind, legen Administratoren unter *Administration → Kanäle* fest (Standard: Website und
+  Presse). Der Filter läuft auf dem Server, der Rest des Albums bleibt privat.
 - Jedes Bild zeigt seinen Bildnachweis. Besucher bestätigen die Lizenzbedingungen vor dem Herunterladen – einzelne
   Bilder, eine Auswahl oder die ganze Galerie als ZIP-Datei.
 - **Eigenes Aussehen** – Administratoren legen eine Standard-Überschrift, Akzentfarbe, Logo, Fußzeile und Links zu

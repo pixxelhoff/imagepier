@@ -67,7 +67,8 @@ administrators create new tags. Immich's own tag feature (tag page, tag panel) i
 - Owners decide the release status of their own photos.
 - **Blocked** photos cannot be downloaded (except by media managers of the area and administrators), cannot be
   shared with new shared links, are not shown in existing shared links and never appear in website galleries.
-- Website galleries only show *approved* photos with usage rights for web or press use that have not expired.
+- Website galleries only show *approved* photos with usage rights for a gallery channel (set by administrators, by
+  default web and press) that have not expired.
 
 ### External editors
 

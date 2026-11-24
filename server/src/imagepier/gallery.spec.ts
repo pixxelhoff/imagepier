@@ -30,6 +30,12 @@ describe('ImagePier galleries', () => {
       expect(isPublishable(rights({ status: 'suggested' }), today)).toBe(false);
     });
 
+    it('should use the gallery channels set by administrators', () => {
+      const channels = new Set(['print']);
+      expect(isPublishable(rights({ permittedUsage: ['print'] }), today, channels)).toBe(true);
+      expect(isPublishable(rights({ permittedUsage: ['web'] }), today, channels)).toBe(false);
+    });
+
     it('should not publish expired rights', () => {
       expect(isPublishable(rights({ validUntil: '2026-05-31' }), today)).toBe(false);
       expect(isPublishable(rights({ validUntil: '2026-06-01' }), today)).toBe(true);

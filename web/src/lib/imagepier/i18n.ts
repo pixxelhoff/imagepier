@@ -101,7 +101,7 @@ const en = {
   gallery_download_on: 'downloads allowed',
   gallery_download_off: 'view only',
   gallery_published_hint:
-    'Only images with approved usage rights for website or press use that have not expired are shown. Changes appear within a minute.',
+    'Only images with approved usage rights for a gallery channel (Administration → Channels) that have not expired are shown. Changes appear within a minute.',
   gallery_copy_link: 'Copy link',
   gallery_open: 'Open gallery',
   gallery_delete: 'Remove gallery',
@@ -345,6 +345,9 @@ const en = {
   channel_add: 'Add channel',
   channel_label: 'Name',
   channel_active: 'Offered',
+  channel_gallery: 'Website galleries',
+  channels_gallery_hint:
+    'Website galleries show approved images that are permitted for at least one channel marked with "Website galleries" (conditionally permitted is not enough).',
   channel_new: 'New channel',
   channels_saved: 'Channels saved',
   channels_save_failed: 'Unable to save the channels',
@@ -497,7 +500,7 @@ const de: Record<ImagePierMessageKey, string> = {
   gallery_download_on: 'Download erlaubt',
   gallery_download_off: 'nur ansehen',
   gallery_published_hint:
-    'Es erscheinen nur Bilder mit freigegebenen Nutzungsrechten für Website oder Presse, die nicht abgelaufen sind. Änderungen sind nach spätestens einer Minute sichtbar.',
+    'Es erscheinen nur Bilder mit freigegebenen Nutzungsrechten für einen Galerie-Kanal (Administration → Kanäle), die nicht abgelaufen sind. Änderungen sind nach spätestens einer Minute sichtbar.',
   gallery_copy_link: 'Link kopieren',
   gallery_open: 'Galerie öffnen',
   gallery_delete: 'Galerie entfernen',
@@ -743,6 +746,9 @@ const de: Record<ImagePierMessageKey, string> = {
   channel_add: 'Kanal hinzufügen',
   channel_label: 'Name',
   channel_active: 'Angeboten',
+  channel_gallery: 'Website-Galerien',
+  channels_gallery_hint:
+    'Website-Galerien zeigen freigegebene Bilder, die für mindestens einen mit „Website-Galerien“ markierten Kanal erlaubt sind („Bedingt“ reicht nicht).',
   channel_new: 'Neuer Kanal',
   channels_saved: 'Kanäle gespeichert',
   channels_save_failed: 'Kanäle konnten nicht gespeichert werden',

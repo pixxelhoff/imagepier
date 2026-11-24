@@ -4,14 +4,15 @@ import { UsageRights } from 'src/imagepier/usage-rights.js';
 /**
 Public website galleries.
 
-A gallery publishes one album under a random key. Only assets with approved usage rights that permit
-website or press use and that have not expired are shown; the filter is applied on the server.
+A gallery publishes one album under a random key. Only assets with approved usage rights that permit one of the
+gallery channels (set by administrators, by default website and press) and that have not expired are shown; the
+filter is applied on the server.
 */
 
 export const GALLERY_SETTINGS_KEY = 'imagepier.galleries';
 
-/** Assets are published if one of these uses is permitted. */
-export const GALLERY_USAGES = new Set(['web', 'press']);
+/** Assets are published if one of these channels is permitted (default without a stored channel list). */
+export const GALLERY_USAGES: ReadonlySet<string> = new Set(['web', 'press']);
 
 /** Size limit of the logo, stored as data URL. */
 export const MAX_LOGO_LENGTH = 400_000;
@@ -113,8 +114,12 @@ export const getArchiveName = (title: string) => {
 };
 
 /** Whether an asset with these usage rights may appear in a public gallery. */
-export const isPublishable = (rights: UsageRights | undefined, today = new Date()) =>
+export const isPublishable = (
+  rights: UsageRights | undefined,
+  today = new Date(),
+  galleryChannels: ReadonlySet<string> = GALLERY_USAGES,
+) =>
   !!rights &&
   rights.status === 'confirmed' &&
-  (rights.permittedUsage ?? []).some((usage) => GALLERY_USAGES.has(usage)) &&
+  (rights.permittedUsage ?? []).some((usage) => galleryChannels.has(usage)) &&
   getUsageRightsStatus(rights, today) !== 'expired';
