@@ -11,6 +11,7 @@ two. Who may do what is described in [PERMISSIONS.md](PERMISSIONS.md); technical
 |---|---|---|
 | Roles | Administrator and user | Administrator, *Staff* and *External*, plus a level per area (view only, standard, editor, media manager) |
 | Shared photos | Partner sharing between two people, albums | **Areas**: one technical account per area (*Area account*), shared automatically with everybody who has a level in it |
+| Map | Own photos; partner photos optional | Own photos and the photos of all areas the user may view |
 | Sidebar | Photos | *My photos*, *All photos* and one entry per area below *Photos*; *Trash of the areas* for editors |
 | Upload | Everybody uploads to their own timeline | Uploads in the view of an area go directly into the area (level editor). Without upload permission the upload button and drag and drop are hidden |
 | Editing photos of others | Not possible | Editors and media managers edit, trash and restore photos of their areas; externals only their own deliveries |

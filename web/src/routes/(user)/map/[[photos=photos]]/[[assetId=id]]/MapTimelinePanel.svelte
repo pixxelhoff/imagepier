@@ -72,13 +72,10 @@
 
   const timelineOptions = $derived({
     bbox: timelineBoundingBox,
-    visibility: $mapSettings.withPartners
-      ? AssetVisibility.Timeline
-      : $mapSettings.includeArchived
-        ? undefined
-        : AssetVisibility.Timeline,
+    // ImagePier: the areas are always included, so archived assets are not shown (as in Immich with partners)
+    visibility: AssetVisibility.Timeline,
     isFavorite: $mapSettings.onlyFavorites || undefined,
-    withPartners: $mapSettings.withPartners || undefined,
+    withPartners: true,
     withStacked: true,
     assetFilter: selectedClusterIds,
   });

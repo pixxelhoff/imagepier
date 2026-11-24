@@ -237,7 +237,7 @@
     }
     abortController = new AbortController();
 
-    const { includeArchived, onlyFavorites, withPartners, withSharedAlbums } = $mapSettings;
+    const { includeArchived, onlyFavorites, withSharedAlbums } = $mapSettings;
     const { fileCreatedAfter, fileCreatedBefore } = getFileCreatedDates();
 
     return await getMapMarkers(
@@ -246,7 +246,8 @@
         isFavorite: onlyFavorites || undefined,
         fileCreatedAfter,
         fileCreatedBefore,
-        withPartners: withPartners || undefined,
+        // ImagePier: the map always shows the areas the user may view (shared as partners)
+        withPartners: true,
         withSharedAlbums: withSharedAlbums || undefined,
       },
       {
