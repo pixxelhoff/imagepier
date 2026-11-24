@@ -60,6 +60,9 @@ brauchen:
   Exklusivität sowie Zusatzprüfungen (erkennbare Personen, Minderjährige, Musik/Kunstwerke/Marken, Drohne,
   Privatgelände), jeweils *betrifft nicht*, *offen* oder *geklärt*; offene Prüfungen werden hervorgehoben. Dazu ein
   Link zum Rechtedokument.
+- **Import-Schnittstelle** – Werkzeuge laden über den Upload von Immich hoch und setzen danach mit einer Anfrage
+  Bereich, Schlagworte und Nutzungsrechte für einen ganzen Stapel (`POST /api/imagepier/import`, API-Schlüssel der
+  importierenden Person).
 - **Kanäle** – für jeden Kanal (intern, Website, Print, Social Media, Presse, Social Ads, Präsentationen, Partner,
   bezahlte Kampagnen) *erlaubt*, *nicht erlaubt* oder *bedingt*, mit einem Hinweis auf die Bedingungen.
   Administrator/innen passen die Kanalliste unter *Administration → Kanäle* an.
@@ -194,7 +197,8 @@ Zeitraum, mit CSV-Export.
 
 ### 🧭 Geplant
 
-- **Import-Schnittstelle und Import-Tool** – Upload mit Bereich, Schlagworten und Nutzungsrechten in einem Schritt.
+- **Import-Tool** für Windows und macOS – bereitet Ordner von einer Netzwerkfreigabe vor und lädt sie mit Bereich,
+  Schlagworten und Nutzungsrechten hoch.
 
 ### 🧭 Vielleicht später
 

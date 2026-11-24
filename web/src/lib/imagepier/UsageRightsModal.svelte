@@ -80,7 +80,7 @@
     ...(bulk ? [{ label: $ipt('release_status_unchanged'), value: '' }] : []),
     ...CHANNEL_VALUES.map((value) => ({ label: $ipt(`channel_value.${value}`), value })),
   ]);
-  let title = $state(rights?.title ?? '');
+  let imageTitle = $state(rights?.title ?? '');
   let altText = $state(rights?.altText ?? '');
   let rightsDocument = $state(rights?.rightsDocument ?? '');
   let territory = $state<string>(rights?.territory ?? '');
@@ -146,7 +146,7 @@
         Object.entries(channelValues).filter((entry): entry is [string, ChannelValue] => entry[1] !== ''),
       ),
       usageNote,
-      title,
+      title: imageTitle,
       altText,
       rightsDocument,
       territory: TERRITORIES.find((item) => item === territory),
@@ -190,7 +190,7 @@
     {/if}
 
     <Field label={$ipt('image_title')}>
-      <Input bind:value={title} />
+      <Input bind:value={imageTitle} />
     </Field>
 
     <Field label={$ipt('alt_text')}>

@@ -37,7 +37,7 @@ conflicts can occur during updates.
 | File | Change |
 |---|---|
 | `server/src/services/index.ts` | registers `ImagePierAccessService`, `ImagePierAuditService`, `ImagePierUsageRightsService` |
-| `server/src/controllers/index.ts` | registers the ImagePier access, audit and usage rights controllers |
+| `server/src/controllers/index.ts` | registers the ImagePier access, audit, usage rights, keyword, channel and import controllers |
 | `server/src/services/base.service.ts` | `createLoginResponse` reports logins to the audit log (`recordLogin`) |
 | `server/src/utils/access.ts` | `checkAccess` passes Immich's result through `applyImagePierAccess` (roles) |
 | `web/src/lib/services/asset.service.ts` | `handleDownloadAsset` asks `POST /api/imagepier/usage-rights/download-check` first and shows a message for blocked assets instead of saving the error response |
@@ -135,6 +135,11 @@ when access rules change.
   `permittedUsage` and `conditionalUsage` plus a `usageNote`; renamed channels keep their id, their tags are
   renamed in the background, removed channels are deactivated. Tags: `Usage rights/Permitted usage/<channel>` and
   `Usage rights/Conditionally permitted/<channel>`. Galleries need `web` or `press` in `permittedUsage`.
+- Import endpoint (`import.controller.ts`, `POST /api/imagepier/import`, permission `asset.update`): tools upload
+  with Immich's `POST /api/assets` and then send `{ assetIds, areaId?, keywords?, usageRights? }` per batch. Order:
+  move into the area (`moveToLibrary`, needs editor), add keywords from the list (`updateAssetKeywords`), merge
+  usage rights into existing ones (`importUsageRights`, release status via `applyMetadataRules`). Audit entries
+  `library_move` and `usage_rights`.
 - Further usage rights fields: `title`, `altText` (written into downloads as `XMP-dc:Title`, `IPTC:ObjectName`,
   `XMP-iptcCore:AltTextAccessibility`; galleries use them as heading and `alt`), `rightsDocument`, `territory`
   (+ `territoryNote`), `editing`, `transfer`, `exclusive` and `checks` (people, minors, works, drone, property:

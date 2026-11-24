@@ -12,7 +12,7 @@ import {
   SourceType,
   SystemMetadataKey,
 } from 'src/enum.js';
-import { getAccessForAuth, setReleaseStatusResolver } from 'src/imagepier/access-hook.js';
+import { applyMetadataRules, getAccessForAuth, setReleaseStatusResolver } from 'src/imagepier/access-hook.js';
 import {
   ACCESS_SETTINGS_KEY,
   ASSET_AREA_KEY,
@@ -555,6 +555,25 @@ export class ImagePierUsageRightsService extends BaseService {
   }
 
   /** Called by the web app after usage rights were saved. */
+  /**
+  Sets usage rights for many assets at once, e.g. after an import. The given fields are merged into existing usage
+  rights (such as suggestions from the file's metadata); the release status follows the rules of the area.
+  */
+  async importUsageRights(auth: AuthDto, assetIds: string[], value: Record<string, unknown>) {
+    await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: assetIds });
+    const items: Array<{ assetId: string; key: string; value: Record<string, unknown> }> = [];
+    for (const assetId of assetIds) {
+      const existing = await this.getUsageRights(assetId);
+      const rights = parseUsageRights({ ...existing, ...value, suggestedFrom: undefined });
+      const compact = Object.fromEntries(Object.entries(rights).filter(([, item]) => item !== undefined));
+      items.push({ assetId, key: USAGE_RIGHTS_KEY, value: compact });
+    }
+    await this.assetRepository.upsertBulkMetadata(await applyMetadataRules(auth, items));
+    for (const assetId of assetIds) {
+      await this.syncTags(assetId);
+    }
+  }
+
   async syncTagsForAssets(auth: AuthDto, assetIds: string[]) {
     await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids: assetIds });
     for (const assetId of assetIds) {

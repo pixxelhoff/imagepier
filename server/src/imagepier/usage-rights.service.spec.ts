@@ -328,4 +328,31 @@ describe(ImagePierUsageRightsService.name, () => {
       await expect(sut.onAssetMetadataExtracted({ assetId: 'asset-id', userId: 'user-id' })).resolves.toBeUndefined();
     });
   });
+
+  describe('importUsageRights', () => {
+    it('should merge the given fields into existing usage rights', async () => {
+      const auth = { user: { id: 'user-id', isAdmin: false } } as any;
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set(['asset-1']));
+      mocks.asset.getMetadataByKey.mockResolvedValue({
+        key: USAGE_RIGHTS_KEY,
+        value: { status: 'suggested', photographer: 'Jane Doe' },
+      } as any);
+      mocks.asset.getById.mockResolvedValue(undefined);
+
+      await sut.importUsageRights(auth, ['asset-1'], { status: 'confirmed', title: 'Harbour', territory: 'eu' });
+
+      expect(mocks.asset.upsertBulkMetadata).toHaveBeenCalledWith([
+        {
+          assetId: 'asset-1',
+          key: USAGE_RIGHTS_KEY,
+          value: expect.objectContaining({
+            status: 'confirmed',
+            photographer: 'Jane Doe',
+            title: 'Harbour',
+            territory: 'eu',
+          }),
+        },
+      ]);
+    });
+  });
 });

@@ -58,6 +58,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Scope of rights** – territory, editing (allowed, cropping only, not allowed), passing on to third parties,
   exclusivity, and additional checks (recognizable people, minors, music/artworks/brands, drone, private property),
   each *does not apply*, *open* or *cleared*; open checks are highlighted. Plus a link to the rights document.
+- **Import interface** – tools upload with Immich's upload endpoint and then set area, keywords and usage rights
+  for a whole batch with one request (`POST /api/imagepier/import`, API key of the person importing).
 - **Channels** – for every channel (internal, web, print, social media, press, social ads, presentations, partners,
   paid campaigns) *permitted*, *not permitted* or *under conditions*, with a note on the conditions. Administrators
   adjust the channel list under *Administration → Channels*.
@@ -177,7 +179,8 @@ accounts – filterable by action, person and period, with CSV export.
 
 ### 🧭 Planned
 
-- **Import interface and import tool** – upload with area, keywords and usage rights in one step.
+- **Import tool** for Windows and macOS – prepares folders from a network share and uploads them with area, keywords
+  and usage rights.
 
 ### 🧭 Possible later
 
