@@ -103,7 +103,8 @@ brauchen:
 - **Fehlende Angaben finden** – jedes Bild ohne Rechteinhaber, Fotograf oder Lizenz wird markiert
   (`Nutzungsrechte/Fehlende Angaben/…`), damit unvollständige Bilder gefunden und ergänzt werden können.
 - **Tägliche Lizenzprüfung** – Lizenzen, die innerhalb von 30 Tagen ablaufen, und abgelaufene Lizenzen werden
-  markiert, und die Besitzer der Bilder erhalten eine Benachrichtigung in der App.
+  markiert, und die Besitzer der Bilder erhalten eine Benachrichtigung in der App (bei Bildern eines Bereichs dessen
+  Medienverantwortliche, ohne Medienverantwortliche die Administratoren).
 - Funktioniert auch in den **offiziellen Immich-Mobil-Apps**: Nutzungsrechte werden als Immich-Tags gespiegelt
   (z. B. `Nutzungsrechte/Status/Abgelaufen`) und lassen sich mit dem normalen Tag-Filter finden.
 

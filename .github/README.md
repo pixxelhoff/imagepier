@@ -94,7 +94,7 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Find missing information** – every asset without copyright holder, photographer or license is tagged
   (`Usage rights/Missing/…`), so incomplete assets can be found and completed.
 - **Daily license check** – licenses expiring within 30 days and expired licenses are flagged, and asset owners
-  receive an in-app notification.
+  receive an in-app notification (for assets of an area: its media managers, or the admins if it has none).
 - Works in the **official Immich mobile apps** as well: usage rights are mirrored into Immich tags
   (e.g. `Usage rights/Status/Expired`), so they can be found with the regular tag filter.
 

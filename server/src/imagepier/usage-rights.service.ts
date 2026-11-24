@@ -23,6 +23,7 @@ import {
   getAreaLevel,
   getAreaOfOwner,
   getCachedAccessSettings,
+  getNotificationRecipients,
   getSharedAreaName,
   parseAccessSettings,
   parseAssetArea,
@@ -660,7 +661,8 @@ export class ImagePierUsageRightsService extends BaseService {
   }
 
   /**
-  Re-evaluates the status of all assets that are not expired or blocked and notifies their owners.
+  Re-evaluates the status of all assets that are not expired or blocked and notifies their owners; for assets of an
+  area the media managers of the area.
   Assets with status tags of earlier versions get the current tags; the old tags are removed.
   */
   async refreshStatuses(today = new Date()) {
@@ -710,7 +712,19 @@ export class ImagePierUsageRightsService extends BaseService {
       }
     }
 
-    for (const [userId, count] of counts) {
+    const settings = await this.loadAccessSettings();
+    const users = await this.userRepository.getList();
+    const totals = new Map<string, { expiring: number; expired: number }>();
+    for (const [ownerId, count] of counts) {
+      for (const userId of getNotificationRecipients(settings, users, ownerId)) {
+        const total = totals.get(userId) ?? { expiring: 0, expired: 0 };
+        total.expiring += count.expiring;
+        total.expired += count.expired;
+        totals.set(userId, total);
+      }
+    }
+
+    for (const [userId, count] of totals) {
       await this.notify(userId, count);
     }
   }

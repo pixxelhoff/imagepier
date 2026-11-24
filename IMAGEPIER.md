@@ -84,7 +84,8 @@ conflicts can occur during updates.
 - `ImagePierUsageRightsService`
   - on `AssetMetadataExtracted`: suggests usage rights (exiftool tags, file name) and syncs tags
   - mirrors usage rights into tags below `Usage rights/` (or `Nutzungsrechte/` with `IMAGEPIER_LANGUAGE=de`)
-  - daily at 03:17: re-evaluates license status and sends in-app notifications
+  - daily at 03:17: re-evaluates license status and sends in-app notifications (to the owner; for area accounts to the
+    media managers of the area, or the admins: `getNotificationRecipients`)
 - `ImagePierUsageRightsController` (`/api/imagepier/usage-rights/*`, excluded from the OpenAPI spec)
   - `GET config` – tag paths used by the web search tab
   - `POST sync` – re-syncs tags after the web app saved usage rights

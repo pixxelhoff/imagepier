@@ -203,6 +203,28 @@ export const getUserAccess = (settings: AccessSettings, user: { id: string; isAd
 /** Level of a user in an area; assets without area belong to the shared area. */
 export const getAreaLevel = (access: UserAccess, areaId: string | undefined) => access.areas[areaId ?? SHARED_AREA_ID];
 
+/**
+Who is told about the assets of an account: the account itself, or for an area account (nobody signs in to it) the
+media managers of the area, and the admins when the area has none.
+*/
+export const getNotificationRecipients = (
+  settings: AccessSettings,
+  users: Array<{ id: string; isAdmin: boolean }>,
+  ownerId: string,
+) => {
+  const accounts = getAreaAccounts(settings);
+  const areaId = accounts.get(ownerId);
+  if (!areaId) {
+    return [ownerId];
+  }
+
+  const people = users.filter((user) => !accounts.has(user.id));
+  const managers = people.filter(
+    (user) => !user.isAdmin && getAreaLevel(getUserAccess(settings, user), areaId) === 'manager',
+  );
+  return (managers.length > 0 ? managers : people.filter((user) => user.isAdmin)).map((user) => user.id);
+};
+
 /** Whether a user may download assets of the given area. */
 export const canDownloadArea = (access: UserAccess, areaId: string | undefined) =>
   isAtLeast(getAreaLevel(access, areaId), 'standard');

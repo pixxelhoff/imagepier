@@ -6,6 +6,7 @@ import {
   canManageArea,
   getAreaAccounts,
   getAreaOfOwner,
+  getNotificationRecipients,
   getUserAccess,
   isAtLeast,
   parseAccessSettings,
@@ -210,6 +211,39 @@ describe('access rules', () => {
     it('should check managing', () => {
       expect(canManageArea(access, 'press')).toBe(true);
       expect(canManageArea(access, 'marketing')).toBe(false);
+    });
+  });
+
+  describe('getNotificationRecipients', () => {
+    const notifySettings: AccessSettings = {
+      libraryUserId,
+      areas: [
+        { id: SHARED_AREA_ID, name: 'General', userId: libraryUserId },
+        { id: 'press', name: 'Press', userId: 'press-account' },
+      ],
+      users: {
+        manager: { role: 'staff', areas: { press: 'manager' } },
+        editor: { role: 'staff', areas: { press: 'editor' } },
+      },
+    };
+    const notifyUsers = [
+      { id: libraryUserId, isAdmin: false },
+      { id: 'press-account', isAdmin: false },
+      { id: 'admin', isAdmin: true },
+      { id: 'manager', isAdmin: false },
+      { id: 'editor', isAdmin: false },
+    ];
+
+    it('should notify the owner of own assets', () => {
+      expect(getNotificationRecipients(notifySettings, notifyUsers, 'editor')).toEqual(['editor']);
+    });
+
+    it('should notify the media managers of an area', () => {
+      expect(getNotificationRecipients(notifySettings, notifyUsers, 'press-account')).toEqual(['manager']);
+    });
+
+    it('should notify the admins when an area has no media manager', () => {
+      expect(getNotificationRecipients(notifySettings, notifyUsers, libraryUserId)).toEqual(['admin']);
     });
   });
 });
