@@ -41,6 +41,7 @@ brauchen:
   Medienverantwortliche entscheiden
 - 🗂️ **Eine gemeinsame Mediendatenbank** mit Rollen, Bereichen (Abteilungen) und eigenem Papierkorb
 - 🏷️ **Eine verbindliche Schlagwortliste** für einheitliches Verschlagworten und Suchen
+- 📥 **Eine Import-Seite**, die ganze Ordner vor dem Hochladen gegen eine Bild-Richtlinie prüft
 - 🌐 **Öffentliche Website-Galerien**, die nur zur Veröffentlichung freigegebene Bilder zeigen
 - 📋 **Ein Audit-Log** über Uploads, Downloads und Änderungen
 
@@ -60,14 +61,6 @@ brauchen:
   Exklusivität sowie Zusatzprüfungen (erkennbare Personen, Minderjährige, Musik/Kunstwerke/Marken, Drohne,
   Privatgelände), jeweils *betrifft nicht*, *offen* oder *geklärt*; offene Prüfungen werden hervorgehoben. Dazu ein
   Link zum Rechtedokument.
-- **Import-Seite** – *Import* in der Seitenleiste (Stufe Bearbeiter): Ordner oder Dateien wählen, gegen die
-  Bild-Richtlinie prüfen (lange Kante mindestens 3.000 px, Aufnahme ab 2021, Dubletten in der Auswahl, Dateien schon
-  in ImagePier), Bereich, Schlagworte und Nutzungsrechte für alle Dateien setzen, nach Schema benennen
-  (`thema-motiv-ort-jahr-c-urheber-001.jpg`) und hochladen. Die Originaldateien bleiben unverändert; ein Protokoll
-  lässt sich als CSV herunterladen.
-- **Import-Schnittstelle** – Werkzeuge laden über den Upload von Immich hoch und setzen danach mit einer Anfrage
-  Bereich, Schlagworte und Nutzungsrechte für einen ganzen Stapel (`POST /api/imagepier/import`, API-Schlüssel der
-  importierenden Person).
 - **Kanäle** – für jeden Kanal (intern, Website, Print, Social Media, Presse, Social Ads, Präsentationen, Partner,
   bezahlte Kampagnen) *erlaubt*, *nicht erlaubt* oder *bedingt*, mit einem Hinweis auf die Bedingungen.
   Administrator/innen passen die Kanalliste unter *Administration → Kanäle* an.
@@ -76,8 +69,8 @@ brauchen:
   entscheiden die Medienverantwortlichen des Bereichs; Änderungen durch Bearbeiter setzen freigegebene Bilder zurück
   auf *In Prüfung*, gesperrte Bilder bleiben gesperrt.
 - **Gesperrte Bilder** können nicht heruntergeladen werden (außer von Medienverantwortlichen und Administratoren),
-  werden für neue geteilte Links abgelehnt, sind in bestehenden geteilten Links ausgeblendet und erscheinen nie in
-  Website-Galerien.
+  werden für neue geteilte Links abgelehnt, sind in bestehenden geteilten Links ausgeblendet (auch in der Zeitleiste
+  von Album-Links und bei „Alle herunterladen“) und erscheinen nie in Website-Galerien.
 - **Automatische Vorschläge** nach dem Upload aus eingebetteten IPTC/XMP/EXIF-Metadaten (By-line, Creator, Artist,
   Copyright Notice, Rights, Copyright, Credit) und aus Dateinamen wie `Hafenfest (c) ACME, Jane Doe.jpg`.
   Vorschläge sind zur Prüfung markiert und überschreiben nie vorhandene Angaben.
@@ -88,6 +81,19 @@ brauchen:
   oder Mobil-App) werden Fotograf, Copyright, Bildnachweis und Nutzungsbedingungen in die IPTC/XMP/EXIF-Metadaten der
   Datei geschrieben. Das Original in der Bibliothek bleibt unverändert; unterstützte Formate: JPEG, PNG, TIFF, WebP,
   HEIC.
+
+### 📥 Import
+
+- **Import-Seite** – *Import* in der Seitenleiste (Stufe Bearbeiter): Ordner oder Dateien wählen und gegen die
+  Bild-Richtlinie prüfen – lange Kante mindestens 3.000 px, Aufnahme ab 2021, Dubletten in der Auswahl, Dateien schon
+  in ImagePier. Dateien mit Hinweis sind abgewählt. Danach Bereich, Schlagworte und Nutzungsrechte für alle Dateien
+  auf einmal setzen, nach Schema benennen (`thema-motiv-ort-jahr-c-urheber-001.jpg`) und hochladen. Die
+  Originaldateien bleiben unverändert; ein Protokoll lässt sich als CSV herunterladen.
+- **Freigabestatus** – Medienverantwortliche setzen ihn direkt; bei allen anderen sind importierte Fotos
+  *In Prüfung*.
+- **Import-Schnittstelle** – Werkzeuge laden über den Upload von Immich hoch und setzen danach mit einer Anfrage
+  Bereich, Schlagworte und Nutzungsrechte für einen ganzen Stapel (`POST /api/imagepier/import`, API-Schlüssel der
+  importierenden Person).
 
 ### 🔎 Suche und Lizenzüberwachung
 
@@ -161,7 +167,9 @@ brauchen:
   Fotos und allen zugänglichen Bereichen gleichzeitig.
 - Sobald eine Schlagwortliste existiert, legen nur Administratoren neue Tags an, damit das Vokabular einheitlich
   bleibt. Die Tag-Funktion von Immich ist Administratoren vorbehalten; alle anderen arbeiten mit der Schlagwortliste.
-- Beim Verschieben in einen Bereich bleiben die Tags eines Fotos erhalten.
+- Beim Verschieben in einen Bereich bleiben die Tags eines Fotos erhalten, ebenso beim erneuten Einlesen der
+  Metadaten (z. B. *Metadaten aktualisieren*): Schlagworte und Nutzungsrechte-Tags stehen nicht in der Datei und
+  bleiben am Foto.
 
 ### 🌐 Website-Galerien
 
@@ -201,8 +209,6 @@ Zeitraum, mit CSV-Export.
   Logo aus dem Logo-Ordner), eine Akzentfarbe und eine neutrale Fußzeile statt der von Immich, auf Deutsch oder
   Englisch. Name, Farbe und Logo lassen sich in der `.env` ändern.
 
-### 🧭 Geplant
-
 ### 🧭 Vielleicht später
 
 - **Single Sign-on** über OpenID Connect (z. B. Keycloak vor LDAP) mit Rollen aus Gruppen.
@@ -215,7 +221,7 @@ ImagePier ersetzt nur den **Server**-Container von Immich. Maschinelles Lernen, 
 offiziellen Immich-Images, und vorhandene Immich-Daten werden so verwendet, wie sie sind.
 
 > [!IMPORTANT]
-> Verwende ein ImagePier-Release, das zu deiner aktuellen Immich-Version passt (z. B. `v3.4.2-ip.50` für Immich
+> Verwende ein ImagePier-Release, das zu deiner aktuellen Immich-Version passt (z. B. `v3.4.2-ip.62` für Immich
 > `v3.4.2`). Ein Downgrade von Immich wird nicht unterstützt. Lege vor dem Wechsel immer eine Datenbanksicherung an.
 
 1. Ausgangspunkt ist eine funktionierende
@@ -224,7 +230,7 @@ offiziellen Immich-Images, und vorhandene Immich-Daten werden so verwendet, wie 
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.50
+   IMAGEPIER_VERSION=v3.4.2-ip.62
    IMAGEPIER_LANGUAGE=de   # Sprache der Nutzungsrechte-Tags und Benachrichtigungen: en, de
    # optional: E-Mail und Name des Kontos der Mediendatenbank (wird beim ersten Start angelegt)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
@@ -242,6 +248,9 @@ offiziellen Immich-Images, und vorhandene Immich-Daten werden so verwendet, wie 
    ```bash
    docker compose pull && docker compose up -d
    ```
+
+5. Unter *Administration → Einstellungen → Server → Externe Domain* die Adresse des Servers eintragen. Ohne sie
+   zeigen die Links in E-Mails auf die Standardadresse von Immich statt auf den eigenen Server.
 
 Der Dialog „Über“ in der Web-App zeigt jetzt `pixxelhoff/imagepier` als Repository.
 
@@ -280,7 +289,7 @@ bleiben in den Bereichskonten – siehe [DIFFERENCES.md](../DIFFERENCES.md#switc
 
 | Tag | Bedeutung |
 |---|---|
-| `v3.4.2-ip.50` | ImagePier-Release 50 auf Basis von Immich `v3.4.2` |
+| `v3.4.2-ip.62` | ImagePier-Release 62 auf Basis von Immich `v3.4.2` |
 | `release` | neuestes ImagePier-Release |
 | `edge` | neuester Build des Branches `imagepier` – nur zum Testen |
 

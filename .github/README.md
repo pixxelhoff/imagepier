@@ -38,6 +38,7 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - ✅ **A release status** (in review, approved, approved with restrictions, blocked) decided by media managers
 - 🗂️ **A shared media library** with roles, areas (departments) and its own trash
 - 🏷️ **A controlled keyword list** for consistent tagging and searching
+- 📥 **An import page** that checks whole folders against an image guideline before uploading them
 - 🌐 **Public website galleries** that only show images cleared for publication
 - 📋 **An audit log** of uploads, downloads and changes
 
@@ -58,13 +59,6 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Scope of rights** – territory, editing (allowed, cropping only, not allowed), passing on to third parties,
   exclusivity, and additional checks (recognizable people, minors, music/artworks/brands, drone, private property),
   each *does not apply*, *open* or *cleared*; open checks are highlighted. Plus a link to the rights document.
-- **Import page** – *Import* in the sidebar (level editor): choose a folder or files, check them against the image
-  guideline (long edge at least 3,000 px, taken 2021 or later, duplicates in the selection, files already in
-  ImagePier), set area, keywords and usage rights for all files, name them by a scheme
-  (`topic-subject-place-year-c-author-001.jpg`) and upload them. The original files stay unchanged; a log can be
-  downloaded as CSV.
-- **Import interface** – tools upload with Immich's upload endpoint and then set area, keywords and usage rights
-  for a whole batch with one request (`POST /api/imagepier/import`, API key of the person importing).
 - **Channels** – for every channel (internal, web, print, social media, press, social ads, presentations, partners,
   paid campaigns) *permitted*, *not permitted* or *under conditions*, with a note on the conditions. Administrators
   adjust the channel list under *Administration → Channels*.
@@ -72,7 +66,8 @@ albums, face and object search, mobile apps – and adds what teams need to work
   *Blocked*; *Expired* is shown automatically after the expiry date. Media managers of the area decide the status;
   changes by editors put approved photos back to *in review*, blocked photos stay blocked.
 - **Blocked photos** cannot be downloaded (except by media managers and administrators), are refused for new shared
-  links, are hidden in existing shared links and never appear in website galleries.
+  links, are hidden in existing shared links (also in the timeline of album links and in "download all") and never
+  appear in website galleries.
 - **Bulk editing** for many assets at once – in an area, in *All photos* or in search results. Only filled-in fields
   are applied, everything else stays as it is.
 - **Copy credit line** with one click, ready to paste below a photo on a website or in print.
@@ -80,11 +75,22 @@ albums, face and object search, mobile apps – and adds what teams need to work
   mobile app), photographer, copyright, credit line and usage terms are written into the file's IPTC/XMP/EXIF
   metadata. The original in the library stays untouched; supported formats: JPEG, PNG, TIFF, WebP, HEIC.
 
+### 📥 Import
+
+- **Import page** – *Import* in the sidebar (level editor): choose a folder or files and check them against the image
+  guideline – long edge at least 3,000 px, taken 2021 or later, duplicates in the selection, files already in
+  ImagePier. Files with a note are deselected. Then set area, keywords and usage rights for all files at once, name
+  them by a scheme (`topic-subject-place-year-c-author-001.jpg`) and upload them. The original files stay unchanged;
+  a log can be downloaded as CSV.
+- **Release status** – media managers set it directly; for everybody else imported photos are *in review*.
+- **Import interface** – tools upload with Immich's upload endpoint and then set area, keywords and usage rights
+  for a whole batch with one request (`POST /api/imagepier/import`, API key of the person importing).
+
 ### 🔎 Search and license monitoring
 
 - **"Usage rights" tab in the search dialog** – filter by photographer, copyright holder, license type, license
-  status (approved, approved with restrictions, expiring soon, expired, blocked, in review), permitted usage, license source, credit line, expiry year and
-  area, combined with all other Immich filters.
+  status (approved, approved with restrictions, expiring soon, expired, blocked, in review), permitted usage, license
+  source, credit line, expiry year and area, combined with all other Immich filters.
 - **Find missing information** – every asset without copyright holder, photographer or license is tagged
   (`Usage rights/Missing/…`), so incomplete assets can be found and completed.
 - **Daily license check** – licenses expiring within 30 days and expired licenses are flagged, and asset owners
@@ -106,7 +112,7 @@ albums, face and object search, mobile apps – and adds what teams need to work
   | **View only** | view, add to own albums |
   | **Standard** | + download |
   | **Editor** | + upload, maintain usage rights, move to the trash and restore, share links and galleries |
-  | **Media manager** | + permanent deletion (staff only; every area should have at least one) |
+  | **Media manager** | + decide the release status, permanent deletion (staff only; every area should have at least one) |
 
   Without a level the area is not accessible. Own photos are not restricted – everybody can upload, share and delete
   them. **The full permission matrix** (externals, trash, sharing, galleries) is in
@@ -146,13 +152,14 @@ albums, face and object search, mobile apps – and adds what teams need to work
   accessible areas at once.
 - Once a keyword list exists, only administrators create new tags, so the vocabulary stays consistent. Immich's own
   tag feature is reserved for administrators; everybody else works with the keyword list.
-- Moving a photo into an area keeps its tags.
+- Moving a photo into an area keeps its tags, and so does reading the metadata again (for example *Refresh
+  metadata*): keywords and usage rights tags are not stored in the file and stay on the photo.
 
 ### 🌐 Website galleries
 
 Administrators, editors and media managers (staff only, not externals) publish albums as public galleries under
-*Website galleries* in the sidebar – everyone except administrators only their own albums. Each gallery gets a random link (`/gallery/<key>`) that can be linked from a
-website or embedded in an iframe – no login needed for visitors.
+*Website galleries* in the sidebar – everyone except administrators only their own albums. Each gallery gets a random
+link (`/gallery/<key>`) that can be linked from a website or embedded in an iframe – no login needed for visitors.
 
 - Only images with **approved usage rights for a gallery channel** that have **not expired** are shown.
   Administrators choose the gallery channels under *Administration → Channels* (by default website and press). The
@@ -183,8 +190,6 @@ accounts – filterable by action, person and period, with CSV export.
   the logo folder), an accent color and a neutral footer instead of Immich's, in German or English. Name, color and
   logo can be changed in `.env`.
 
-### 🧭 Planned
-
 ### 🧭 Possible later
 
 - **Single sign-on** via OpenID Connect (e.g. Keycloak in front of LDAP) with group based roles.
@@ -197,7 +202,7 @@ ImagePier replaces only the Immich **server** container. Machine learning, Postg
 official Immich images, and existing Immich data is used as it is.
 
 > [!IMPORTANT]
-> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.50` for Immich `v3.4.2`).
+> Use an ImagePier release that matches your current Immich version (e.g. `v3.4.2-ip.62` for Immich `v3.4.2`).
 > Downgrading Immich is not supported. Always create a database backup before switching.
 
 1. Start from a working [Immich Docker Compose installation](https://docs.immich.app/install/docker-compose).
@@ -205,7 +210,7 @@ official Immich images, and existing Immich data is used as it is.
 
    ```bash
    IMMICH_VERSION=v3.4.2
-   IMAGEPIER_VERSION=v3.4.2-ip.50
+   IMAGEPIER_VERSION=v3.4.2-ip.62
    IMAGEPIER_LANGUAGE=en   # language of usage rights tags and notifications: en, de
    # optional: e-mail and name of the media library account (created on first start)
    # IMAGEPIER_LIBRARY_EMAIL=media-library@imagepier.local
@@ -223,6 +228,9 @@ official Immich images, and existing Immich data is used as it is.
    ```bash
    docker compose pull && docker compose up -d
    ```
+
+5. Enter the address of your server under *Administration → Settings → Server → External domain*. Without it, the
+   links in e-mails point to Immich's default address instead of your server.
 
 The "About" dialog in the web app now shows `pixxelhoff/imagepier` as repository.
 
@@ -259,7 +267,7 @@ the official Immich server of the same version. Usage rights stay stored in Immi
 
 | Tag | Meaning |
 |---|---|
-| `v3.4.2-ip.50` | ImagePier release 50 based on Immich `v3.4.2` |
+| `v3.4.2-ip.62` | ImagePier release 62 based on Immich `v3.4.2` |
 | `release` | latest ImagePier release |
 | `edge` | latest build of the `imagepier` branch – for testing only |
 
