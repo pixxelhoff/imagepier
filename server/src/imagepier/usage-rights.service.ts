@@ -55,6 +55,7 @@ import {
   UsageRights,
   parseUsageRights,
   suggestUsageRights,
+  toStoredUsageRights,
 } from 'src/imagepier/usage-rights.js';
 import type { ArgOf } from 'src/repositories/event.repository.js';
 import { BaseService } from 'src/services/base.service.js';
@@ -595,9 +596,7 @@ export class ImagePierUsageRightsService extends BaseService {
     const items: Array<{ assetId: string; key: string; value: Record<string, unknown> }> = [];
     for (const assetId of assetIds) {
       const existing = await this.getUsageRights(assetId);
-      const rights = parseUsageRights({ ...existing, ...value, suggestedFrom: undefined });
-      const compact = Object.fromEntries(Object.entries(rights).filter(([, item]) => item !== undefined));
-      items.push({ assetId, key: USAGE_RIGHTS_KEY, value: compact });
+      items.push({ assetId, key: USAGE_RIGHTS_KEY, value: toStoredUsageRights({ ...existing, ...value }) });
     }
     await this.assetRepository.upsertBulkMetadata(await applyMetadataRules(auth, items));
     for (const assetId of assetIds) {

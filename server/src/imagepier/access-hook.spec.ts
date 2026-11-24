@@ -183,6 +183,35 @@ describe('ImagePier access hook', () => {
       expect(result[0].value.status).toBe('confirmed');
     });
 
+    it('should store usage rights normalized', async () => {
+      useSettings({});
+
+      const [result] = await applyMetadataRules(authFor('admin', true), [
+        {
+          assetId: 'asset-1',
+          key: USAGE_RIGHTS_KEY,
+          value: { status: 'confirmed', permittedUsage: ['web'], conditionalUsage: ['social', 'web'], unknown: 'x' },
+        },
+      ]);
+
+      expect(result.value).toEqual({
+        version: 1,
+        status: 'confirmed',
+        permittedUsage: ['web'],
+        conditionalUsage: ['social'],
+      });
+    });
+
+    it('should reject invalid usage rights', async () => {
+      useSettings({});
+
+      await expect(
+        applyMetadataRules(authFor('admin', true), [
+          { assetId: 'asset-1', key: USAGE_RIGHTS_KEY, value: ['x'] as unknown as Record<string, unknown> },
+        ]),
+      ).rejects.toThrow('Invalid usage rights');
+    });
+
     it('should reject reserved keys', async () => {
       useSettings({});
 

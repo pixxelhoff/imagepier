@@ -7,6 +7,8 @@ free of own database migrations and lets the existing, permission-checked
 asset metadata endpoints handle reading and writing.
 */
 
+import { BadRequestException } from '@nestjs/common';
+
 export const USAGE_RIGHTS_KEY = 'imagepier.usage-rights';
 export const USAGE_RIGHTS_VERSION = 1;
 
@@ -133,6 +135,19 @@ export const parseUsageRights = (value: Record<string, unknown>): UsageRights =>
     exclusive: typeof value.exclusive === 'boolean' ? value.exclusive : undefined,
     checks: parseChecks(value.checks),
   };
+};
+
+/**
+Usage rights as they are stored: normalized like when read, without suggestion sources and empty fields. Throws for a
+value that is not an object.
+*/
+export const toStoredUsageRights = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new BadRequestException('Invalid usage rights');
+  }
+
+  const rights = parseUsageRights({ ...(value as Record<string, unknown>), suggestedFrom: undefined });
+  return Object.fromEntries(Object.entries(rights).filter(([, item]) => item !== undefined));
 };
 
 /** Converts an exiftool value (string, number, list or language map) into trimmed text. */

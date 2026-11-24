@@ -126,7 +126,8 @@ when access rules change.
 - `applyMetadataRules` (called from Immich's asset metadata endpoints): the keys `imagepier.area` and
   `imagepier.uploaded-by` are reserved for the server; usage rights of media library assets saved by anyone but
   admins and media managers of the area are stored as `suggested` (in review), or stay `blocked` if they were blocked
-  (current status via the release status resolver of the usage rights service).
+  (current status via the release status resolver of the usage rights service). Usage rights are always stored
+  normalized (`toStoredUsageRights`: unknown fields removed, a channel only in one list); other values are rejected.
 - Release status (`status` in the usage rights): `suggested` = in review, `confirmed` = approved, `restricted` =
   approved with restrictions (`restriction`), `blocked`. The stored names are kept from earlier versions. Blocked
   assets: `AssetDownload` only for admins and media managers of the area; shared links

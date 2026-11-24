@@ -12,7 +12,7 @@ import {
   getUserAccess,
 } from 'src/imagepier/access-rules.js';
 import { getTagLabels } from 'src/imagepier/usage-rights-tags.js';
-import { USAGE_RIGHTS_KEY, type UsageRightsStatus } from 'src/imagepier/usage-rights.js';
+import { USAGE_RIGHTS_KEY, toStoredUsageRights, type UsageRightsStatus } from 'src/imagepier/usage-rights.js';
 import type { AccessRepository } from 'src/repositories/access.repository.js';
 
 type AccessCheck = { auth: AuthDto; permission: Permission; ids: Set<string> };
@@ -284,6 +284,7 @@ type MetadataItem = { key: string; value: Record<string, unknown> };
 /**
 Applies the ImagePier rules to asset metadata written through Immich's metadata endpoints:
 - reserved keys are rejected,
+- usage rights are stored normalized (like through the ImagePier endpoints),
 - the release status of media library assets can only be decided by admins and media managers of the area;
   everybody else saves the usage rights as "in review", and blocked assets stay blocked.
 Own assets are not restricted.
@@ -294,10 +295,13 @@ export const applyMetadataRules = async <T extends MetadataItem>(
 ): Promise<Array<T & { assetId: string }>> => {
   rejectReservedMetadataKeys(items.map((item) => item.key));
 
+  const normalized = items.map((item) =>
+    item.key === USAGE_RIGHTS_KEY ? ({ ...item, value: toStoredUsageRights(item.value) } as typeof item) : item,
+  );
   const userAccess = getAccessForAuth(auth);
-  const rights = items.filter((item) => item.key === USAGE_RIGHTS_KEY);
+  const rights = normalized.filter((item) => item.key === USAGE_RIGHTS_KEY);
   if (userAccess.role === 'admin' || rights.length === 0) {
-    return items;
+    return normalized;
   }
 
   const { library, permitted } = await checkLibraryAssets(new Set(rights.map((item) => item.assetId)), (areaId) =>
@@ -305,11 +309,11 @@ export const applyMetadataRules = async <T extends MetadataItem>(
   );
   const undecided = library.difference(permitted);
   if (undecided.size === 0) {
-    return items;
+    return normalized;
   }
 
   const current = releaseStatusResolver ? await releaseStatusResolver([...undecided]) : new Map<string, string>();
-  return items.map((item) =>
+  return normalized.map((item) =>
     rights.includes(item) && undecided.has(item.assetId)
       ? {
           ...item,
