@@ -99,12 +99,19 @@ const readExif = (view: DataView, start: number): ImageInfo => {
       continue;
     }
     for (const sub of readIfd(view, tiff, view.getUint32(entry.valueOffset, little), little)) {
-      if (sub.tag === 0x90_03) {
-        info.takenAt = parseExifDate(readAscii(view, tiff + view.getUint32(sub.valueOffset, little), sub.count));
-      } else if (sub.tag === 0xa0_02) {
-        info.width = readNumber(view, sub, little);
-      } else if (sub.tag === 0xa0_03) {
-        info.height = readNumber(view, sub, little);
+      switch (sub.tag) {
+        case 0x90_03: {
+          info.takenAt = parseExifDate(readAscii(view, tiff + view.getUint32(sub.valueOffset, little), sub.count));
+          break;
+        }
+        case 0xa0_02: {
+          info.width = readNumber(view, sub, little);
+          break;
+        }
+        case 0xa0_03: {
+          info.height = readNumber(view, sub, little);
+          break;
+        }
       }
     }
   }

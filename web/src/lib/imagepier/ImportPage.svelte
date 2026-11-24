@@ -45,6 +45,7 @@
   } from '@immich/ui';
   import { mdiCopyright, mdiDownload, mdiFileMultiple, mdiFolderOpen, mdiTagMultipleOutline } from '@mdi/js';
   import { DateTime } from 'luxon';
+  import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
   type Status = 'waiting' | 'uploading' | 'done' | 'error';
 
@@ -108,14 +109,11 @@
   });
 
   // A running import is lost when the tab is closed.
-  $effect(() => {
-    if (phase !== 'running') {
-      return;
+  const onBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (phase === 'running') {
+      event.preventDefault();
     }
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    globalThis.addEventListener('beforeunload', warn);
-    return () => globalThis.removeEventListener('beforeunload', warn);
-  });
+  };
 
   const getYear = (item: Item) => (item.info.takenAt ?? new Date(item.file.lastModified)).getFullYear();
 
@@ -172,7 +170,8 @@
     phase = 'checking';
 
     const getPath = (file: File) => file.webkitRelativePath || file.name;
-    const sorted = supported.toSorted((a, b) => getPath(a).localeCompare(getPath(b)));
+    const sorted = [...supported];
+    sorted.sort((a, b) => getPath(a).localeCompare(getPath(b)));
     const list: Item[] = [];
     for (const file of sorted) {
       const info = await readImageInfo(file).catch((): ImageInfo => ({}));
@@ -192,7 +191,7 @@
     const checksums = [
       ...new Set(list.map((item) => item.checksum).filter((checksum): checksum is string => !!checksum)),
     ];
-    const matches = new Map<string, ImportMatch>();
+    const matches = new SvelteMap<string, ImportMatch>();
     try {
       for (let index = 0; index < checksums.length; index += CHECK_CHUNK_SIZE) {
         const result = await checkImport(checksums.slice(index, index + CHECK_CHUNK_SIZE));
@@ -204,7 +203,7 @@
       checkFailed = true;
     }
 
-    const seen = new Set<string>();
+    const seen = new SvelteSet<string>();
     for (const item of list) {
       const duplicate = !!item.checksum && seen.has(item.checksum);
       if (item.checksum) {
@@ -287,7 +286,7 @@
 
     for (let index = 0; index < list.length; index += IMPORT_CHUNK_SIZE) {
       const chunk = list.slice(index, index + IMPORT_CHUNK_SIZE);
-      const uploaded = new Map<Item, string>();
+      const uploaded = new SvelteMap<Item, string>();
 
       await runPool(chunk, async (item) => {
         item.status = 'uploading';
@@ -302,26 +301,28 @@
       });
 
       const assetIds = [...uploaded.values()];
-      if (assetIds.length > 0) {
-        try {
-          await importAssets({
-            assetIds,
-            areaId,
-            keywords: keywords.length > 0 ? keywords : undefined,
-            usageRights: rightsCount > 0 ? usageRights : undefined,
-          });
-          for (const item of uploaded.keys()) {
-            item.status = 'done';
-          }
-        } catch (error) {
-          const note = getErrorMessage(error);
-          for (const item of uploaded.keys()) {
-            item.status = 'error';
-            item.note = note;
-          }
-        }
-        processed += assetIds.length;
+      if (assetIds.length === 0) {
+        continue;
       }
+
+      try {
+        await importAssets({
+          assetIds,
+          areaId,
+          keywords: keywords.length > 0 ? keywords : undefined,
+          usageRights: rightsCount > 0 ? usageRights : undefined,
+        });
+        for (const item of uploaded.keys()) {
+          item.status = 'done';
+        }
+      } catch (error) {
+        const note = getErrorMessage(error);
+        for (const item of uploaded.keys()) {
+          item.status = 'error';
+          item.note = note;
+        }
+      }
+      processed += assetIds.length;
     }
 
     phase = 'done';
@@ -363,6 +364,8 @@
   };
 </script>
 
+<svelte:window onbeforeunload={onBeforeUnload} />
+
 <Stack gap={6}>
   <Text color="muted">{$ipt('import_description')}</Text>
 
@@ -397,7 +400,7 @@
       <HelperText color="danger">{$ipt('import_check_failed')}</HelperText>
     {/if}
 
-    <div class="max-h-[28rem] overflow-y-auto rounded-xl border dark:border-gray-700">
+    <div class="max-h-112 overflow-y-auto rounded-xl border dark:border-gray-700">
       <table class="w-full text-start text-sm">
         <thead class="sticky top-0 bg-gray-100 dark:bg-gray-800">
           <tr>
