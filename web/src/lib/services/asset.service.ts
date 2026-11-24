@@ -429,7 +429,8 @@ export const handleDownloadAsset = async (asset: AssetResponseDto, { edited }: {
   const $t = await getFormatter();
 
   // ImagePier: blocked assets cannot be downloaded; explain it instead of saving the error response as a file
-  if (authManager.authenticated && (await getDeniedDownloads([asset.id])).length > 0) {
+  const denied = authManager.authenticated ? await getDeniedDownloads([asset.id]) : [];
+  if (denied.length > 0) {
     toastManager.danger(get(ipt)('download_not_allowed'));
     return;
   }
