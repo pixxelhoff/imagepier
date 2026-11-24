@@ -55,6 +55,7 @@ two. Who may do what is described in [PERMISSIONS.md](PERMISSIONS.md); technical
 | Passkeys | Shown as "Immich" | Shown as "ImagePier" |
 | Link previews (messengers) | Immich promo image for links without photos | ImagePier icon |
 | *Support & feedback* | Official Immich resources | ImagePier links (`IMMICH_THIRD_PARTY_*`); the official Immich resources are hidden |
+| Command palette (Ctrl+K) | Links to the Immich docs, support, socials, apps and sites; "My Immich" link | Pages and settings only |
 
 ## What stays the same
 

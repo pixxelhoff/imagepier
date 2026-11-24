@@ -63,6 +63,30 @@ const TEXT_REPLACEMENTS: { file: string; search: string; replace: string }[] = [
     search: '<ServerAboutItem id="immich" title="Immich"',
     replace: '<AboutImagePier {info} />\n      <ServerAboutItem id="immich" title="Immich"',
   },
+  // The command palette keeps the pages and settings, without the links to the Immich project.
+  {
+    file: '/src/routes/+layout.svelte',
+    search: [
+      "        defaultProvider({ name: $t('documentation'), types: ['doc', 'documentation'], actions: CORE_PAGE_COMMANDS }),",
+      "        defaultProvider({ name: $t('support'), actions: PROJECT_SUPPORT_COMMANDS }),",
+      "        defaultProvider({ name: 'Socials', types: ['social', 'socials'], actions: SOCIAL_COMMANDS }),",
+      "        defaultProvider({ name: $t('mobile_app'), actions: MOBILE_APP_COMMANDS }),",
+      "        defaultProvider({ name: 'Sites', types: ['site', 'sites'], actions: OTHER_SITE_COMMANDS }),\n",
+    ].join('\n'),
+    replace: '',
+  },
+  {
+    file: '/src/lib/commands.ts',
+    search: [
+      '    {',
+      "      title: $t('my_immich_title'),",
+      "      description: $t('my_immich_description'),",
+      '      onAction: () => copyToClipboard(getMyImmichLink().href),',
+      "      shortcuts: { ctrl: true, shift: true, key: 'm' },",
+      '    },\n',
+    ].join('\n'),
+    replace: '',
+  },
 ];
 
 // Translation keys that refer to the Immich project itself and keep its name.

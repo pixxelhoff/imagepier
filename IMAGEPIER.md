@@ -277,6 +277,8 @@ docs.immich.app in the administration, Immich in the "About" dialog and the offi
   `branding/Logo.svelte` in `resolveId`.
 - "Support & feedback" lists ImagePier (`IMMICH_THIRD_PARTY_*` in the compose override) and hides the official Immich
   resources as long as third-party links are set.
+- The command palette (Ctrl+K) keeps pages and settings, but not the links to the Immich project (documentation,
+  support, socials, mobile apps, sites) and not "Copy as My Immich link".
 
 ### E-mails
 
