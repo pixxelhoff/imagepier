@@ -21,7 +21,10 @@ import {
   JobStatus,
   QueueName,
   SourceType,
+  SystemMetadataKey,
 } from 'src/enum.js';
+import { KEYWORDS_KEY } from 'src/imagepier/keywords.js';
+import { getImagePierTagIds } from 'src/imagepier/metadata-tags.js';
 import type { ArgOf } from 'src/repositories/event.repository.js';
 import { ReverseGeocodeResult } from 'src/repositories/map.repository.js';
 import { ImmichTags } from 'src/repositories/metadata.repository.js';
@@ -660,10 +663,11 @@ export class MetadataService extends BaseService {
       userId: ownerId,
       tags: asset?.tags ?? [],
     });
-    await this.tagRepository.replaceAssetTags(
-      id,
-      results.map((tag) => tag.id),
-    );
+    // ImagePier: keywords and usage rights tags are not stored in the file and are kept
+    const current = await this.assetRepository.getById(id, { tags: true });
+    const keywords = await this.systemMetadataRepository.get(KEYWORDS_KEY as SystemMetadataKey);
+    const kept = getImagePierTagIds(current?.tags ?? [], keywords);
+    await this.tagRepository.replaceAssetTags(id, [...new Set([...results.map((tag) => tag.id), ...kept])]);
   }
 
   private isMotionPhoto(asset: { type: AssetType }, tags: ImmichTags): boolean {

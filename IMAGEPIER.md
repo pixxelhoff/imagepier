@@ -58,6 +58,7 @@ conflicts can occur during updates.
 | `server/src/utils/database.ts` | `hasTags`: tags with the same value count as one tag, so keywords of several accounts (areas) can be searched together; unchanged result for tags of one account |
 | `server/src/repositories/person.repository.ts` | `UpdateFacesData.newPersonGroupId` may be `null`, so faces can be unassigned; `updateGroupNames` (shared names) and `addMissingPeople` (people of the areas for users) |
 | `server/src/services/person.service.ts` | `update`: a name or birth date given in an area (or by an area editor) applies to everybody who sees the person |
+| `server/src/services/metadata.service.ts` | `applyTagList` keeps keyword and usage rights tags when the metadata is extracted again (`getImagePierTagIds`, `src/imagepier/metadata-tags.ts`) |
 | `server/src/services/tag.service.ts` | `create` and `upsert`: only administrators create tags once a keyword list exists |
 | `server/src/services/user.service.ts` | `getMyPreferences` / `updateMyPreferences`: Immich's tag feature is always off for non-administrators |
 | `web/src/routes/(user)/user-settings/FeatureSettings.svelte` | the "Tags" switch is shown to administrators only |

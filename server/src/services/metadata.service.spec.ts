@@ -664,6 +664,31 @@ describe(MetadataService.name, () => {
       expect(mocks.tag.replaceAssetTags).toHaveBeenCalledWith(asset.id, []);
     });
 
+    it('should keep keyword and usage rights tags', async () => {
+      const asset = AssetFactory.create();
+      mocks.assetJob.getForMetadataExtraction.mockResolvedValue(getForMetadataExtraction(asset));
+      mockReadTags({});
+      mocks.asset.getById.mockResolvedValue({
+        id: asset.id,
+        tags: [
+          { id: 'keyword', value: 'Place/Harbour' },
+          { id: 'usage-rights', value: 'Usage rights/Status/Valid' },
+          { id: 'other', value: 'Holiday' },
+        ],
+      } as any);
+      mocks.systemMetadata.get.mockImplementation((key) =>
+        Promise.resolve(
+          key === 'imagepier.keywords'
+            ? ({ keywords: [{ category: 'Place', name: 'Harbour', active: true }] } as any)
+            : {},
+        ),
+      );
+
+      await sut.handleMetadataExtraction({ id: asset.id });
+
+      expect(mocks.tag.replaceAssetTags).toHaveBeenCalledWith(asset.id, ['keyword', 'usage-rights']);
+    });
+
     it('should not apply motion photos if asset is video', async () => {
       const asset = AssetFactory.create({ type: AssetType.Video });
       mocks.assetJob.getForMetadataExtraction.mockResolvedValue(getForMetadataExtraction(asset));
