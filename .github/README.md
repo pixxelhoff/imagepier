@@ -54,6 +54,9 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Automatic suggestions** after upload from embedded IPTC/XMP/EXIF metadata (By-line, Creator, Artist,
   Copyright Notice, Rights, Copyright, Credit) and from file names like `Harbour Festival (c) ACME, Jane Doe.jpg`.
   Suggestions are marked for review and never overwrite existing entries.
+- **Channels** – for every channel (internal, web, print, social media, press, social ads, presentations, partners,
+  paid campaigns) *permitted*, *not permitted* or *under conditions*, with a note on the conditions. Administrators
+  adjust the channel list under *Administration → Channels*.
 - **Release status** – *In review*, *Approved*, *Approved with restrictions* (with a note on the restriction) or
   *Blocked*; *Expired* is shown automatically after the expiry date. Media managers of the area decide the status;
   changes by editors put approved photos back to *in review*, blocked photos stay blocked.
@@ -170,8 +173,6 @@ accounts – filterable by action, person and period, with CSV export.
 
 ### 🧭 Planned
 
-- **Channels** (internal, web, print, social media, press, social ads, presentations, partners, paid campaigns) with
-  *yes / no / conditional* per channel, configurable in the administration.
 - **Scope of rights** (territory, editing, passing on, exclusivity) and additional checks (model release, minors,
   music and artworks, drone, private property).
 - **Title, alternative text and a link to the rights document** for every photo.

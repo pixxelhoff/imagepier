@@ -297,6 +297,22 @@ const en = {
   'usage.print': 'Print',
   'usage.social': 'Social media',
   'usage.press': 'Press',
+  channels: 'Channels',
+  'channel_value.yes': 'Permitted',
+  'channel_value.no': 'Not permitted',
+  'channel_value.conditional': 'Under conditions',
+  conditional_usage: 'Under conditions',
+  usage_note: 'Conditions',
+  usage_note_placeholder: 'e.g. only with the logo of the partner',
+  channels_hint:
+    'Channels in which photos may be used. Renaming a channel keeps it on all photos. Deactivated channels are no longer offered, photos that use them keep them.',
+  channel_add: 'Add channel',
+  channel_label: 'Name',
+  channel_active: 'Offered',
+  channel_new: 'New channel',
+  channels_saved: 'Channels saved',
+  channels_save_failed: 'Unable to save the channels',
+  channels_load_failed: 'Unable to load the channels',
 };
 
 export type ImagePierMessageKey = keyof typeof en;
@@ -596,6 +612,22 @@ const de: Record<ImagePierMessageKey, string> = {
   'usage.print': 'Print',
   'usage.social': 'Social Media',
   'usage.press': 'Presse',
+  channels: 'Kanäle',
+  'channel_value.yes': 'Erlaubt',
+  'channel_value.no': 'Nicht erlaubt',
+  'channel_value.conditional': 'Bedingt',
+  conditional_usage: 'Bedingt erlaubt',
+  usage_note: 'Bedingungen',
+  usage_note_placeholder: 'z. B. nur mit Logo des Partners',
+  channels_hint:
+    'Kanäle, in denen Fotos verwendet werden dürfen. Ein umbenannter Kanal bleibt an allen Fotos erhalten. Deaktivierte Kanäle werden nicht mehr angeboten, Fotos behalten sie aber.',
+  channel_add: 'Kanal hinzufügen',
+  channel_label: 'Name',
+  channel_active: 'Angeboten',
+  channel_new: 'Neuer Kanal',
+  channels_saved: 'Kanäle gespeichert',
+  channels_save_failed: 'Kanäle konnten nicht gespeichert werden',
+  channels_load_failed: 'Kanäle konnten nicht geladen werden',
 };
 
 const messages: Record<string, Record<ImagePierMessageKey, string>> = { en, de };

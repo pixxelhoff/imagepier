@@ -24,7 +24,7 @@ two. Who may do what is described in [PERMISSIONS.md](PERMISSIONS.md); technical
 
 | Topic | Immich | ImagePier |
 |---|---|---|
-| Usage rights | – | Photographer, copyright holder, credit line, license, permitted usage, expiry date; suggested from IPTC/XMP/EXIF and file names; release status (in review, approved, approved with restrictions, blocked) decided by media managers; blocked photos cannot be downloaded, shared or published |
+| Usage rights | – | Photographer, copyright holder, credit line, license, channels (permitted / not permitted / under conditions, list configurable by administrators), expiry date; suggested from IPTC/XMP/EXIF and file names; release status (in review, approved, approved with restrictions, blocked) decided by media managers; blocked photos cannot be downloaded, shared or published |
 | Tags | Free tags per account, everybody creates their own | Immich tags still exist. In addition ImagePier maintains tags itself: `Usage rights/…` (derived from the usage rights) and the **keyword list** (see below) |
 | Keywords | – | Administrators maintain a fixed keyword list (*Administration → Keywords*, pasted from a spreadsheet). Keywords are assigned in the panel *Keywords* of a photo or for a selection and stored as tags `Category/Keyword` of the account that owns the photo, so everybody with access finds the photo under the same keyword |
 | Tag feature (tag page, tag panel, tag search) | Every user can switch it on in the account settings | Administrators only; everybody else works with the keyword list |

@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 import type { AuthDto } from 'src/dtos/auth.dto.js';
 import { Permission } from 'src/enum.js';
 import { getCachedAccessSettings } from 'src/imagepier/access-rules.js';
+import { MAX_CHANNELS } from 'src/imagepier/channels.js';
 import { recordAuditFor } from 'src/imagepier/audit.js';
 import { ImagePierUsageRightsService } from 'src/imagepier/usage-rights.service.js';
 import { Auth, Authenticated } from 'src/middleware/auth.guard.js';
@@ -23,6 +24,21 @@ const MoveToLibrarySchema = z.object({
 
 class MoveToLibraryDto extends createZodDto(MoveToLibrarySchema) {}
 
+const ChannelListSchema = z.object({
+  channels: z
+    .array(
+      z.object({
+        id: z.string().max(40).optional(),
+        label: z.string().max(60),
+        active: z.boolean(),
+      }),
+    )
+    .max(MAX_CHANNELS)
+    .describe('Complete channel list'),
+});
+
+class ChannelListDto extends createZodDto(ChannelListSchema) {}
+
 /** ImagePier endpoints. Not part of Immich's public API specification. */
 @ApiExcludeController()
 @Controller('imagepier/usage-rights')
@@ -33,6 +49,12 @@ export class ImagePierUsageRightsController {
   @Authenticated()
   getConfig() {
     return this.service.getUsageRightsConfig();
+  }
+
+  @Get('channels')
+  @Authenticated()
+  async getChannels() {
+    return { channels: await this.service.getChannels() };
   }
 
   @Get('library-tags')
@@ -57,5 +79,18 @@ export class ImagePierUsageRightsController {
     const area = getCachedAccessSettings().areas.find((item) => item.id === dto.areaId)?.name;
     recordAuditFor(auth, { action: 'library_move', assetIds: dto.assetIds, details: { areaId: dto.areaId, area } });
     return result;
+  }
+}
+
+/** Admin endpoints for the channel list (kept under admin/ like all admin-only routes). */
+@ApiExcludeController()
+@Controller('admin/imagepier/channels')
+export class ImagePierChannelAdminController {
+  constructor(private service: ImagePierUsageRightsService) {}
+
+  @Put()
+  @Authenticated({ admin: true })
+  async updateChannels(@Body() dto: ChannelListDto) {
+    return { channels: await this.service.updateChannels(dto.channels) };
   }
 }

@@ -1,29 +1,21 @@
 <script lang="ts">
   import { ipt } from '#lib/imagepier/i18n.ts';
   import {
+    CHANNEL_VALUES,
     LICENSE_TYPES,
-    PERMITTED_USAGES,
     RELEASE_STATUSES,
     USAGE_RIGHTS_VERSION,
-    type PermittedUsage,
+    getChannelValue,
+    getChannels,
+    type Channel,
+    type ChannelValue,
     type UsageRights,
     type UsageRightsInput,
   } from '#lib/imagepier/usage-rights.ts';
-  import {
-    Button,
-    Checkbox,
-    DatePicker,
-    Field,
-    FormModal,
-    Input,
-    Label,
-    Select,
-    Stack,
-    Text,
-    Textarea,
-  } from '@immich/ui';
+  import { Button, DatePicker, Field, FormModal, Input, Label, Select, Stack, Text, Textarea } from '@immich/ui';
   import { mdiCopyright } from '@mdi/js';
   import { DateTime } from 'luxon';
+  import { onMount } from 'svelte';
 
   type Props = {
     rights?: UsageRights;
@@ -55,7 +47,32 @@
   let copyrightHolder = $state(rights?.copyrightHolder ?? '');
   let licenseType = $state<string>(rights?.licenseType ?? '');
   let licenseSource = $state(rights?.licenseSource ?? '');
-  let permittedUsage = $state<PermittedUsage[]>([...(rights?.permittedUsage ?? [])]);
+  let channels = $state<Channel[]>([]);
+  // Several assets: channels without a value keep the value of each asset.
+  let channelValues = $state<Record<string, ChannelValue | ''>>({});
+  let usageNote = $state(rights?.usageNote ?? '');
+
+  // Active channels, plus deactivated channels that this asset still uses.
+  const shownChannels = $derived(
+    channels.filter((channel) => channel.active || (!bulk && getChannelValue(rights, channel.id) !== 'no')),
+  );
+  const hasConditional = $derived(Object.values(channelValues).includes('conditional'));
+
+  onMount(() => {
+    getChannels()
+      .then((items) => {
+        channels = items;
+        channelValues = Object.fromEntries(
+          items.map((channel) => [channel.id, bulk ? '' : getChannelValue(rights, channel.id)]),
+        );
+      })
+      .catch((error: unknown) => console.error(error));
+  });
+
+  const channelOptions = $derived([
+    ...(bulk ? [{ label: $ipt('release_status_unchanged'), value: '' }] : []),
+    ...CHANNEL_VALUES.map((value) => ({ label: $ipt(`channel_value.${value}`), value })),
+  ]);
   let validUntil = $state(rights?.validUntil ?? '');
   let creditLine = $state(rights?.creditLine ?? '');
   let notes = $state(rights?.notes ?? '');
@@ -70,12 +87,6 @@
     ...LICENSE_TYPES.map((type) => ({ label: $ipt(`license.${type}`), value: type })),
   ]);
 
-  const toggleUsage = (usage: PermittedUsage, checked: boolean) => {
-    permittedUsage = checked
-      ? PERMITTED_USAGES.filter((item) => item === usage || permittedUsage.includes(item))
-      : permittedUsage.filter((item) => item !== usage);
-  };
-
   const onSubmit = () => {
     onClose({
       version: USAGE_RIGHTS_VERSION,
@@ -85,7 +96,12 @@
       copyrightHolder,
       licenseType: LICENSE_TYPES.find((type) => type === licenseType),
       licenseSource,
-      permittedUsage,
+      permittedUsage: rights?.permittedUsage,
+      conditionalUsage: rights?.conditionalUsage,
+      channels: Object.fromEntries(
+        Object.entries(channelValues).filter((entry): entry is [string, ChannelValue] => entry[1] !== ''),
+      ),
+      usageNote,
       validUntil: validUntil || undefined,
       creditLine,
       notes,
@@ -139,21 +155,27 @@
     </Field>
 
     <div>
-      <Label label={$ipt('permitted_usage')} />
-      <div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-        {#each PERMITTED_USAGES as usage (usage)}
-          <div class="flex items-center gap-2">
-            <Checkbox
-              id="imagepier-usage-{usage}"
-              size="tiny"
-              checked={permittedUsage.includes(usage)}
-              onCheckedChange={(checked) => toggleUsage(usage, checked)}
-            />
-            <Label label={$ipt(`usage.${usage}`)} for="imagepier-usage-{usage}" />
+      <Label label={$ipt('channels')} />
+      <div class="mt-2 flex flex-col gap-2">
+        {#each shownChannels as channel (channel.id)}
+          <div class="flex items-center gap-3">
+            <Text class="min-w-0 grow truncate">{channel.label}</Text>
+            <div class="w-44 shrink-0">
+              <Select
+                options={channelOptions}
+                bind:value={() => channelValues[channel.id] ?? '', (value) => (channelValues[channel.id] = value as ChannelValue | '')}
+              />
+            </div>
           </div>
         {/each}
       </div>
     </div>
+
+    {#if hasConditional || usageNote}
+      <Field label={$ipt('usage_note')}>
+        <Input bind:value={usageNote} placeholder={$ipt('usage_note_placeholder')} />
+      </Field>
+    {/if}
 
     <Field label={$ipt('valid_until')}>
       <DatePicker

@@ -9,12 +9,16 @@
   } from '#lib/imagepier/access.ts';
   import { ipt } from '#lib/imagepier/i18n.ts';
   import {
+    applyChannels,
     confirmUsageRights,
+    getChannelLabel,
+    getChannels,
     isBlocked,
     isExpired,
     loadAssetDetails,
     loadUsageRights,
     saveUsageRights,
+    type Channel,
     type UsageRights,
   } from '#lib/imagepier/usage-rights.ts';
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
@@ -46,6 +50,13 @@
   let uploadedBy = $state<string | undefined>();
   let loadedAssetId = $state<string | undefined>();
   let access = $state<MyAccess>();
+  let channels = $state<Channel[]>([]);
+
+  $effect(() => {
+    getChannels()
+      .then((items) => (channels = items))
+      .catch(() => (channels = []));
+  });
 
   $effect(() => {
     const assetId = asset.id;
@@ -104,7 +115,7 @@
 
     const status = result.status ?? rights?.status ?? 'suggested';
     try {
-      const saved = await saveUsageRights(assetId, { ...result, status });
+      const saved = await saveUsageRights(assetId, applyChannels({ ...result, status }, result.channels));
       if (asset.id === assetId) {
         rights = saved;
       }
@@ -238,7 +249,15 @@
             {/if}
             {#if rights.permittedUsage?.length}
               <dt class="opacity-60">{$ipt('permitted_usage')}</dt>
-              <dd>{rights.permittedUsage.map((usage) => $ipt(`usage.${usage}`)).join(', ')}</dd>
+              <dd>{rights.permittedUsage.map((id) => getChannelLabel(channels, id)).join(', ')}</dd>
+            {/if}
+            {#if rights.conditionalUsage?.length}
+              <dt class="opacity-60">{$ipt('conditional_usage')}</dt>
+              <dd>{rights.conditionalUsage.map((id) => getChannelLabel(channels, id)).join(', ')}</dd>
+            {/if}
+            {#if rights.usageNote}
+              <dt class="opacity-60">{$ipt('usage_note')}</dt>
+              <dd class="wrap-break-word">{rights.usageNote}</dd>
             {/if}
             <dt class="opacity-60">{$ipt('valid_until')}</dt>
             <dd class:text-red-600={expired} class:dark:text-red-400={expired}>

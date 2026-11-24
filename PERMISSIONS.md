@@ -51,7 +51,7 @@ Every area should have at least one media manager. *Administration → Areas* ma
 
 ¹ The person needs the level *Editor* or higher in both areas.
 
-Administration (users, roles, areas, keyword list, settings, the trash of all areas and the audit log) is for
+Administration (users, roles, areas, keyword list, channels, settings, the trash of all areas and the audit log) is for
 administrators only. Everybody can assign keywords to their own photos. Once a keyword list exists, only
 administrators create new tags. Immich's own tag feature (tag page, tag panel) is available to administrators only.
 

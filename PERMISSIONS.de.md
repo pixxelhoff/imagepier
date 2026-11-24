@@ -53,7 +53,7 @@ ohne.
 
 ¹ Die Person braucht in beiden Bereichen mindestens die Stufe *Bearbeiter*.
 
-Die Administration (Benutzer, Rollen, Bereiche, Schlagwortliste, Einstellungen, der Papierkorb aller Bereiche und das
+Die Administration (Benutzer, Rollen, Bereiche, Schlagwortliste, Kanäle, Einstellungen, der Papierkorb aller Bereiche und das
 Audit-Log) ist nur für Administrator/innen. Eigenen Fotos kann jeder Schlagworte zuweisen. Sobald eine
 Schlagwortliste existiert, legen nur Administrator/innen neue Tags an. Die Tag-Funktion von Immich (Tag-Seite,
 Tag-Panel) steht nur Administrator/innen zur Verfügung.

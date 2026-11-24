@@ -10,8 +10,24 @@ export const USAGE_RIGHTS_VERSION = 1;
 export const LICENSE_TYPES = ['owned', 'time-limited', 'agency', 'creative-commons', 'other'] as const;
 export type LicenseType = (typeof LICENSE_TYPES)[number];
 
-export const PERMITTED_USAGES = ['internal', 'web', 'print', 'social', 'press'] as const;
-export type PermittedUsage = (typeof PERMITTED_USAGES)[number];
+/** Channel ids; the channels are configured by administrators (see getChannels). */
+export type PermittedUsage = string;
+
+export type Channel = { id: string; label: string; active: boolean };
+
+/** Value of a channel for an asset: permitted, not permitted or permitted under conditions. */
+export const CHANNEL_VALUES = ['yes', 'no', 'conditional'] as const;
+export type ChannelValue = (typeof CHANNEL_VALUES)[number];
+
+const CHANNEL_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
+
+const toChannelIds = (value: unknown, exclude: string[] = []) => {
+  const ids = Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && CHANNEL_ID.test(item))
+    : [];
+  const unique = ids.filter((id, index) => ids.indexOf(id) === index && !exclude.includes(id));
+  return unique.length > 0 ? unique : undefined;
+};
 
 /**
 Release status: `suggested` = in review, `confirmed` = approved, `restricted` = approved with restrictions,
@@ -29,6 +45,9 @@ export interface UsageRights {
   licenseType?: LicenseType;
   licenseSource?: string;
   permittedUsage?: PermittedUsage[];
+  conditionalUsage?: PermittedUsage[];
+  /** Conditions for the channels permitted under conditions. */
+  usageNote?: string;
   /** ISO date (YYYY-MM-DD) */
   validUntil?: string;
   creditLine?: string;
@@ -38,16 +57,18 @@ export interface UsageRights {
 }
 
 /** Usage rights entered in the dialog; without status (several assets) the status of each asset is kept. */
-export type UsageRightsInput = Omit<UsageRights, 'status'> & { status?: UsageRightsStatus };
+export type UsageRightsInput = Omit<UsageRights, 'status'> & {
+  status?: UsageRightsStatus;
+  /** Channels set in the dialog; channels that are missing keep their value. */
+  channels?: Record<string, ChannelValue>;
+};
 
 const text = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined);
 
 /** Validates and normalizes a stored value; unknown fields and invalid entries are dropped. */
 export const normalizeUsageRights = (value: Record<string, unknown>): UsageRights => {
   const licenseType = LICENSE_TYPES.find((type) => type === value.licenseType);
-  const permittedUsage = Array.isArray(value.permittedUsage)
-    ? PERMITTED_USAGES.filter((usage) => (value.permittedUsage as unknown[]).includes(usage))
-    : [];
+  const permittedUsage = toChannelIds(value.permittedUsage);
   const validUntil = text(value.validUntil);
   const status = RELEASE_STATUSES.find((item) => item === value.status) ?? 'suggested';
 
@@ -61,7 +82,9 @@ export const normalizeUsageRights = (value: Record<string, unknown>): UsageRight
     copyrightHolder: text(value.copyrightHolder),
     licenseType,
     licenseSource: text(value.licenseSource),
-    permittedUsage: permittedUsage.length > 0 ? permittedUsage : undefined,
+    permittedUsage,
+    conditionalUsage: toChannelIds(value.conditionalUsage, permittedUsage),
+    usageNote: text(value.usageNote),
     validUntil: validUntil && /^\d{4}-\d{2}-\d{2}$/.test(validUntil) ? validUntil : undefined,
     creditLine: text(value.creditLine),
     notes: text(value.notes),
@@ -117,6 +140,61 @@ export const getUsageRightsConfig = () => {
   return configPromise;
 };
 
+let channelsPromise: Promise<Channel[]> | undefined;
+
+/** The channel list, including deactivated channels (still shown for assets that use them). */
+export const getChannels = () => {
+  channelsPromise ??= imagePierRequest('/usage-rights/channels')
+    .then((response) => response.json() as Promise<{ channels: Channel[] }>)
+    .then(({ channels }) => channels)
+    .catch((error: unknown) => {
+      channelsPromise = undefined;
+      throw error;
+    });
+  return channelsPromise;
+};
+
+export const updateChannelsAdmin = async (channels: Array<Partial<Channel>>): Promise<Channel[]> => {
+  const response = await fetch(`${defaults.baseUrl}/admin/imagepier/channels`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...defaults.headers },
+    body: JSON.stringify({ channels }),
+  });
+  if (!response.ok) {
+    throw new Error(`ImagePier request failed: ${response.status} ${response.statusText}`);
+  }
+  const result = (await response.json()) as { channels: Channel[] };
+  channelsPromise = Promise.resolve(result.channels);
+  return result.channels;
+};
+
+export const getChannelLabel = (channels: Channel[], id: string) =>
+  channels.find((channel) => channel.id === id)?.label ?? id;
+
+export const getChannelValue = (rights: Partial<UsageRights> | undefined, id: string): ChannelValue => {
+  if (rights?.permittedUsage?.includes(id)) {
+    return 'yes';
+  }
+  return rights?.conditionalUsage?.includes(id) ? 'conditional' : 'no';
+};
+
+/** Applies the channel values set in the dialog to permitted and conditional channels. */
+export const applyChannels = <T extends Partial<UsageRights>>(
+  rights: T,
+  channels?: Record<string, ChannelValue>,
+): T => {
+  if (!channels) {
+    return rights;
+  }
+  const changed = Object.keys(channels);
+  const keep = (ids?: string[]) => (ids ?? []).filter((id) => !changed.includes(id));
+  return {
+    ...rights,
+    permittedUsage: [...keep(rights.permittedUsage), ...changed.filter((id) => channels[id] === 'yes')],
+    conditionalUsage: [...keep(rights.conditionalUsage), ...changed.filter((id) => channels[id] === 'conditional')],
+  };
+};
+
 /** Removes undefined fields so the stored JSON stays compact. */
 const compact = (rights: UsageRights) =>
   Object.fromEntries(Object.entries(rights).filter(([, value]) => value !== undefined)) as Record<string, unknown>;
@@ -169,11 +247,12 @@ const TEXT_FIELDS = [
   'notes',
   'validUntil',
   'restriction',
+  'usageNote',
 ] as const;
 
 /** Keeps only the fields that were filled in, so empty fields leave existing values unchanged. */
-export const toUsageRightsPatch = (rights: UsageRightsInput): Partial<UsageRights> => {
-  const patch: Partial<UsageRights> = {};
+export const toUsageRightsPatch = (rights: UsageRightsInput): Partial<UsageRightsInput> => {
+  const patch: Partial<UsageRightsInput> = {};
   for (const key of TEXT_FIELDS) {
     const value = rights[key]?.trim();
     if (value) {
@@ -183,8 +262,8 @@ export const toUsageRightsPatch = (rights: UsageRightsInput): Partial<UsageRight
   if (rights.licenseType) {
     patch.licenseType = rights.licenseType;
   }
-  if (rights.permittedUsage?.length) {
-    patch.permittedUsage = rights.permittedUsage;
+  if (rights.channels && Object.keys(rights.channels).length > 0) {
+    patch.channels = rights.channels;
   }
   if (rights.status) {
     patch.status = rights.status;
@@ -195,7 +274,10 @@ export const toUsageRightsPatch = (rights: UsageRightsInput): Partial<UsageRight
 const BULK_CHUNK_SIZE = 20;
 
 /** Merges a patch into the usage rights of many assets; without a status in the patch the status is kept. */
-export const applyUsageRightsToAssets = async (assetIds: string[], patch: Partial<UsageRights>) => {
+export const applyUsageRightsToAssets = async (
+  assetIds: string[],
+  { channels, ...patch }: Partial<UsageRightsInput>,
+) => {
   for (let index = 0; index < assetIds.length; index += BULK_CHUNK_SIZE) {
     const chunk = assetIds.slice(index, index + BULK_CHUNK_SIZE);
     const existing = await Promise.all(chunk.map((assetId) => loadUsageRights(assetId)));
@@ -204,7 +286,7 @@ export const applyUsageRightsToAssets = async (assetIds: string[], patch: Partia
       key: USAGE_RIGHTS_KEY,
       value: compact(
         normalizeUsageRights({
-          ...existing[position],
+          ...applyChannels({ ...existing[position] }, channels),
           ...patch,
           status: patch.status ?? existing[position]?.status ?? 'suggested',
           suggestedFrom: undefined,

@@ -29,6 +29,14 @@ import {
 import { setAreaMigrations } from 'src/imagepier/access.service.js';
 import { FolderOwner, getRelocatedPath } from 'src/imagepier/asset-files.js';
 import {
+  CHANNELS_KEY,
+  Channel,
+  getChannelLabel,
+  normalizeChannels,
+  parseChannelSettings,
+  setCachedChannels,
+} from 'src/imagepier/channels.js';
+import {
   EXPIRING_SOON_DAYS,
   MISSING_FIELDS,
   USAGE_RIGHTS_STATUSES,
@@ -49,6 +57,7 @@ import {
 } from 'src/imagepier/usage-rights.js';
 import type { ArgOf } from 'src/repositories/event.repository.js';
 import { BaseService } from 'src/services/base.service.js';
+import type { SystemMetadata } from 'src/types.js';
 import { handlePromiseError } from 'src/utils/misc.js';
 import { upsertTags } from 'src/utils/tag.js';
 
@@ -119,6 +128,71 @@ export class ImagePierUsageRightsService extends BaseService {
     this.logger.debug(`Suggested usage rights for asset ${assetId}`);
   }
 
+  /** Loads the channel list in every worker, so downloads and galleries show the configured names. */
+  @OnEvent({ name: 'ConfigInit' })
+  async onConfigInitChannels() {
+    try {
+      await this.getChannels();
+    } catch (error) {
+      this.logger.warn(`Unable to load the channels: ${error}`);
+    }
+  }
+
+  async getChannels(): Promise<Channel[]> {
+    const channels = parseChannelSettings(await this.systemMetadataRepository.get(CHANNELS_KEY as SystemMetadataKey));
+    setCachedChannels(channels);
+    return channels;
+  }
+
+  /**
+  Saves the channel list. Channels keep their ids, so usage rights stay assigned; the tags of renamed channels are
+  updated in the background.
+  */
+  async updateChannels(items: unknown[]): Promise<Channel[]> {
+    const previous = await this.getChannels();
+    const channels = normalizeChannels(items);
+    for (const channel of previous) {
+      if (!channels.some((item) => item.id === channel.id)) {
+        channels.push({ ...channel, active: false });
+      }
+    }
+    await this.systemMetadataRepository.set(
+      CHANNELS_KEY as SystemMetadataKey,
+      { channels } as unknown as SystemMetadata[SystemMetadataKey],
+    );
+    setCachedChannels(channels);
+
+    const renamed = previous
+      .filter((channel) => channels.some((item) => item.id === channel.id && item.label !== channel.label))
+      .map((channel) => channel.label);
+    if (renamed.length > 0) {
+      handlePromiseError(this.renameChannelTags(renamed), this.logger);
+    }
+    return channels;
+  }
+
+  /** Gives assets with tags of renamed channels the current tags and removes the old tags. */
+  private async renameChannelTags(oldLabels: string[]) {
+    const tagLabels = getTagLabels();
+    const paths = getTagPaths(tagLabels);
+    const values = oldLabels.flatMap((label) => [
+      `${paths.usage}/${label}`,
+      `${paths.root}/${tagLabels.conditionalUsage}/${label}`,
+    ]);
+    for (const user of await this.userRepository.getList()) {
+      for (const value of values) {
+        const tag = await this.tagRepository.getByValue(user.id, value);
+        if (!tag) {
+          continue;
+        }
+        for (const assetId of await this.tagRepository.getAssetIdsByTagId(tag.id)) {
+          await this.syncTags(assetId);
+        }
+        await this.tagRepository.delete(tag.id);
+      }
+    }
+  }
+
   async getUsageRights(assetId: string): Promise<UsageRights | undefined> {
     const item = await this.assetRepository.getMetadataByKey(assetId, USAGE_RIGHTS_KEY);
     return item ? parseUsageRights(item.value) : undefined;
@@ -148,7 +222,10 @@ export class ImagePierUsageRightsService extends BaseService {
     const tagLabels = getTagLabels();
     const rootPrefix = `${getTagPaths(tagLabels).root}/`;
     const currentTags = (asset.tags ?? []).filter((tag) => tag.value.startsWith(rootPrefix));
-    const desiredValues = getUsageRightsTagValues(rights, today, tagLabels, areaName);
+    const channels = await this.getChannels();
+    const desiredValues = getUsageRightsTagValues(rights, today, tagLabels, areaName, (id) =>
+      getChannelLabel(id, channels),
+    );
     const desiredTags = await upsertTags(this.tagRepository, { userId: asset.ownerId, tags: desiredValues });
 
     const desiredIds = new Set(desiredTags.map((tag) => tag.id));

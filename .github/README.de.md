@@ -54,6 +54,9 @@ brauchen:
 
 - **Nutzungsrechte-Panel** in der Info-Seitenleiste der Bildansicht: Fotograf, Rechteinhaber, Bildnachweis,
   Lizenzart, Lizenzquelle, erlaubte Nutzung (intern, Website, Print, Social Media, Presse), Ablaufdatum und Notizen.
+- **Kanäle** – für jeden Kanal (intern, Website, Print, Social Media, Presse, Social Ads, Präsentationen, Partner,
+  bezahlte Kampagnen) *erlaubt*, *nicht erlaubt* oder *bedingt*, mit einem Hinweis auf die Bedingungen.
+  Administrator/innen passen die Kanalliste unter *Administration → Kanäle* an.
 - **Freigabestatus** – *In Prüfung*, *Freigegeben*, *Freigegeben mit Einschränkung* (mit Hinweis auf die
   Einschränkung) oder *Gesperrt*; *Abgelaufen* erscheint automatisch nach dem Ablaufdatum. Über den Status
   entscheiden die Medienverantwortlichen des Bereichs; Änderungen durch Bearbeiter setzen freigegebene Bilder zurück
@@ -185,8 +188,6 @@ Zeitraum, mit CSV-Export.
 
 ### 🧭 Geplant
 
-- **Kanäle** (intern, Web, Print, Social Media, Presse, Social Ads, Präsentationen, Partner, bezahlte Kampagnen) mit
-  *ja / nein / bedingt* pro Kanal, in der Administration anpassbar.
 - **Rechte-Umfang** (Gebiet, Bearbeitung, Weitergabe, Exklusivität) und Zusatzprüfungen (Model-Release,
   Minderjährige, Musik und Kunstwerke, Drohne, Privatgelände).
 - **Titel, Alternativtext und Link zum Rechtedokument** für jedes Foto.

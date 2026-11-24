@@ -13,8 +13,18 @@ export const USAGE_RIGHTS_VERSION = 1;
 export const LICENSE_TYPES = ['owned', 'time-limited', 'agency', 'creative-commons', 'other'] as const;
 export type LicenseType = (typeof LICENSE_TYPES)[number];
 
-export const PERMITTED_USAGES = ['internal', 'web', 'print', 'social', 'press'] as const;
-export type PermittedUsage = (typeof PERMITTED_USAGES)[number];
+/** Channel ids (see channels.ts); the first five are the channels of earlier versions. */
+export type PermittedUsage = string;
+
+const CHANNEL_ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
+
+const toChannelIds = (value: unknown, exclude: string[] = []) => {
+  const ids = Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && CHANNEL_ID.test(item))
+    : [];
+  const unique = [...new Set(ids)].filter((id) => !exclude.includes(id));
+  return unique.length > 0 ? unique : undefined;
+};
 
 /**
 Release status. The stored names are kept from earlier versions: `suggested` means "in review", `confirmed` means
@@ -33,7 +43,12 @@ export interface UsageRights {
   copyrightHolder?: string;
   licenseType?: LicenseType;
   licenseSource?: string;
+  /** Channels in which the asset may be used. */
   permittedUsage?: PermittedUsage[];
+  /** Channels in which the asset may be used under conditions (see `usageNote`). */
+  conditionalUsage?: PermittedUsage[];
+  /** Conditions for the channels, e.g. "only with the logo of the partner". */
+  usageNote?: string;
   /** ISO date (YYYY-MM-DD) */
   validUntil?: string;
   creditLine?: string;
@@ -52,9 +67,7 @@ const asText = (value: unknown) => (typeof value === 'string' && value.trim().le
 
 /** Validates a stored usage rights value; unknown fields and invalid entries are dropped. */
 export const parseUsageRights = (value: Record<string, unknown>): UsageRights => {
-  const permittedUsage = Array.isArray(value.permittedUsage)
-    ? PERMITTED_USAGES.filter((usage) => (value.permittedUsage as unknown[]).includes(usage))
-    : [];
+  const permittedUsage = toChannelIds(value.permittedUsage);
   const validUntil = asText(value.validUntil);
 
   return {
@@ -64,7 +77,9 @@ export const parseUsageRights = (value: Record<string, unknown>): UsageRights =>
     copyrightHolder: asText(value.copyrightHolder),
     licenseType: LICENSE_TYPES.find((type) => type === value.licenseType),
     licenseSource: asText(value.licenseSource),
-    permittedUsage: permittedUsage.length > 0 ? permittedUsage : undefined,
+    permittedUsage,
+    conditionalUsage: toChannelIds(value.conditionalUsage, permittedUsage),
+    usageNote: asText(value.usageNote),
     validUntil: validUntil && /^\d{4}-\d{2}-\d{2}$/.test(validUntil) ? validUntil : undefined,
     creditLine: asText(value.creditLine),
     notes: asText(value.notes),

@@ -69,6 +69,7 @@ describe('usage rights tags', () => {
         version: USAGE_RIGHTS_VERSION,
         status: 'confirmed',
         permittedUsage: ['web', 'press'],
+        conditionalUsage: ['social-ads'],
         licenseSource: 'Contract 2026/12',
         creditLine: 'Foto: Jane Doe / ACME',
         validUntil: '2027-12-31',
@@ -78,6 +79,7 @@ describe('usage rights tags', () => {
       expect(getUsageRightsTagValues(rights, today, getTagLabels('de'))).toEqual([
         'Nutzungsrechte/Erlaubte Nutzung/Website',
         'Nutzungsrechte/Erlaubte Nutzung/Presse',
+        'Nutzungsrechte/Bedingt erlaubt/Social Ads',
         'Nutzungsrechte/Lizenzquelle/Contract 2026-12',
         'Nutzungsrechte/Bildnachweis/Foto: Jane Doe - ACME',
         'Nutzungsrechte/Gültig bis/2027',

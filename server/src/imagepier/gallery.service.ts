@@ -8,6 +8,7 @@ import { AssetFileType, AssetType, CacheControl, SystemMetadataKey } from 'src/e
 import { getAccessForAuth, setAlbumAssetResolver } from 'src/imagepier/access-hook.js';
 import { canEditArea, getAreaAccounts, getCachedAccessSettings, getUserAccess } from 'src/imagepier/access-rules.js';
 import { recordAudit } from 'src/imagepier/audit.js';
+import { getChannelLabel } from 'src/imagepier/channels.js';
 import { applyUsageRightsCredits } from 'src/imagepier/download-credits.js';
 import {
   GALLERY_SETTINGS_KEY,
@@ -286,7 +287,7 @@ export class ImagePierGalleryService {
         copyrightHolder: rights.copyrightHolder ?? null,
         license: rights.licenseType ? labels.licenses[rights.licenseType] : null,
         licenseSource: rights.licenseSource ?? null,
-        usages: (rights.permittedUsage ?? []).map((usage) => labels.usages[usage]),
+        usages: (rights.permittedUsage ?? []).map((usage) => getChannelLabel(usage)),
         validUntil: rights.validUntil ?? null,
       });
     }

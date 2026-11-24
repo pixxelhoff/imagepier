@@ -2,6 +2,7 @@ import type { Tags } from 'exiftool-vendored';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { basename, extname, join } from 'node:path';
+import { getChannelLabel } from 'src/imagepier/channels.js';
 import { formatMessage, getTagLabels, type TagLabels } from 'src/imagepier/usage-rights-tags.js';
 import { USAGE_RIGHTS_KEY, parseUsageRights, type UsageRights } from 'src/imagepier/usage-rights.js';
 import type { AssetRepository } from 'src/repositories/asset.repository.js';
@@ -41,15 +42,25 @@ const formatDate = (value: string, locale: string) =>
     day: '2-digit',
   });
 
-export const buildUsageTerms = (rights: UsageRights, labels: TagLabels = getTagLabels()) => {
+export const buildUsageTerms = (
+  rights: UsageRights,
+  labels: TagLabels = getTagLabels(),
+  channelLabel: (id: string) => string = (id) => labels.usages[id] ?? id,
+) => {
   const parts: string[] = [];
   if (rights.licenseType) {
     parts.push(formatMessage(labels.usageTerms.license, { value: labels.licenses[rights.licenseType] }));
   }
 
   if (rights.permittedUsage && rights.permittedUsage.length > 0) {
-    const usages = rights.permittedUsage.map((usage) => labels.usages[usage]).join(', ');
+    const usages = rights.permittedUsage.map((usage) => channelLabel(usage)).join(', ');
     parts.push(formatMessage(labels.usageTerms.usage, { value: usages }));
+  }
+
+  if (rights.conditionalUsage && rights.conditionalUsage.length > 0) {
+    const usages = rights.conditionalUsage.map((usage) => channelLabel(usage)).join(', ');
+    const note = rights.usageNote ? ` (${rights.usageNote})` : '';
+    parts.push(formatMessage(labels.usageTerms.conditionalUsage, { value: `${usages}${note}` }));
   }
 
   if (rights.validUntil) {
@@ -75,7 +86,7 @@ export const buildCreditTags = (rights: UsageRights, labels: TagLabels = getTagL
     tags['XMP-photoshop:Credit'] = rights.creditLine;
   }
 
-  const usageTerms = buildUsageTerms(rights, labels);
+  const usageTerms = buildUsageTerms(rights, labels, (id) => getChannelLabel(id));
   if (usageTerms) {
     tags['XMP-xmpRights:UsageTerms'] = usageTerms;
   }

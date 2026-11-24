@@ -1,4 +1,4 @@
-import { LICENSE_TYPES, LicenseType, PermittedUsage, UsageRights } from 'src/imagepier/usage-rights.js';
+import { LICENSE_TYPES, LicenseType, UsageRights } from 'src/imagepier/usage-rights.js';
 
 /**
 Usage rights are mirrored into Immich tags so they can be used in Immich's search,
@@ -27,6 +27,7 @@ export type TagLabels = {
   license: string;
   status: string;
   usage: string;
+  conditionalUsage: string;
   licenseSource: string;
   creditLine: string;
   validUntil: string;
@@ -37,8 +38,9 @@ export type TagLabels = {
   statuses: Record<UsageRightsStatus, string>;
   /** Status labels of earlier versions; assets with these tags are moved to the current labels. */
   legacyStatuses: Partial<Record<UsageRightsStatus, string>>;
-  usages: Record<PermittedUsage, string>;
-  usageTerms: { license: string; usage: string; validUntil: string };
+  /** Default channels and their names (see channels.ts). */
+  usages: Record<string, string>;
+  usageTerms: { license: string; usage: string; conditionalUsage: string; validUntil: string };
   notificationTitle: string;
   notificationExpiring: string;
   notificationExpired: string;
@@ -53,6 +55,7 @@ const labels: Record<string, TagLabels> = {
     license: 'License',
     status: 'Status',
     usage: 'Permitted usage',
+    conditionalUsage: 'Conditionally permitted',
     licenseSource: 'License source',
     creditLine: 'Credit line',
     validUntil: 'Valid until',
@@ -75,8 +78,23 @@ const labels: Record<string, TagLabels> = {
       unreviewed: 'In review',
     },
     legacyStatuses: { valid: 'Valid', unreviewed: 'Unreviewed' },
-    usages: { internal: 'Internal', web: 'Website', print: 'Print', social: 'Social media', press: 'Press' },
-    usageTerms: { license: 'License: {value}.', usage: 'Permitted use: {value}.', validUntil: 'Valid until {value}.' },
+    usages: {
+      internal: 'Internal',
+      web: 'Website',
+      print: 'Print',
+      social: 'Social media',
+      press: 'Press',
+      'social-ads': 'Social ads',
+      presentations: 'Presentations',
+      partners: 'Partners and third parties',
+      'paid-campaigns': 'Paid campaigns',
+    },
+    usageTerms: {
+      license: 'License: {value}.',
+      usage: 'Permitted use: {value}.',
+      conditionalUsage: 'Permitted under conditions: {value}.',
+      validUntil: 'Valid until {value}.',
+    },
     notificationTitle: 'Usage rights',
     notificationExpiring: '{count} licenses expire within the next {days} days.',
     notificationExpired: '{count} licenses have expired.',
@@ -89,6 +107,7 @@ const labels: Record<string, TagLabels> = {
     license: 'Lizenz',
     status: 'Status',
     usage: 'Erlaubte Nutzung',
+    conditionalUsage: 'Bedingt erlaubt',
     licenseSource: 'Lizenzquelle',
     creditLine: 'Bildnachweis',
     validUntil: 'Gültig bis',
@@ -111,8 +130,23 @@ const labels: Record<string, TagLabels> = {
       unreviewed: 'In Prüfung',
     },
     legacyStatuses: { valid: 'Gültig', unreviewed: 'Ungeprüft' },
-    usages: { internal: 'Intern', web: 'Website', print: 'Print', social: 'Social Media', press: 'Presse' },
-    usageTerms: { license: 'Lizenz: {value}.', usage: 'Erlaubte Nutzung: {value}.', validUntil: 'Gültig bis {value}.' },
+    usages: {
+      internal: 'Intern',
+      web: 'Website',
+      print: 'Print',
+      social: 'Social Media',
+      press: 'Presse',
+      'social-ads': 'Social Ads',
+      presentations: 'Präsentationen',
+      partners: 'Partner und Dritte',
+      'paid-campaigns': 'Bezahlte Kampagnen',
+    },
+    usageTerms: {
+      license: 'Lizenz: {value}.',
+      usage: 'Erlaubte Nutzung: {value}.',
+      conditionalUsage: 'Unter Bedingungen erlaubt: {value}.',
+      validUntil: 'Gültig bis {value}.',
+    },
     notificationTitle: 'Nutzungsrechte',
     notificationExpiring: '{count} Lizenzen laufen in den nächsten {days} Tagen ab.',
     notificationExpired: '{count} Lizenzen sind abgelaufen.',
@@ -201,6 +235,7 @@ export const getUsageRightsTagValues = (
   today = new Date(),
   tagLabels = getTagLabels(),
   areaName?: string,
+  channelLabel: (id: string) => string = (id) => tagLabels.usages[id] ?? id,
 ) => {
   const paths = getTagPaths(tagLabels);
   const areaValues = areaName ? [`${paths.area}/${segment(areaName)}`] : [];
@@ -226,7 +261,11 @@ export const getUsageRightsTagValues = (
   }
 
   for (const usage of rights.permittedUsage ?? []) {
-    values.push(`${paths.usage}/${tagLabels.usages[usage]}`);
+    values.push(`${paths.usage}/${segment(channelLabel(usage))}`);
+  }
+
+  for (const usage of rights.conditionalUsage ?? []) {
+    values.push(`${paths.root}/${tagLabels.conditionalUsage}/${segment(channelLabel(usage))}`);
   }
 
   const licenseSource = rights.licenseSource ? segment(rights.licenseSource) : '';

@@ -49,7 +49,7 @@ conflicts can occur during updates.
 | `web/src/routes/admin/users/(list)/+layout.svelte` | user list replaced by `UserListAdmin` (role, search, role filter, sorting) |
 | `web/src/routes/(user)/partners/[userId]/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar |
 | `web/src/routes/(user)/search/[[photos=photos]]/[[assetId=id]]/+page.svelte` | media library actions in the selection bar for search results from areas |
-| `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Areas", "Keywords", "Trash" and "Audit log" admin entries |
+| `web/src/lib/components/layouts/AdminPageLayout.svelte` | adds the "Areas", "Keywords", "Channels", "Trash" and "Audit log" admin entries |
 | `web/src/routes/admin/media-library/`, `web/src/routes/admin/keywords/`, `web/src/routes/admin/trash/`, `web/src/routes/admin/audit/` | new admin pages (areas; keyword list; trash of all areas; audit log); no Immich file changed |
 | `web/src/lib/components/asset-viewer/DetailPanel.svelte` | shows `UsageRightsPanel` and `KeywordsPanel` |
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entries (usage rights, keywords, area) |
@@ -128,6 +128,12 @@ when access rules change.
   assets: `AssetDownload` only for admins and media managers of the area; shared links
   (`applyImagePierSharedLinkAccess`, hook in `checkAccess`) hide them; `requireShareableAssets` refuses them
   (album links are created, the blocked assets are not shown); galleries only publish `confirmed`.
+- Channels (`channels.ts`): the list is stored in `system_metadata` (`imagepier.channels`, default: internal, web,
+  print, social media, press, social ads, presentations, partners, paid campaigns) and edited under
+  *Administration → Channels* (`PUT /api/admin/imagepier/channels`). Usage rights store channel ids in
+  `permittedUsage` and `conditionalUsage` plus a `usageNote`; renamed channels keep their id, their tags are
+  renamed in the background, removed channels are deactivated. Tags: `Usage rights/Permitted usage/<channel>` and
+  `Usage rights/Conditionally permitted/<channel>`. Galleries need `web` or `press` in `permittedUsage`.
 - Status tags `Usage rights/Status/…`: Approved, Approved with restrictions, Expiring soon, Expired, Blocked,
   In review. Tags of earlier versions (Valid, Unreviewed) are renamed by `refreshStatuses` on startup.
 - Uploads in the view of an area (upload button of the navigation bar, drag and drop) are assigned to the area when
