@@ -1,5 +1,7 @@
 # ImagePier – roles and permissions
 
+**English** · [Deutsch](PERMISSIONS.de.md)
+
 This page explains who can do what in ImagePier. The short version is in the [README](.github/README.md).
 
 ## Concepts

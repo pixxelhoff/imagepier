@@ -103,8 +103,8 @@ brauchen:
 
   Ohne Stufe ist der Bereich nicht zugänglich. Eigene Fotos sind nicht eingeschränkt – jeder kann sie hochladen,
   teilen und löschen. **Die vollständige Berechtigungsmatrix** (Externe, Papierkorb, Teilen, Galerien) steht in
-  [PERMISSIONS.md](../PERMISSIONS.md). **Alles, was sich anders als in Immich verhält**, steht in
-  [DIFFERENCES.md](../DIFFERENCES.md) (beide auf Englisch).
+  [PERMISSIONS.de.md](../PERMISSIONS.de.md). **Alles, was sich anders als in Immich verhält**, steht in
+  [DIFFERENCES.md](../DIFFERENCES.md) (auf Englisch).
 - **Benutzerliste mit Rollen** – *Administration → Benutzer* zeigt die Rolle jedes Kontos und lässt sich durchsuchen,
   nach Rolle filtern und nach Name, E-Mail oder Rolle sortieren.
 - **Bereiche verwalten** – Administratoren legen Bereiche unter *Administration → Bereiche* an, benennen sie um und
