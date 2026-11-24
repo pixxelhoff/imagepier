@@ -85,15 +85,15 @@ können nicht medienverantwortlich werden.
 
 ### Import
 
-Bearbeiter und Medienverantwortliche finden **Import** unter den Bereichen in der Seitenleiste. Damit laden sie einen
+Bearbeiter und Medienverantwortliche finden **Import** in der Seitenleiste unter *Website-Galerien*. Damit laden sie einen
 Ordner oder viele Dateien in einen Bereich, den sie bearbeiten, mit Schlagworten und Nutzungsrechten; auch Externe
 können das nutzen. Medienverantwortliche können den Freigabestatus setzen, bei allen anderen sind neue Fotos
 *in Prüfung*.
 
 ### Papierkorb
 
-- Bearbeiter und Medienverantwortliche finden den **Papierkorb der Bereiche** unter den Bereichen in der
-  Seitenleiste. Er listet die gelöschten Fotos aller Bereiche, in denen sie mindestens Bearbeiter sind, mit Bereich,
+- Bearbeiter und Medienverantwortliche finden den **Papierkorb der Bereiche** in der Seitenleiste unter
+  *Import*. Er listet die gelöschten Fotos aller Bereiche, in denen sie mindestens Bearbeiter sind, mit Bereich,
   Datum und der Person, die sie gelöscht hat, und lässt sich nach Bereich filtern.
 - Bearbeiter stellen wieder her; nur Medienverantwortliche löschen endgültig (mit Rückfrage).
 - Externe sehen dort nur ihre eigenen Lieferungen.

@@ -58,7 +58,7 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Scope of rights** – territory, editing (allowed, cropping only, not allowed), passing on to third parties,
   exclusivity, and additional checks (recognizable people, minors, music/artworks/brands, drone, private property),
   each *does not apply*, *open* or *cleared*; open checks are highlighted. Plus a link to the rights document.
-- **Import page** – *Import* below the areas (level editor): choose a folder or files, check them against the image
+- **Import page** – *Import* in the sidebar (level editor): choose a folder or files, check them against the image
   guideline (long edge at least 3,000 px, taken 2021 or later, duplicates in the selection, files already in
   ImagePier), set area, keywords and usage rights for all files, name them by a scheme
   (`topic-subject-place-year-c-author-001.jpg`) and upload them. The original files stay unchanged; a log can be
@@ -127,7 +127,7 @@ albums, face and object search, mobile apps – and adds what teams need to work
 - **Map across areas** – the map shows the locations of the own photos and of all accessible areas.
 - **External photographers** – externals with the level *Editor* deliver photos into an area and maintain the usage
   rights of their own deliveries; they cannot move other photos, share links or publish galleries.
-- **Trash per area** – editors and media managers find the trash of their areas below the areas in the sidebar,
+- **Trash per area** – editors and media managers find *Trash of the areas* in the sidebar,
   filterable by area; editors restore, media managers delete permanently. Administrators see the trash of all areas
   under *Administration → Trash*.
 - **Sharing** – shared links and website galleries only contain media library photos of areas where the person

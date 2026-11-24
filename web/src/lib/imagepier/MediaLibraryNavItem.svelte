@@ -13,7 +13,7 @@
   import { authManager } from '#lib/managers/auth-manager.svelte.ts';
   import { Route } from '#lib/route.ts';
   import { NavbarItem } from '@immich/ui';
-  import { mdiWeb } from '@mdi/js';
+  import { mdiDeleteOutline, mdiTrayArrowUp, mdiWeb } from '@mdi/js';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
 
@@ -83,16 +83,12 @@
         {area.name}
       </a>
     {/each}
-    {#if showTrash}
-      <a href="/media-library/trash" class={itemClass(isAreaPage('trash'))}>
-        {$ipt('library_trash_nav')}
-      </a>
-      <a href="/media-library/import" class={itemClass(isAreaPage('import'))}>
-        {$ipt('import_nav')}
-      </a>
-    {/if}
   </div>
   {#if access && canPublishGalleries(access)}
     <NavbarItem title={$ipt('website_galleries')} href="/galleries" icon={mdiWeb} />
+  {/if}
+  {#if showTrash}
+    <NavbarItem title={$ipt('import_nav')} href="/media-library/import" icon={mdiTrayArrowUp} />
+    <NavbarItem title={$ipt('library_trash_nav')} href="/media-library/trash" icon={mdiDeleteOutline} />
   {/if}
 {/if}

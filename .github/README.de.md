@@ -60,7 +60,7 @@ brauchen:
   Exklusivität sowie Zusatzprüfungen (erkennbare Personen, Minderjährige, Musik/Kunstwerke/Marken, Drohne,
   Privatgelände), jeweils *betrifft nicht*, *offen* oder *geklärt*; offene Prüfungen werden hervorgehoben. Dazu ein
   Link zum Rechtedokument.
-- **Import-Seite** – *Import* unter den Bereichen (Stufe Bearbeiter): Ordner oder Dateien wählen, gegen die
+- **Import-Seite** – *Import* in der Seitenleiste (Stufe Bearbeiter): Ordner oder Dateien wählen, gegen die
   Bild-Richtlinie prüfen (lange Kante mindestens 3.000 px, Aufnahme ab 2021, Dubletten in der Auswahl, Dateien schon
   in ImagePier), Bereich, Schlagworte und Nutzungsrechte für alle Dateien setzen, nach Schema benennen
   (`thema-motiv-ort-jahr-c-urheber-001.jpg`) und hochladen. Die Originaldateien bleiben unverändert; ein Protokoll
@@ -141,8 +141,8 @@ brauchen:
 - **Externe Fotografen** – Externe mit der Stufe *Bearbeiter* liefern Fotos in einen Bereich und pflegen die
   Nutzungsrechte ihrer eigenen Lieferungen; sie können keine anderen Fotos verschieben, keine Links teilen und keine
   Galerien veröffentlichen.
-- **Papierkorb pro Bereich** – Bearbeiter und Medienverantwortliche finden den Papierkorb ihrer Bereiche unter den
-  Bereichen in der Seitenleiste, filterbar nach Bereich; Bearbeiter stellen wieder her, Medienverantwortliche löschen
+- **Papierkorb pro Bereich** – Bearbeiter und Medienverantwortliche finden den *Papierkorb der Bereiche* in der
+  Seitenleiste, filterbar nach Bereich; Bearbeiter stellen wieder her, Medienverantwortliche löschen
   endgültig. Administratoren sehen den Papierkorb aller Bereiche unter *Administration → Papierkorb*.
 - **Teilen** – geteilte Links und Website-Galerien enthalten nur Fotos aus Bereichen, in denen die teilende Person
   mindestens *Bearbeiter* ist.

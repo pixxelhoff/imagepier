@@ -79,13 +79,13 @@ publish galleries, and they cannot become media manager.
 
 ### Import
 
-Editors and media managers find **Import** below the areas in the sidebar. It uploads a folder or many files into an
+Editors and media managers find **Import** in the sidebar, below *Website galleries*. It uploads a folder or many files into an
 area they edit, with keywords and usage rights; externals can use it too. Media managers can set the release status,
 for everybody else new photos are *in review*.
 
 ### Trash
 
-- Editors and media managers find **Trash of the areas** below the areas in the sidebar. It lists the deleted photos
+- Editors and media managers find **Trash of the areas** in the sidebar, below *Import*. It lists the deleted photos
   of all areas where they are at least editor, with area, date and the person who deleted them, and can be filtered
   by area.
 - Editors restore; only media managers delete permanently (with a confirmation).
