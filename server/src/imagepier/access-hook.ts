@@ -195,6 +195,36 @@ export const setAlbumAssetResolver = (resolver: AlbumAssetResolver | undefined) 
 };
 
 /**
+Removes blocked assets from the response of a shared link (`GET /shared-links/me`), so visitors do not see their
+file names and metadata. The asset count of album links leaves them out as well.
+*/
+export const hideBlockedSharedLinkAssets = async <
+  T extends { assets: Array<{ id: string }>; album?: { id: string; assetCount: number } },
+>(
+  response: T,
+) => {
+  const blocked = await getBlockedAssets(new Set(response.assets.map((asset) => asset.id)));
+  response.assets = response.assets.filter((asset) => !blocked.has(asset.id)) as T['assets'];
+
+  if (response.album && albumAssetResolver) {
+    const albumAssetIds = await albumAssetResolver(response.album.id);
+    const albumBlocked = await getBlockedAssets(new Set(albumAssetIds));
+    response.album.assetCount = Math.max(0, response.album.assetCount - albumBlocked.size);
+  }
+  return response;
+};
+
+/** Assets of a download without the blocked ones; used for downloads through shared links. */
+export const skipBlockedAssets = async <T extends { id: string }>(assets: AsyncIterable<T>) => {
+  const items: T[] = [];
+  for await (const asset of assets) {
+    items.push(asset);
+  }
+  const blocked = await getBlockedAssets(new Set(items.map((asset) => asset.id)));
+  return items.filter((asset) => !blocked.has(asset.id));
+};
+
+/**
 Assets among the given ones that the user may publish with a shared link: own assets, and media library assets of
 areas where the user is editor or media manager. Externals do not share media library assets.
 */

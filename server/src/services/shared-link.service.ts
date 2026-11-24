@@ -13,7 +13,12 @@ import {
   mapSharedLink,
 } from 'src/dtos/shared-link.dto.js';
 import { Permission, SharedLinkType } from 'src/enum.js';
-import { getShareableAssets, requireShareableAlbum, requireShareableAssets } from 'src/imagepier/access-hook.js';
+import {
+  getShareableAssets,
+  hideBlockedSharedLinkAssets,
+  requireShareableAlbum,
+  requireShareableAssets,
+} from 'src/imagepier/access-hook.js';
 import { BaseService } from 'src/services/base.service.js';
 import { asDateTimeString } from 'src/utils/date.js';
 import { OpenGraphTags, findOrFail, getExternalDomain } from 'src/utils/misc.js';
@@ -61,7 +66,9 @@ export class SharedLinkService extends BaseService {
       throw new UnauthorizedException('Password required');
     }
 
-    return this.mapWithAlbumMetadata(sharedLink, { auth });
+    const response = await this.mapWithAlbumMetadata(sharedLink, { auth });
+    // ImagePier: blocked assets are not shown through shared links
+    return hideBlockedSharedLinkAssets(response);
   }
 
   async get(auth: AuthDto, id: string): Promise<SharedLinkResponseDto> {

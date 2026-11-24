@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import { vitest } from 'vitest';
 import { DownloadResponseDto } from 'src/dtos/download.dto.js';
+import { setReleaseStatusResolver } from 'src/imagepier/access-hook.js';
 import { DownloadService } from 'src/services/download.service.js';
 import { AssetFactory } from 'test/factories/asset.factory.js';
 import { authStub } from 'test/fixtures/auth.stub.js';
@@ -297,6 +298,27 @@ describe(DownloadService.name, () => {
 
       expect(mocks.access.album.checkOwnerAccess).toHaveBeenCalledWith(authStub.admin.user.id, new Set(['album-1']));
       expect(mocks.downloadRepository.downloadAlbumId).toHaveBeenCalledWith('album-1');
+    });
+
+    it('should leave out blocked assets of albums through shared links', async () => {
+      mocks.user.getMetadata.mockResolvedValue([]);
+      mocks.access.album.checkSharedLinkAccess.mockResolvedValue(new Set(['album-1']));
+      mocks.downloadRepository.downloadAlbumId.mockReturnValue(
+        makeStream([
+          { id: 'asset-1', livePhotoVideoId: null, size: 100_000 },
+          { id: 'asset-2', livePhotoVideoId: null, size: 5000 },
+        ]),
+      );
+      setReleaseStatusResolver(() => Promise.resolve(new Map([['asset-1', 'blocked' as const]])));
+
+      try {
+        await expect(sut.getDownloadInfo(authStub.adminSharedLink, { albumId: 'album-1' })).resolves.toEqual({
+          totalSize: 5000,
+          archives: [{ assetIds: ['asset-2'], size: 5000 }],
+        });
+      } finally {
+        setReleaseStatusResolver(undefined);
+      }
     });
 
     it('should return a list of archives (userId)', async () => {

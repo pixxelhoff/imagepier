@@ -71,7 +71,8 @@ Tag-Panel) steht nur Administrator/innen zur Verfügung.
 - Besitzer legen den Freigabestatus ihrer eigenen Fotos selbst fest.
 - **Gesperrte** Fotos können nicht heruntergeladen werden (außer von Medienverantwortlichen des Bereichs und
   Administrator/innen), lassen sich nicht in neue geteilte Links aufnehmen, werden in bestehenden geteilten Links
-  nicht angezeigt und erscheinen nie in Website-Galerien.
+  nicht angezeigt (weder in der Liste noch in der Zeitleiste von Album-Links, und nicht bei „Alle herunterladen“) und
+  erscheinen nie in Website-Galerien.
 - Website-Galerien zeigen nur *freigegebene* Fotos mit Nutzungsrechten für einen Galerie-Kanal (legen Administratoren fest,
   Standard: Website und Presse), die nicht abgelaufen sind.
 

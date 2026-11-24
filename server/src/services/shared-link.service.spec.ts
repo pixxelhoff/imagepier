@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, UnauthorizedException } from '
 import { AssetIdErrorReason } from 'src/dtos/asset-ids.response.dto.js';
 import { mapSharedLink } from 'src/dtos/shared-link.dto.js';
 import { SharedLinkType } from 'src/enum.js';
+import { setReleaseStatusResolver } from 'src/imagepier/access-hook.js';
 import { SharedLinkService } from 'src/services/shared-link.service.js';
 import { AlbumFactory } from 'test/factories/album.factory.js';
 import { AssetFactory } from 'test/factories/asset.factory.js';
@@ -85,6 +86,21 @@ describe(SharedLinkService.name, () => {
 
       expect(sharedLink.album?.albumUsers.length).toBeGreaterThan(0);
       expect(response.album).toMatchObject({ id: sharedLink.album!.id, albumUsers: [], shared: true });
+    });
+
+    it('should leave out blocked assets', async () => {
+      const authDto = authStub.adminSharedLink;
+      const sharedLink = SharedLinkFactory.from().asset().asset().build();
+      const [blocked, released] = sharedLink.assets;
+      mocks.sharedLink.get.mockResolvedValue(getForSharedLink(sharedLink));
+      setReleaseStatusResolver(() => Promise.resolve(new Map([[blocked.id, 'blocked' as const]])));
+
+      try {
+        const response = await sut.getMine(authDto, []);
+        expect(response.assets.map((asset) => asset.id)).toEqual([released.id]);
+      } finally {
+        setReleaseStatusResolver(undefined);
+      }
     });
 
     it('should throw an error for a request without a shared link auth token', async () => {

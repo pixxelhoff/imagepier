@@ -62,7 +62,7 @@ conflicts can occur during updates.
 | `server/src/services/user.service.ts` | `getMyPreferences` / `updateMyPreferences`: Immich's tag feature is always off for non-administrators |
 | `web/src/routes/(user)/user-settings/FeatureSettings.svelte` | the "Tags" switch is shown to administrators only |
 | `server/src/services/asset-media.service.ts` | single downloads send a copy with usage rights credits, not cached by the browser (blocked assets and changed credits apply at once); audit log |
-| `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log |
+| `server/src/services/download.service.ts` | ZIP downloads contain copies with usage rights credits; audit log; `getDownloadInfo` leaves out blocked album assets for shared links (`skipBlockedAssets`) |
 | `web/src/lib/components/layouts/UserPageLayout.svelte` | hides the upload button without upload permission |
 | `web/src/routes/(user)/+layout.svelte` | no drag-and-drop upload without upload permission |
 | `web/src/lib/components/asset-viewer/AssetViewerNavBar.svelte` | trash button for media library assets (`MediaLibraryDeleteAction`) |
@@ -71,7 +71,8 @@ conflicts can occur during updates.
 | `server/src/services/notification.service.ts`, `notification-admin.service.ts` | e-mail subjects from `src/imagepier/mail.ts`; logo in the template preview |
 | `server/src/repositories/email.repository.ts` | attaches the embedded logo (`getMailLogoAttachment`) |
 | `server/src/services/passkey.service.ts` | passkey name `ImagePier` (rp id unchanged, existing passkeys keep working) |
-| `server/src/services/shared-link.service.ts` | link preview image `/apple-icon-180.png` instead of Immich's promo image |
+| `server/src/services/shared-link.service.ts` | link preview image `/apple-icon-180.png` instead of Immich's promo image; `getMine` leaves out blocked assets and does not count them for album links (`hideBlockedSharedLinkAssets`) |
+| `server/src/repositories/asset.repository.ts` | `getTimeBuckets` / `getTimeBucket`: with a shared link key blocked assets are left out (`withoutBlockedAssets`, `src/imagepier/blocked-assets.ts`); the regular timeline is unchanged |
 | `web/vite.config.ts` | adds the build plugin `imagePierBranding()` (see Branding) |
 | `web/static/` icons, `manifest.json` | replaced by ImagePier icons and name (on conflicts keep ImagePier's version) |
 
@@ -155,6 +156,9 @@ when access rules change.
   the user is editor there (`upload-access.svelte.ts`, hook in `fileUploadHandler`).
 - Shared links (`shared-link.service.ts`): media library assets can only be shared by staff with the level editor
   in their areas (`requireShareableAssets`); album links are checked against the album's assets when created.
+  Blocked assets are hidden from visitors of existing links: single assets are refused by
+  `applyImagePierSharedLinkAccess`, the asset list of the link, the timeline of album links and "download all" leave
+  them out.
 - Website galleries only show media library assets of areas where the creator of the gallery is editor or media
   manager, plus the creator's own assets (administrators: everything).
 - Trash of the areas: `GET /api/imagepier/library/trash` returns the trashed assets of the areas where the user is
