@@ -130,6 +130,15 @@ export const parseAccessSettings = (value: unknown, sharedAreaName = 'Shared'): 
 export const getAreaAccounts = (settings: AccessSettings) =>
   new Map(settings.areas.flatMap((area) => (area.userId ? [[area.userId, area.id] as const] : [])));
 
+/**
+Accounts that share people with the given account: the media library and all area accounts share one face cluster
+group, so a name given in one area applies in all areas. Empty for regular users.
+*/
+export const getSharedPersonOwners = (settings: AccessSettings, ownerId: string) => {
+  const accounts = getAreaAccounts(settings);
+  return accounts.has(ownerId) ? [...accounts.keys()].filter((id) => id !== ownerId) : [];
+};
+
 /** Area that owns assets of the given account, or undefined for regular users. */
 export const getAreaOfOwner = (settings: AccessSettings, ownerId: string) =>
   settings.areas.find((area) => !!area.userId && area.userId === ownerId);

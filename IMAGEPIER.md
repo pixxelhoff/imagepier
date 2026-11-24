@@ -53,7 +53,8 @@ conflicts can occur during updates.
 | `web/src/lib/components/timeline/actions/ChangeDescriptionAction.svelte` | adds the bulk edit menu entries (usage rights, keywords, area) |
 | `web/src/lib/components/shared-components/search-bar/SearchFilters.svelte` | adds the "Usage rights" and "Keywords" search tabs |
 | `server/src/utils/database.ts` | `hasTags`: tags with the same value count as one tag, so keywords of several accounts (areas) can be searched together; unchanged result for tags of one account |
-| `server/src/repositories/person.repository.ts` | `UpdateFacesData.newPersonGroupId` may be `null`, so faces can be unassigned |
+| `server/src/repositories/person.repository.ts` | `UpdateFacesData.newPersonGroupId` may be `null`, so faces can be unassigned; `updateForOwners` for shared names |
+| `server/src/services/person.service.ts` | `update`: a name or birth date given in an area applies to the same person in all areas |
 | `server/src/services/tag.service.ts` | `create` and `upsert`: only administrators create tags once a keyword list exists |
 | `server/src/services/user.service.ts` | `getMyPreferences` / `updateMyPreferences`: Immich's tag feature is always off for non-administrators |
 | `web/src/routes/(user)/user-settings/FeatureSettings.svelte` | the "Tags" switch is shown to administrators only |

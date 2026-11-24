@@ -866,6 +866,24 @@ export class PersonRepository {
       .execute();
   }
 
+  // ImagePier: names of a person shared by the area accounts (src/imagepier/access-rules.ts, getSharedPersonOwners)
+  async updateForOwners(
+    ownerIds: string[],
+    personGroupId: string,
+    person: Pick<Updateable<PersonTable>, 'name' | 'birthDate'>,
+  ): Promise<void> {
+    if (ownerIds.length === 0) {
+      return;
+    }
+
+    await this.db
+      .updateTable('person')
+      .set(person)
+      .where('person.personGroupId', '=', personGroupId)
+      .where('person.ownerId', 'in', ownerIds)
+      .execute();
+  }
+
   async updateAll(people: Insertable<PersonTable>[]): Promise<void> {
     if (people.length === 0) {
       return;

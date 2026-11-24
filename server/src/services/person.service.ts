@@ -41,6 +41,7 @@ import {
   SystemMetadataKey,
   VectorIndex,
 } from 'src/enum.js';
+import { getCachedAccessSettings, getSharedPersonOwners } from 'src/imagepier/access-rules.js';
 import { BoundingBox } from 'src/repositories/machine-learning.repository.js';
 import { PersonId } from 'src/repositories/person.repository.js';
 import { DB } from 'src/schema/index.js';
@@ -257,6 +258,12 @@ export class PersonService extends BaseService {
 
     if (!userIdOverride && hasSharedProperties) {
       await this.personRepository.updateForWritableOwners({ userId: auth.user.id, personGroupId }, { name, birthDate });
+    }
+
+    // ImagePier: a name given in an area applies in all areas (shared face cluster group)
+    if (hasSharedProperties) {
+      const owners = getSharedPersonOwners(getCachedAccessSettings(), targetOwnerId);
+      await this.personRepository.updateForOwners(owners, personGroupId, { name, birthDate });
     }
 
     let faceId: string | undefined;
