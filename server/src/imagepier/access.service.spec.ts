@@ -1,3 +1,4 @@
+import { vitest } from 'vitest';
 import { setCachedAccessSettings } from 'src/imagepier/access-rules.js';
 import { ImagePierAccessService, getAreaAccountEmail } from 'src/imagepier/access.service.js';
 import { ServiceMocks, newTestService } from 'test/utils.js';
@@ -18,6 +19,60 @@ describe(ImagePierAccessService.name, () => {
 
   it('should work', () => {
     expect(sut).toBeDefined();
+  });
+
+  describe('onUserCreate', () => {
+    it('should set up the media library when it does not exist yet', async () => {
+      mocks.systemMetadata.get.mockResolvedValue(null);
+      await sut.loadSettings();
+      const setup = vitest.spyOn(sut, 'setupLibrary').mockResolvedValue();
+      const sync = vitest.spyOn(sut, 'syncLibrarySharing').mockResolvedValue();
+
+      await sut.onUserCreate();
+
+      expect(setup).toHaveBeenCalledTimes(1);
+      expect(sync).not.toHaveBeenCalled();
+    });
+
+    it('should only share the media library when it exists', async () => {
+      mocks.systemMetadata.get.mockResolvedValue({ libraryUserId } as any);
+      await sut.loadSettings();
+      const setup = vitest.spyOn(sut, 'setupLibrary').mockResolvedValue();
+      const sync = vitest.spyOn(sut, 'syncLibrarySharing').mockResolvedValue();
+
+      await sut.onUserCreate();
+
+      expect(sync).toHaveBeenCalledTimes(1);
+      expect(setup).not.toHaveBeenCalled();
+    });
+
+    it('should not wait for a running setup', async () => {
+      mocks.systemMetadata.get.mockResolvedValue(null);
+      let finish: (() => void) | undefined;
+      vitest.spyOn(sut, 'ensureLibraryAccount').mockReturnValue(
+        new Promise((resolve) => {
+          finish = () => resolve(undefined);
+        }),
+      );
+      const sync = vitest.spyOn(sut, 'syncLibrarySharing').mockResolvedValue();
+
+      const setup = sut.setupLibrary();
+      await expect(sut.onUserCreate()).resolves.toBeUndefined();
+      finish?.();
+      await setup;
+      await vitest.waitFor(() => expect(sync).toHaveBeenCalledTimes(1));
+    });
+  });
+
+  describe('setupLibrary', () => {
+    it('should run only once at a time', async () => {
+      mocks.systemMetadata.get.mockResolvedValue(null);
+      const ensure = vitest.spyOn(sut, 'ensureLibraryAccount').mockResolvedValue(undefined);
+
+      await Promise.all([sut.setupLibrary(), sut.setupLibrary()]);
+
+      expect(ensure).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('syncLibrarySharing', () => {

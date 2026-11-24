@@ -71,6 +71,7 @@ Roles and the media library areas.
 @Injectable()
 export class ImagePierAccessService extends BaseService {
   private settings: AccessSettings = { areas: [], users: {} };
+  private setupRunning?: Promise<void>;
 
   @OnEvent({ name: 'ConfigInit', workers: [ImmichWorker.Api] })
   async onConfigInit() {
@@ -86,12 +87,25 @@ export class ImagePierAccessService extends BaseService {
     handlePromiseError(this.setupLibrary(), this.logger);
   }
 
+  /**
+  On a new installation the media library is set up as soon as the first admin exists, not only at the next run of
+  the cron job; until then the role rules do not apply.
+  */
   @OnEvent({ name: 'UserCreate', workers: [ImmichWorker.Api] })
   async onUserCreate() {
+    // A running setup creates accounts itself; waiting for it here would block it. Share once it is done.
+    if (this.setupRunning) {
+      handlePromiseError(
+        this.setupRunning.then(() => this.syncLibrarySharing()),
+        this.logger,
+      );
+      return;
+    }
+
     try {
-      await this.syncLibrarySharing();
+      await (this.settings.libraryUserId ? this.syncLibrarySharing() : this.setupLibrary());
     } catch (error) {
-      this.logger.warn(`Unable to share the media library with a new user: ${error}`);
+      this.logger.warn(`Unable to set up or share the media library for a new user: ${error}`);
     }
   }
 
@@ -111,7 +125,15 @@ export class ImagePierAccessService extends BaseService {
     this.applySettings(settings);
   }
 
+  /** Sets up the media library; calls while a setup is running wait for that setup instead of starting another. */
   async setupLibrary() {
+    this.setupRunning ??= this.runSetupLibrary().finally(() => {
+      this.setupRunning = undefined;
+    });
+    return this.setupRunning;
+  }
+
+  private async runSetupLibrary() {
     await this.loadSettings();
     if (!(await this.ensureLibraryAccount())) {
       return;
