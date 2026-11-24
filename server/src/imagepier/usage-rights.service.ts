@@ -41,9 +41,9 @@ import {
   getUsageRightsTagValues,
 } from 'src/imagepier/usage-rights-tags.js';
 import {
+  UsageRightsStatus as ReleaseStatus,
   USAGE_RIGHTS_KEY,
   UsageRights,
-  UsageRightsStatus as ReleaseStatus,
   parseUsageRights,
   suggestUsageRights,
 } from 'src/imagepier/usage-rights.js';
