@@ -191,6 +191,7 @@ describe(ImagePierAccessService.name, () => {
       });
       mocks.user.get.mockImplementation((id: string) => Promise.resolve({ id, isAdmin: false } as any));
       mocks.user.getList.mockResolvedValue([]);
+      mocks.partner.getAll.mockResolvedValue([]);
       await sut.loadSettings();
 
       await Promise.all([

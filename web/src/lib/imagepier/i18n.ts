@@ -808,22 +808,20 @@ const de: Record<ImagePierMessageKey, string> = {
 
 const messages: Record<string, Record<ImagePierMessageKey, string>> = { en, de };
 
-/** Usage in components: `$ipt('usage_rights')` or `$ipt('usage_rights_bulk_title', { count: 3 })` */
-/**
-Inserts `{name}` values. `{name|one|other}` picks the singular when the value is 1, e.g. `{count|file|files}`.
-*/
+/** Inserts `{name}` values; `{name|one|other}` picks the singular for 1, e.g. `{count|file|files}`. */
 export const formatMessage = (message: string, values: Record<string, string | number>) =>
-  message.replaceAll(/\{(\w+)(?:\|([^|}]*)\|([^}]*))?\}/g, (match, name: string, one?: string, other?: string) => {
-    if (!(name in values)) {
+  message.replaceAll(/\{(\w+)(?:\|([^|}]*)\|([^}]*))?\}/g, (match, name: string, one?: string, other = '') => {
+    const value = values[name] as string | number | undefined;
+    if (value === undefined) {
       return match;
     }
-    const value = values[name];
     if (one === undefined) {
       return String(value);
     }
-    return Number(value) === 1 ? one : (other ?? '');
+    return Number(value) === 1 ? one : other;
   });
 
+/** Usage in components: `$ipt('usage_rights')` or `$ipt('usage_rights_bulk_title', { count: 3 })` */
 export const ipt = derived(locale, ($locale) => {
   const language = ($locale ?? 'en').toLowerCase().split('-', 1)[0];
   const dictionary = messages[language] ?? en;
