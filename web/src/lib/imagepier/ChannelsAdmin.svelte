@@ -15,7 +15,8 @@
 
   onMount(async () => {
     try {
-      rows = (await getChannels()).map((channel: Channel) => ({ ...channel }));
+      const channels = await getChannels();
+      rows = channels.map((channel: Channel) => ({ ...channel }));
     } catch {
       failed = true;
     }

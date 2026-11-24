@@ -152,7 +152,7 @@ export class ImagePierUsageRightsService extends BaseService {
     const previous = await this.getChannels();
     const channels = normalizeChannels(items);
     for (const channel of previous) {
-      if (!channels.some((item) => item.id === channel.id)) {
+      if (channels.every((item) => item.id !== channel.id)) {
         channels.push({ ...channel, active: false });
       }
     }
