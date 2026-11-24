@@ -34,8 +34,8 @@ export const withoutHiddenAreas =
       return qb;
     }
     const access = getUserAccess(settings, auth.user);
-    const hidden = settings.areas.flatMap((area) =>
-      area.userId && !getAreaLevel(access, area.id) ? [area.userId] : [],
-    );
+    const hidden = settings.areas
+      .filter((area): area is typeof area & { userId: string } => !!area.userId && !getAreaLevel(access, area.id))
+      .map((area) => area.userId);
     return hidden.length > 0 ? qb.where('asset.ownerId', 'not in', hidden) : qb;
   };
