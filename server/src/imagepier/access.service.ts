@@ -149,13 +149,15 @@ export class ImagePierAccessService extends BaseService {
       changed = true;
     }
 
-    if (changed) {
-      this.logger.log('Area accounts joined the face cluster group of the media library');
-      await this.jobRepository.queue({
-        name: JobName.FacialRecognitionQueueAll,
-        data: { clusterGroupId, force: true },
-      });
+    if (!changed) {
+      return;
     }
+
+    this.logger.log('Area accounts joined the face cluster group of the media library');
+    await this.jobRepository.queue({
+      name: JobName.FacialRecognitionQueueAll,
+      data: { clusterGroupId, force: true },
+    });
   }
 
   /** Creates the media library account, or finds it again after it was deleted from the settings. */
