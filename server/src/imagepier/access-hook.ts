@@ -119,8 +119,8 @@ export const applyImagePierAccess = async (
       }
       const { library, permitted } = await checkLibraryAssets(allowed, (areaId) => canDownloadArea(userAccess, areaId));
       const blocked = await getBlockedAssets(permitted);
-      const managed = (await checkLibraryAssets(blocked, (areaId) => canManageArea(userAccess, areaId))).permitted;
-      return allowed.difference(library.difference(permitted)).difference(blocked.difference(managed));
+      const managed = await checkLibraryAssets(blocked, (areaId) => canManageArea(userAccess, areaId));
+      return allowed.difference(library.difference(permitted)).difference(blocked.difference(managed.permitted));
     }
 
     // Editors and media managers edit and trash media library assets of their areas; externals only assets they added.
@@ -230,7 +230,8 @@ const requirePermittedToShare = async (auth: AuthDto, ids: string[]) => {
 /** Shared links with media library assets need the level editor in their areas; blocked assets are refused. */
 export const requireShareableAssets = async (auth: AuthDto, ids: string[]) => {
   await requirePermittedToShare(auth, ids);
-  if ((await getBlockedAssets(new Set(ids))).size > 0) {
+  const blocked = await getBlockedAssets(new Set(ids));
+  if (blocked.size > 0) {
     throw new ForbiddenException(SHARE_BLOCKED);
   }
 };
