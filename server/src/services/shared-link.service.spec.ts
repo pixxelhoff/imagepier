@@ -90,7 +90,10 @@ describe(SharedLinkService.name, () => {
 
     it('should leave out blocked assets', async () => {
       const authDto = authStub.adminSharedLink;
-      const sharedLink = SharedLinkFactory.from().asset().asset().build();
+      const sharedLink = SharedLinkFactory.from()
+        .asset({}, (builder) => builder.exif())
+        .asset({}, (builder) => builder.exif())
+        .build();
       const [blocked, released] = sharedLink.assets;
       mocks.sharedLink.get.mockResolvedValue(getForSharedLink(sharedLink));
       setReleaseStatusResolver(() => Promise.resolve(new Map([[blocked.id, 'blocked' as const]])));
