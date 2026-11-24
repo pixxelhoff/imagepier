@@ -216,10 +216,7 @@ export const hideBlockedSharedLinkAssets = async <
 
 /** Assets of a download without the blocked ones; used for downloads through shared links. */
 export const skipBlockedAssets = async <T extends { id: string }>(assets: AsyncIterable<T>) => {
-  const items: T[] = [];
-  for await (const asset of assets) {
-    items.push(asset);
-  }
+  const items = await Array.fromAsync(assets);
   const blocked = await getBlockedAssets(new Set(items.map((asset) => asset.id)));
   return items.filter((asset) => !blocked.has(asset.id));
 };
