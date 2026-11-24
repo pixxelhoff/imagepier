@@ -135,7 +135,8 @@ export class ImagePierAccessService extends BaseService {
     }
 
     const accounts = getAreaAccounts(this.settings);
-    const users = (await this.userRepository.getList())
+    const allUsers = await this.userRepository.getList();
+    const users = allUsers
       .filter((user) => !accounts.has(user.id))
       .filter((user) => {
         const access = getUserAccess(this.settings, user);
@@ -143,8 +144,9 @@ export class ImagePierAccessService extends BaseService {
       });
 
     const clusterGroupId = library.clusterGroupId;
+    const accountIds = accounts.keys().toArray();
     let changed = false;
-    for (const userId of [...accounts.keys(), ...users.map((user) => user.id)]) {
+    for (const userId of [...accountIds, ...users.map((user) => user.id)]) {
       const user = await this.userRepository.get(userId, {});
       if (!user || user.clusterGroupId === clusterGroupId) {
         continue;
@@ -156,7 +158,7 @@ export class ImagePierAccessService extends BaseService {
 
     await this.personRepository.addMissingPeople(
       users.map((user) => user.id),
-      [...accounts.keys()],
+      accountIds,
     );
 
     if (!changed) {
