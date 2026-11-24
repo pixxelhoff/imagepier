@@ -103,6 +103,10 @@
 
 <svelte:window onkeydown={onKeydown} />
 
+<svelte:head>
+  <title>{gallery?.title || $ipt('website_gallery')} - {gallery?.branding.title || 'ImagePier'}</title>
+</svelte:head>
+
 <div class="min-h-dvh bg-white text-gray-900" data-testid="imagepier-gallery">
   <header class="flex items-center gap-4 border-b-4 px-6 py-4" style:border-color={accent}>
     {#if gallery?.branding.logo}
@@ -282,10 +286,12 @@
             <dd class="font-medium">{selected.title}</dd>
           </div>
         {/if}
-        <div>
-          <dt class="text-gray-500">{$ipt('gallery_credit')}</dt>
-          <dd class="font-medium">{getGalleryCredit(selected)}</dd>
-        </div>
+        {#if getGalleryCredit(selected)}
+          <div>
+            <dt class="text-gray-500">{$ipt('gallery_credit')}</dt>
+            <dd class="font-medium">{getGalleryCredit(selected)}</dd>
+          </div>
+        {/if}
         {#if selected.photographer}
           <div>
             <dt class="text-gray-500">{$ipt('photographer')}</dt>
