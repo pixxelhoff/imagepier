@@ -106,6 +106,12 @@ const YEAR = /\b(19|20)\d{2}\b/g;
 
 const asText = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined);
 
+/** A date `YYYY-MM-DD` that exists (not 2027-02-30). */
+const isDate = (value: string) => {
+  const date = new Date(`${value}T00:00:00Z`);
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+};
+
 /** Validates a stored usage rights value; unknown fields and invalid entries are dropped. */
 export const parseUsageRights = (value: Record<string, unknown>): UsageRights => {
   const permittedUsage = toChannelIds(value.permittedUsage);
@@ -121,7 +127,7 @@ export const parseUsageRights = (value: Record<string, unknown>): UsageRights =>
     permittedUsage,
     conditionalUsage: toChannelIds(value.conditionalUsage, permittedUsage),
     usageNote: asText(value.usageNote),
-    validUntil: validUntil && /^\d{4}-\d{2}-\d{2}$/.test(validUntil) ? validUntil : undefined,
+    validUntil: validUntil && isDate(validUntil) ? validUntil : undefined,
     creditLine: asText(value.creditLine),
     notes: asText(value.notes),
     restriction: asText(value.restriction),

@@ -10,6 +10,14 @@ import {
 
 describe('usage rights', () => {
   describe('parseUsageRights', () => {
+    it('should only keep dates that exist', () => {
+      expect(parseUsageRights({ validUntil: '2027-12-31' }).validUntil).toBe('2027-12-31');
+      expect(parseUsageRights({ validUntil: '2028-02-29' }).validUntil).toBe('2028-02-29');
+      expect(parseUsageRights({ validUntil: '2027-02-30' }).validUntil).toBeUndefined();
+      expect(parseUsageRights({ validUntil: '2027-13-45' }).validUntil).toBeUndefined();
+      expect(parseUsageRights({ validUntil: '31.12.2027' }).validUntil).toBeUndefined();
+    });
+
     it('should keep the scope of rights and drop invalid values', () => {
       const rights = parseUsageRights({
         status: 'confirmed',

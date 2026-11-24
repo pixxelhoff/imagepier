@@ -322,7 +322,9 @@
 
       {#if gallery.allowDownload}
         <div class="mt-6 flex flex-col gap-3 border-t pt-4">
-          <Text size="small">{$ipt('gallery_credit_hint')}</Text>
+          {#if getGalleryCredit(selected)}
+            <Text size="small">{$ipt('gallery_credit_hint')}</Text>
+          {/if}
           <div class="flex items-start gap-2">
             <Checkbox
               id="imagepier-gallery-accept"
@@ -330,7 +332,10 @@
               checked={accepted}
               onCheckedChange={(value) => (accepted = value)}
             />
-            <Label for="imagepier-gallery-accept" label={$ipt('gallery_terms_accept')} />
+            <Label
+              for="imagepier-gallery-accept"
+              label={$ipt(getGalleryCredit(selected) ? 'gallery_terms_accept' : 'gallery_license_accept')}
+            />
           </div>
           <a
             href={getGalleryDownloadUrl(galleryKey, selected.id)}

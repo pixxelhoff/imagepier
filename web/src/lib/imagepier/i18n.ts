@@ -125,6 +125,7 @@ const en = {
   gallery_credit: 'Credit line',
   gallery_credit_hint: 'Please state the credit line next to the image.',
   gallery_terms_accept: 'I have read the credit line and license terms and will follow them.',
+  gallery_license_accept: 'I have read the license terms and will follow them.',
   gallery_download: 'Download',
   gallery_close: 'Close',
   gallery_previous: 'Previous image',
@@ -361,8 +362,8 @@ const en = {
   import_choose_folder: 'Choose folder',
   import_choose_files: 'Choose files',
   import_checking: 'Checking files … {done} of {total}',
-  import_files: '{count} files, {selected} selected',
-  import_unsupported: '{count} files skipped (format not supported)',
+  import_files: '{count} {count|file|files}, {selected} selected',
+  import_unsupported: '{count} {count|file|files} skipped (format not supported)',
   import_check_failed: 'Unable to compare with ImagePier; duplicates are still detected while uploading.',
   import_select_all: 'Select all',
   import_select_none: 'Select none',
@@ -386,10 +387,10 @@ const en = {
   import_name_place: 'Place',
   import_name_author: 'Author',
   import_name_example: 'Example: {name}',
-  import_start: 'Import {count} files',
+  import_start: 'Import {count} {count|file|files}',
   import_running: 'Importing … {done} of {total}',
   import_keep_open: 'Keep this tab open until the import is finished.',
-  import_done: '{count} files imported, {failed} failed',
+  import_done: '{count} {count|file|files} imported, {failed} failed',
   import_new: 'New import',
   import_log: 'Download log',
   import_col_file: 'File',
@@ -526,6 +527,7 @@ const de: Record<ImagePierMessageKey, string> = {
   gallery_credit: 'Bildnachweis',
   gallery_credit_hint: 'Bitte den Bildnachweis beim Bild angeben.',
   gallery_terms_accept: 'Ich habe Bildnachweis und Lizenzbedingungen gelesen und halte sie ein.',
+  gallery_license_accept: 'Ich habe die Lizenzbedingungen gelesen und halte sie ein.',
   gallery_download: 'Herunterladen',
   gallery_close: 'Schließen',
   gallery_previous: 'Vorheriges Bild',
@@ -763,8 +765,8 @@ const de: Record<ImagePierMessageKey, string> = {
   import_choose_folder: 'Ordner wählen',
   import_choose_files: 'Dateien wählen',
   import_checking: 'Dateien werden geprüft … {done} von {total}',
-  import_files: '{count} Dateien, {selected} ausgewählt',
-  import_unsupported: '{count} Dateien übersprungen (Format nicht unterstützt)',
+  import_files: '{count} {count|Datei|Dateien}, {selected} ausgewählt',
+  import_unsupported: '{count} {count|Datei|Dateien} übersprungen (Format nicht unterstützt)',
   import_check_failed: 'Abgleich mit ImagePier nicht möglich; doppelte Dateien werden trotzdem beim Hochladen erkannt.',
   import_select_all: 'Alle auswählen',
   import_select_none: 'Keine auswählen',
@@ -788,10 +790,10 @@ const de: Record<ImagePierMessageKey, string> = {
   import_name_place: 'Ort',
   import_name_author: 'Urheber',
   import_name_example: 'Beispiel: {name}',
-  import_start: '{count} Dateien importieren',
+  import_start: '{count} {count|Datei|Dateien} importieren',
   import_running: 'Import läuft … {done} von {total}',
   import_keep_open: 'Lass diesen Tab offen, bis der Import fertig ist.',
-  import_done: '{count} Dateien importiert, {failed} fehlgeschlagen',
+  import_done: '{count} {count|Datei|Dateien} importiert, {failed} fehlgeschlagen',
   import_new: 'Neuer Import',
   import_log: 'Protokoll herunterladen',
   import_col_file: 'Datei',
@@ -807,14 +809,24 @@ const de: Record<ImagePierMessageKey, string> = {
 const messages: Record<string, Record<ImagePierMessageKey, string>> = { en, de };
 
 /** Usage in components: `$ipt('usage_rights')` or `$ipt('usage_rights_bulk_title', { count: 3 })` */
+/**
+Inserts `{name}` values. `{name|one|other}` picks the singular when the value is 1, e.g. `{count|file|files}`.
+*/
+export const formatMessage = (message: string, values: Record<string, string | number>) =>
+  message.replaceAll(/\{(\w+)(?:\|([^|}]*)\|([^}]*))?\}/g, (match, name: string, one?: string, other?: string) => {
+    if (!(name in values)) {
+      return match;
+    }
+    const value = values[name];
+    if (one === undefined) {
+      return String(value);
+    }
+    return Number(value) === 1 ? one : (other ?? '');
+  });
+
 export const ipt = derived(locale, ($locale) => {
   const language = ($locale ?? 'en').toLowerCase().split('-', 1)[0];
   const dictionary = messages[language] ?? en;
-  return (key: ImagePierMessageKey, values: Record<string, string | number> = {}) => {
-    let message = dictionary[key] ?? en[key];
-    for (const [name, value] of Object.entries(values)) {
-      message = message.replaceAll(`{${name}}`, () => String(value));
-    }
-    return message;
-  };
+  return (key: ImagePierMessageKey, values: Record<string, string | number> = {}) =>
+    formatMessage(dictionary[key] ?? en[key], values);
 });

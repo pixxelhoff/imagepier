@@ -137,7 +137,7 @@ export class ImagePierAccessService extends BaseService {
   */
   private runExclusive<T>(task: () => Promise<T>): Promise<T> {
     const result = this.exclusive.then(task);
-    this.exclusive = result.catch(() => undefined);
+    this.exclusive = result.catch(() => null);
     return result;
   }
 

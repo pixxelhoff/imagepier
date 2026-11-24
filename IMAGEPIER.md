@@ -262,7 +262,8 @@ Branding is applied at **build time** by the Vite plugin in `web/src/lib/imagepi
 so Immich source files stay untouched. The plugin is disabled in unit tests (`mode === 'test'`).
 
 - Every import of `@immich/ui` resolves to `branding/ui.ts`, which re-exports the library with ImagePier's `Logo`
-  and `immichLogo`. Logo images are static files in `web/static/imagepier/` (replaceable at runtime by a mount).
+  and `immichLogo`. It also loads `branding/reload-on-update.ts`: when a page opened before an update cannot load
+  the parts of the next page (`vite:preloadError`), the page is reloaded once (at most once a minute). Logo images are static files in `web/static/imagepier/` (replaceable at runtime by a mount).
 - `HIDDEN_COMPONENTS` turns Immich components into empty ones (the sidebar purchase reminder).
 - `TEXT_REPLACEMENTS` changes literal strings such as page titles.
 - Translation files (`i18n/*.json`): "Immich" becomes "ImagePier", except in keys about the Immich project itself
